@@ -10,20 +10,38 @@ import re
 from os import listdir
 from os.path import isfile, join
 
-# conda install -c conda-forge lmfit
-
-## Things to add
-# Residual plot for peak. E.g, position minus data. And also the
-
-# Exports y - Loop the Neons.
-
 encode="ISO-8859-1"
-## Get all txt files
-def get_diad_files(path, sort=True):
+
+# Requirements
+# lmfit
+
+
+## Functions for getting file names
+
+def get_diad_files(path, sort=True, exclude_str='Ne', exclude_type='.png'):
+    """ This function takes a user path, and extracts all files which dont contain the excluded string and type
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+    sort: bool
+        If true, sorts files alphabetically
+    exclude_str: str
+        Excludes files with this string in their name. E.g. if exclude_str='Ne' it will exclude Ne lines
+    exclude_type: str
+        Excludes files of this type, e.g. exclude_type='png' gets rid of image files.
+
+    Returns
+    -----------
+    Returns file names as a list.
+
+    """
     file_fmt='txt'
-    exclude='.png'
+    exclude=exclude_type
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
-    Diad_files=[item for item in Allfiles if 'Ne' not in item and file_fmt in item and exclude not in item]
+    Diad_files=[item for item in Allfiles if exclude_str not in item and file_fmt in item and exclude not in item]
     if sort is True:
 
         Diad_files2=sorted(Diad_files)
@@ -31,9 +49,16 @@ def get_diad_files(path, sort=True):
         Diad_files2=Diad_files
     return Diad_files2
 
-## String Stripping
 
 def get_all_txt_files(path):
+    """ This function takes a user path, and gets all the .txt. files in that path.
+
+    Parameters
+    -----------
+    path: str
+        Folder user wishes to read data from
+    """
+
     Allfiles_all = [f for f in listdir(path) if isfile(join(path, f))]
     # Use only txt files
     type(Allfiles_all)
@@ -43,300 +68,45 @@ def get_all_txt_files(path):
             All_files.append(format(file))
     return All_files
 
-## WITEC string stripping functions
 
-## This function goes through, reads the timestamp line, and calculates time in seconds
-def extract_time_stamp_witec(*, path, filename):
-    """ Extracts time stamps, but, need to filter out video files"""
-
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-
-    while True:
-        l=fr.readline()
-        if l.startswith('Start'):
-            line=l
-            break
-    return line
-
-def extract_laser_power_witec(*, path, filename):
-    """ Extracts laser power, but, need to filter out video files"""
-
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-
-    while True:
-        l=fr.readline()
-        if l.startswith('Laser'):
-            line=l
-            break
-    return line
-
-def extract_accumulations(*, path, filename):
-    """ Extracts accumulations, but, need to filter out video files"""
-
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-
-    while True:
-        l=fr.readline()
-        if l.startswith('Number'):
-            line=l
-            break
-    return line
-
-
-def extract_Integration_Time(*, path, filename):
-    """ Extracts integration time, but, need to filter out video files
+## Functions to just simply get data to plot up
+def get_data(*, path=None, filename, filetype='Witec_ASCII'):
     """
-
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-    while True:
-        l=fr.readline()
-        if l.startswith('Integration'):
-            line=l
-            break
-    return line
-
-def extract_objective(*, path, filename):
-    """ Extracts objective magnification, but, need to filter out video files
+    Extracts data as a np.array from user file of differen types
     """
+    if filetype == 'headless_txt':
+        Ne_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
 
-    fr = open(path+'/'+filename,  'r', encoding=encode)
+    if filetype=='Witec_ASCII':
+        Ne_df=read_witec_to_df(path=path, filename=filename)
 
+    if filetype=='Renishaw_txt':
+        Ne_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
+        Ne_df=Ne_df_long.iloc[:, 0:2]
 
-    while True:
-        l=fr.readline()
-        if "Magnification" in l:
-            line=l
-            break
-    return line
+    if filetype=='HORIBA_txt':
+        Ne_df=read_HORIBA_to_df(path=path, filename=filename)
 
-def extract_duration(*, path, filename):
-    """ Extracts analysis duration, but, need to filter out video files"""
+    Ne_in=np.array(Ne_df)
 
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-
-    while True:
-        l=fr.readline()
-        if l.startswith('Duration'):
-            line=l
-            break
-    return line
-
-def extract_date(*, path, filename):
-    """ Extracts date, but, need to filter out video files"""
-
-    fr = open(path+'/'+filename,  'r', encoding=encode)
+    return Ne_in
 
 
-    while True:
-        l=fr.readline()
-        if l.startswith('Start Date'):
-            line=l
-            break
-    return line
-
-def checks_if_video(*, path, filename):
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-    l1=fr.readline()
-    #print(l1)
-    if 'Video' in l1:
-        return 'Video'
-    else:
-
-        return 'not Video'
-
-def checks_if_imagescan(*, path, filename):
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-    l1=fr.readline()
-    #print(l1)
-    if 'Scan' in l1:
-        return 'Scan'
-    else:
-
-        return 'not Scan'
-
-def checks_if_general(*, path, filename):
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-    l1=fr.readline()
-    #print(l1)
-    if 'General' in l1:
-        return 'General'
-    else:
-        return 'not General'
-### These bits stitch these all together
-
-def extract_acq_params(*, path, filename):
-    """ calculates laser power etc, throw out video files etc"""
-    # Need to throw out video and peak fit files "general"
-    line_general=checks_if_general(path=path, filename=filename)
-    line_video_check=checks_if_video(path=path, filename=filename)
-    line_scan=checks_if_imagescan(path=path, filename=filename)
-
-    # If not a
-    if line_video_check == "Video":
-        power=np.nan
-        accums=np.nan
-        integ=np.nan
-        Obj=np.nan
-        Dur=np.nan
-        dat=np.nan
-    if line_scan == "Scan":
-        power=np.nan
-        accums=np.nan
-        integ=np.nan
-        Obj=np.nan
-        Dur=np.nan
-        dat=np.nan
-    if line_general == 'General':
-        power=np.nan
-        accums=np.nan
-        integ=np.nan
-        Obj=np.nan
-        Dur=np.nan
-        dat=np.nan
-
-    # If a real spectra file
-    if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
-        power_str=extract_laser_power_witec(path=path, filename=filename)
-        power=float(power_str.split()[3])
-
-        accums_str=extract_accumulations(path=path, filename=filename)
-        accums=float(accums_str.split()[3])
-
-        integ_str=extract_Integration_Time(path=path, filename=filename)
-        integ=float(integ_str.split()[3])
-
-        Obj_str=extract_objective(path=path, filename=filename)
-        Obj=float(Obj_str.split()[2])
-
-        Dur_str=extract_duration(path=path, filename=filename)
-        Dur=Dur_str.split()[1:]
-
-        dat_str=extract_date(path=path, filename=filename)
-        dat=dat_str.split(':')[1].split(',',1)[1].lstrip( )
-
-    return power, accums, integ, Obj, Dur, dat
-
-
-
-
-def calculates_time(*, path, filename):
-    """ calculates time for non video files"""
-
-    # Need to throw out video and peak fit files "general"
-    line_general=checks_if_general(path=path, filename=filename)
-    line_video_check=checks_if_video(path=path, filename=filename)
-    line_scan=checks_if_imagescan(path=path, filename=filename)
-
-    # If not a
-    if line_video_check == "Video":
-        line3_sec_int=np.nan
-        line2=np.nan
-    if line_general == 'General':
-        line3_sec_int=np.nan
-        line2=np.nan
-    if line_scan== "Scan":
-        line3_sec_int=np.nan
-        line2=np.nan
-    # If a real spectra file
-    if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
-        line=extract_time_stamp_witec(path=path, filename=filename)
-
-
-        line2=line.strip('Start Time:\t')
-        if 'PM' in line2:
-            line3=line2.strip(' PM\n')
-            line3_hr=line3.split(':')[0]
-            line3_min=re.search(':(.*):', line3).group(1)
-            line3_sec=re.search(':(.*)', line2).group(1)[3:5]
-
-
-        if 'AM' in line2:
-            line3=line2.strip(' AM\n')
-            line3_hr=line3.split(':')[0]
-            line3_min=re.search(':(.*):', line3).group(1)
-            line3_sec=re.search(':(.*)', line2).group(1)[3:5]
-
-
-
-        if line3_hr != '12' and 'PM' in line2:
-            line3_sec_int=12*60*60+float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)
-        else:
-            line3_sec_int=float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)
-
-
-    return line3_sec_int, line2
-
-def stitch_in_loop(*, Allfiles=None, path=None, prefix=True):
-
-    # string values
-    time_str=[]
-    filename_str=[]
-    duration_str=[]
-    date_str=[]
-    # Numerical values
-    Int_time=np.empty(len(Allfiles), dtype=float)
-    objec=np.empty(len(Allfiles), dtype=float)
-    time=np.empty(len(Allfiles), dtype=float)
-    power=np.empty(len(Allfiles), dtype=float)
-    accumulations=np.empty(len(Allfiles), dtype=float)
-
-    for i in range(0, len(Allfiles)):
-        filename1=Allfiles[i] #.rsplit('.',1)[0]
-        if prefix is True:
-            filename=filename1.split(' ')[1:][0]
-        else:
-            filename=filename1
-        print('working on file' + str(filename1))
-        time_num, t_str=calculates_time(path=path, filename=filename1)
-
-        powr, accums, integ, Obj, Dur, dat=extract_acq_params(path=path,
-                                                       filename=filename1)
-
-
-        Int_time[i]=integ
-        objec[i]=Obj
-        power[i]=powr
-        accumulations[i]=accums
-
-
-        time[i]=time_num
-        time_str.append(format(t_str))
-        filename_str.append(format(filename))
-        duration_str.append(format(Dur))
-        date_str.append(format(dat))
-
-
-
-
-    Time_Df=pd.DataFrame(data={'name': filename_str,
-                               'date': date_str,
-                               'power': power,
-                               'Int_time': Int_time,
-                               'accumulations': accumulations,
-                               'Mag (X)': objec,
-                               'duration': duration_str,
-                   '24hr_time': time_str,
-    'sec since midnight': time
-                              })
-    Time_Df_2=Time_Df[Time_Df['sec since midnight'].notna()]
-    Time_Df_2['index']=Time_Df_2.index
-
-    Time_Df_2=Time_Df_2.sort_values('sec since midnight', axis=0, ascending=True)
-    Time_Df_2.to_clipboard(excel=True)
-    print('Done')
-
-    return Time_Df_2
 
 
 ## Importing files
 def read_HORIBA_to_df(*,  path=None, filename):
     """ This function takes in a HORIBA .txt. file with headers with #, and looks down to the row where Data starts (no #),
     and saves this to a new file called pandas_.... old file. It exports the data as a pandas dataframe
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
 
 
     """
@@ -383,6 +153,14 @@ def read_witec_to_df(*,  path=None, filename):
     """ This function takes in a WITec ASCII.txt. file with metadata mixed with data, and looks down to the row where Data starts,
     and saves this to a new file called pandas_.... old file. It exports the data as a pandas dataframe
 
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
 
     """
     path2=path+'/'+ 'Peak_fits_txt'
@@ -426,58 +204,201 @@ def read_witec_to_df(*,  path=None, filename):
     return df
 
 
-### tried agin
+## Functions for plotting and fitting Ne lines
+
+def plot_Ne_lines(*, path=None, filename, filetype='Witec_ASCII', n_peaks=6,
+peak1_cent=1118, peak2_cent=1447, exclude_range_1=None,
+exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width=1,):
+
+    """
+    Loads Ne line, uses scipy find peaks to identify peaks, overlays these,
+    and returns peak positions to feed into fitting algorithms
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
+
+    filetype: str
+        Identifies type of file
+        Witec_ASCII: Datafile from WITEC with metadata for first few lines
+        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
+        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
+        Renishaw_txt: Datafile from renishaw with column headings.
+
+    n_peaks: int
+        Number of peaks to return values for
+
+    peak1_cent: int or float, default 1118
+        Position to look for 1st peak in, finds peaks within +/- 5 of this
+
+    peak2_cent: int or float, default 1447
+        Position to look for 2nd peak in, finds peaks within +/- 5 of this
 
 
-# def read_witec_to_df(*,  path=None, filename):
-#     """ This function takes in a WITec .txt. file, and looks down to the row where Data starts,
-#     and saves this to a new file called pandas_.... old file. It exports the data as a pandas dataframe
-#
-#
-#     """
-#     if path is None:
-#         fr = open(filename, 'r')
-#         fw=open('pandas_'+filename, 'w')
-#     else:
-#         fr = open(path+'/'+filename, 'r')
-#         fw= open(path+'/'+'pandas_'+filename, 'w')
-#
-#
-#     while True:
-#         l=fr.readline()
-#         if l.startswith('[Data]'):
-#
-#             break
-#
-#     while True:
-#         l=fr.readline()
-#         fw.write(line)
-#
-#     if path is None:
-#         print(filename)
-#         df=pd.read_csv('pandas_'+filename, sep="\t")
-#     else:
-#         print(filename)
-#         df=pd.read_csv(path+'/'+'pandas_'+filename, sep="\t")
-#
-#     return df
+    height, threshold, distance, prominence, width: int
+         parameters for scipy find peaks
+
+    exclude_range_1: None or list
+        users can enter a range (e.g [1100, 1112]) to exclude a part of their spectrum,
+        perhaps to remove cosmic rays
+
+    exclude_range_2: None or list
+        users can enter a range (e.g [1100, 1112]) to exclude a part of their spectrum,
+        perhaps to remove cosmic rays
 
 
 
+    """
 
-## Background fitting
 
-def remove_Ne_baseline_1117(Ne, N_poly_1117_baseline=1, Ne_center_1=1117.1, rect_height=50):
+    if filetype == 'headless_txt':
+        Ne_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
+
+    if filetype=='Witec_ASCII':
+        Ne_df=read_witec_to_df(path=path, filename=filename)
+
+    if filetype=='Renishaw_txt':
+        Ne_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
+        Ne_df=Ne_df_long.iloc[:, 0:2]
+
+    if filetype=='HORIBA_txt':
+        Ne_df=read_HORIBA_to_df(path=path, filename=filename)
+
+    Ne_in=np.array(Ne_df)
+
+
+
+    # Exclude range
+    if exclude_range_1 is None and exclude_range_2 is None:
+        Ne=Ne_in
+    if exclude_range_1 is not None:
+        Ne=Ne_in[ (Ne_in[:, 0]<exclude_range_1[0]) | (Ne_in[:, 0]>exclude_range_1[1]) ]
+
+    if exclude_range_2 is not None:
+        Ne=Ne_in[ (Ne_in[:, 0]<exclude_range_2[0]) | (Ne_in[:, 0]>exclude_range_2[1]) ]
+
+    # Find peaks
+    y=Ne[:, 1]
+    x=Ne[:, 0]
+
+    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
+    ax0.plot(x, y, '-r')
+    miny=np.min(y)
+    maxy=np.max(y)
+    ax0.plot([1117, 1117], [miny, maxy], ':k')
+    ax0.plot([1220, 1220], [miny, maxy], ':k')
+    ax0.plot([1310, 1310], [miny, maxy], ':k')
+    ax0.plot([1398, 1398], [miny, maxy], ':k')
+    ax0.plot([1447, 1447], [miny, maxy], ':k')
+    ax0.plot([1566, 1566], [miny, maxy], ':k')
+
+    ax0.set_ylabel('Amplitude')
+    ax0.set_xlabel('Wavenumber')
+
+
+    peaks = find_peaks(y,height = height, threshold = threshold, distance = distance, prominence=prominence, width=width)
+
+    n_peaks=6
+    height = peaks[1]['peak_heights'] #list of the heights of the peaks
+    peak_pos = x[peaks[0]] #list of the peaks positions
+    df=pd.DataFrame(data={'pos': peak_pos,
+                        'height': height})
+
+    # Find bigest peaks,
+    df_sort_Ne=df.sort_values('height', axis=0, ascending=False)
+    df_sort_Ne_trim=df_sort_Ne[0:n_peaks]
+    df_1117=df_sort_Ne.loc[df['pos'].between(peak1_cent-5, peak1_cent+5)]
+    df_1447=df_sort_Ne.loc[df['pos'].between(peak2_cent-5, peak2_cent+5)]
+
+    df_1117_trim=df_1117[0:1]
+    df_1447_trim=df_1447[0:1]
+
+
+    ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '-c', label='input')
+    ax1.plot(x, y, '-r', label='filtered')
+    ax1.plot(df['pos'], df['height'], '*c', label='all peaks')
+    if len(df_1117)==0:
+        ax1.plot(1117, df_1447_trim['height'], '*k')
+    else:
+        ax1.plot(df_1117_trim['pos'], df_1117_trim['height'], '*k', label='selected peak')
+    ax1.plot(df_1447_trim['pos'], df_1447_trim['height'], '*k', label='selected peak')
+    ax1.legend()
+    ax1.set_xlim([1110, 1130])
+
+    ax2.plot(x, y, '-r')
+    ax2.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*k')
+    #print(df_1117)
+
+    if len(df_1117)==0:
+        pos_1117=str(1117)
+    else:
+        pos_1117=str(np.round(df_1117_trim['pos'].iloc[0], 1))
+    pos_1447=str(np.round(df_1447_trim['pos'].iloc[0], 1))
+    if len(df_1117)==0:
+        ax1.annotate(pos_1117, xy=(1117-5,
+        100-10), xycoords="data", fontsize=10, rotation=90)
+    else:
+        ax1.annotate(pos_1117, xy=(df_1117_trim['pos']-5,
+        df_1117_trim['height']-10), xycoords="data", fontsize=10, rotation=90)
+
+    ax2.annotate(pos_1447, xy=(df_1447_trim['pos']-5,
+        df_1447_trim['height']-100), xycoords="data", fontsize=10, rotation=90)
+    ax1.set_xlim([1110, 1130])
+
+    ax2.set_xlim([1430, 1460])
+
+    #fig.tight_layout()
+    if len(df_1117)==0:
+        nearest_1117=1117.1
+    else:
+        nearest_1117=float(df_1117_trim['pos'])
+    nearest_1447=float(df_1447_trim['pos'])
+    print(nearest_1117)
+    print(nearest_1447)
+    return Ne, df_sort_Ne_trim, nearest_1117, nearest_1447
+
+def remove_Ne_baseline_1117(Ne, N_poly_1117_baseline=1, Ne_center_1=1117.1,
+lower_bck=[-50, -25], upper_bck1=[8, 15], upper_bck2=[30, 50] ):
     """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
     around the 1117 peak
 
+    Parameters
+    -----------
+
+    Ne: np.array
+        np.array of x and y coordinates from the spectra
+
+    N_poly_1117_baseline: int
+        Degree of polynomial used to fit the background
+
+    Ne_center_1: float
+        Center position for Ne line being fitted
+
+    lower_bck: list (length 2). default [-50, -20]
+        position used for lower background relative to peak, so =[-50, -20] takes a
+        background -50 and -20 from the peak center
+
+    upper_bck1: list (length 2). default [8, 15]
+        position used for 1st upper background relative to peak, so =[8, 15] takes a
+        background +8 and +15 from the peak center
+
+    upper_bck2: list (length 2). default [30, 50]
+        position used for 2nd upper background relative to peak, so =[30, 50] takes a
+        background +30 and +50 from the peak center
     """
-    lower_0baseline_1117=Ne_center_1-50
-    upper_0baseline_1117=Ne_center_1-25
-    lower_1baseline_1117=Ne_center_1+8
-    upper_1baseline_1117=Ne_center_1+15
-    lower_2baseline_1117=Ne_center_1+30
-    upper_2baseline_1117=Ne_center_1+50
+
+    lower_0baseline_1117=Ne_center_1+lower_bck[0]
+    upper_0baseline_1117=Ne_center_1+lower_bck[1]
+    lower_1baseline_1117=Ne_center_1+upper_bck1[0]
+    upper_1baseline_1117=Ne_center_1+upper_bck1[1]
+    lower_2baseline_1117=Ne_center_1+upper_bck2[0]
+    upper_2baseline_1117=Ne_center_1+upper_bck2[1]
+
     # Trim for entire range
     Ne_short=Ne[ (Ne[:,0]>lower_0baseline_1117) & (Ne[:,0]<upper_2baseline_1117) ]
 
@@ -507,24 +428,49 @@ def remove_Ne_baseline_1117(Ne, N_poly_1117_baseline=1, Ne_center_1=1117.1, rect
     y_corr= Ne_short[:, 1]-  Py_base
     x=Ne_short[:, 0]
 
-    # This calculates some limits for the plots
-    ymin=Median_Baseline-rect_height
-    ymax=Median_Baseline+rect_height
 
     return y_corr, Py_base, x,  Ne_short, Py_base, Baseline_ysub, Baseline_x
 
-def remove_Ne_baseline_1447(Ne, N_poly_1447_baseline=1, Ne_center_2=1447.1, rect_height=50):
+def remove_Ne_baseline_1447(Ne, N_poly_1447_baseline=1, Ne_center_2=1447.1,
+lower_bck=[-44.2, -22], upper_bck1=[15, 50], upper_bck2=[50, 51]):
+
     """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
     around the 1447 peak
 
+    Parameters
+    -----------
+
+    Ne: np.array
+        np.array of x and y coordinates from the spectra
+
+    N_poly_1117_baseline: int
+        Degree of polynomial used to fit the background
+
+    Ne_center_1: float
+        Center position for Ne line being fitted
+
+    lower_bck: list (length 2) Default [-44.2, -22]
+        position used for lower background relative to peak, so =[-50, -20] takes a
+        background -50 and -20 from the peak center
+
+    upper_bck1: list (length 2). Default [15, 50]
+        position used for 1st upper background relative to peak, so =[8, 15] takes a
+        background +8 and +15 from the peak center
+
+    upper_bck2: list (length 2) Default [50, 51]
+        position used for 2nd upper background relative to peak, so =[30, 50] takes a
+        background +30 and +50 from the peak center
     """
 
-    lower_0baseline_1447=Ne_center_2-44.2
-    upper_0baseline_1447=Ne_center_2-22
-    lower_1baseline_1447=Ne_center_2+15
-    upper_1baseline_1447=Ne_center_2+50
-    lower_2baseline_1447=Ne_center_2+50
-    upper_2baseline_1447=Ne_center_2+51
+
+
+    lower_0baseline_1447=Ne_center_2+lower_bck[0]
+    upper_0baseline_1447=Ne_center_2+lower_bck[1]
+    lower_1baseline_1447=Ne_center_2+upper_bck1[0]
+    upper_1baseline_1447=Ne_center_2+upper_bck1[1]
+    lower_2baseline_1447=Ne_center_2+upper_bck2[0]
+    upper_2baseline_1447=Ne_center_2+upper_bck2[1]
+
     # Trim for entire range
     Ne_short=Ne[ (Ne[:,0]>lower_0baseline_1447) & (Ne[:,0]<upper_2baseline_1447) ]
 
@@ -554,28 +500,58 @@ def remove_Ne_baseline_1447(Ne, N_poly_1447_baseline=1, Ne_center_2=1447.1, rect
     y_corr= Ne_short[:, 1]-  Py_base
     x=Ne_short[:, 0]
 
-    # This calculates some limits for the plots
-    ymin=Median_Baseline-rect_height
-    ymax=Median_Baseline+rect_height
 
     return y_corr, Py_base, x,  Ne_short, Py_base, Baseline_ysub, Baseline_x
 
 
 
 
-## Fit Ne lines
 
-def fit_1117(x, y_corr, x_span_up=8, x_span_low=10, Ne_center=1117.1, amplitude=98, sigma=0.28,
+def fit_1117(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98, sigma=0.28,
 LH_offset_mini=[1.5, 3], peaks_1117=2, print_report=False) :
-    """ This function fits the 1117 Ne line as a Voigt
+    """ This function fits the 1117 Ne line as 1 or two voigt peaks
+
+    Parameters
+    -----------
+
+    x: np.array
+        x coordinate (wavenumber)
+
+    y: np.array
+        Background corrected intensiy
+
+    x_span: list length 2. Default [-10, 8]
+        Span either side of peak center used for fitting,
+        e.g. by default, fits to 10 wavenumbers below peak, 8 above.
+
+    Ne_center: float (default=1117.1)
+        Center position for Ne line being fitted
+
+    amplitude: integer (default = 98)
+        peak amplitude
+
+    sigma: float (default =0.28)
+        sigma of the voigt peak
+
+    peaks_1117: integer
+        number of peaks to fit, e.g. 1, single voigt, 2 to get shoulder peak
+
+    LH_offset_mini: list length 2
+        Forces second peak to be within -1.5 to -3 from the main peak position.
+
+    print_report: bool
+        if True, prints fit report.
+
+
     """
 
     # Flatten x and y if needed
     xdat=x.flatten()
     ydat=y_corr.flatten()
+
     # This defines the range you want to fit (e.g. how big the tails are)
-    lower_1117=Ne_center-x_span_low
-    upper_1117=Ne_center+x_span_up
+    lower_1117=Ne_center+x_span[0]
+    upper_1117=Ne_center+x_span[1]
 
     # This segments into the x and y variable, and variables to plot, which are a bit bigger.
     Ne_1117_reg_x=x[(x>lower_1117)&(x<upper_1117)]
@@ -719,12 +695,41 @@ LH_offset_mini=[1.5, 3], peaks_1117=2, print_report=False) :
     return Center_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps
 
 
-def fit_1447(x, y_corr, x_span=5, Ne_center=1447.5, amplitude=1000, sigma=0.28, print_report=False) :
-    """ This function fits the 1447 Ne line as a Voigt
+def fit_1447(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=0.28, print_report=False) :
+    """ This function fits the 1447 Ne line as a single Voigt
+
+    Parameters
+    -----------
+
+    x: np.array
+        x coordinate (wavenumber)
+
+    y: np.array
+        Background corrected intensiy
+
+    x_span: list length 2. Default [-5, 5]
+        Span either side of peak center used for fitting,
+        e.g. by default, fits to 5 wavenumbers below peak, 5 above.
+
+    Ne_center: float (default=1447.5)
+        Center position for Ne line being fitted
+
+    amplitude: integer (default = 1000)
+        peak amplitude
+
+    sigma: float (default =0.28)
+        sigma of the voigt peak
+
+
+    print_report: bool
+        if True, prints fit report.
+
+
     """
+
     # This defines the range you want to fit (e.g. how big the tails are)
-    lower_1447=Ne_center-x_span
-    upper_1447=Ne_center+x_span
+    lower_1447=Ne_center+x_span[0]
+    upper_1447=Ne_center+x_span[1]
 
     # This segments into the x and y variable, and variables to plot, which are a bit bigger.
     Ne_1447_reg_x=x[(x>lower_1447)&(x<upper_1447)]
@@ -766,177 +771,168 @@ def fit_1447(x, y_corr, x_span=5, Ne_center=1447.5, amplitude=1000, sigma=0.28, 
 
     return Center_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx
 
-def select_Ne_background(path=None, filename=None, filetype='Witec_ASCII',
-back_LHS_1447=[1405, 1420], back_RHS_1447=[1460, 1500], back_LHS_1117=[1060, 1090], back_RHS_1117=[1150, 1165]):
-
-    if filetype == 'headless_txt':
-        Ne_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
-
-    if filetype=='Witec_ASCII':
-        Ne_df=read_witec_to_df(path=path, filename=filename)
-
-    if filetype=='Renishaw_txt':
-        Ne_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        Ne_df=Ne_df_long.iloc[:, 0:2]
-
-    if filetype=='HORIBA_txt':
-        Ne_df=read_HORIBA_to_df(path=path, filename=filename)
-
-    Ne_in=np.array(Ne_df)
-    y=Ne_in[:, 1]
-    x=Ne_in[:, 0]
-
-    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 4))
-    ax0.grid(color = 'k', linestyle = '--', linewidth = 1, alpha = 0.1)
-    ax1.grid(color = 'k', linestyle = '--', linewidth = 1, alpha = 0.1)
-    ax0.plot(x, y, '-r')
-    ax1.plot(x, y, '-r')
-
-    Back_1447_LHS=Ne_in[ (Ne_in[:, 0]>=back_LHS_1447[0]) & (Ne_in[:, 0]<back_LHS_1447[1]) ]
-    Back_1117_LHS=Ne_in[ (Ne_in[:, 0]>=back_LHS_1117[0]) & (Ne_in[:, 0]<back_LHS_1117[1]) ]
-    Back_1447_RHS=Ne_in[ (Ne_in[:, 0]>=back_RHS_1447[0]) & (Ne_in[:, 0]<back_RHS_1447[1]) ]
-    Back_1117_RHS=Ne_in[ (Ne_in[:, 0]>=back_RHS_1117[0]) & (Ne_in[:, 0]<back_RHS_1117[1]) ]
-
-    ax0.plot(Back_1447_LHS[:, 0], Back_1447_LHS[:, 1], '.b')
-    ax1.plot(Back_1117_LHS[:, 0], Back_1117_LHS[:, 1], '.b')
-    ax0.plot(Back_1447_RHS[:, 0], Back_1447_RHS[:, 1], '.b')
-    ax1.plot(Back_1117_RHS[:, 0], Back_1117_RHS[:, 1], '.b')
-
-    ax0.set_xlim([back_LHS_1447[0]-30, back_RHS_1447[1]+30])
-    ax1.set_xlim([back_LHS_1117[0]-30, back_RHS_1117[1]+30])
-
-def get_Ne_data(*, path=None, filename, filetype='Witec_ASCII'):
-
-    if filetype == 'headless_txt':
-        Ne_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
-
-    if filetype=='Witec_ASCII':
-        Ne_df=read_witec_to_df(path=path, filename=filename)
-
-    if filetype=='Renishaw_txt':
-        Ne_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        Ne_df=Ne_df_long.iloc[:, 0:2]
-
-    if filetype=='HORIBA_txt':
-        Ne_df=read_HORIBA_to_df(path=path, filename=filename)
-
-    Ne_in=np.array(Ne_df)
-
-    return Ne_in
-
-
-def plot_Ne_lines(*, path=None, filename, filetype='Witec_ASCII', n_peaks=6,
-height=10, threshold=0.6, distance=1, prominence=10, width=1, exclude_range_1=None,
-exclude_range_2=None, peak1_cent=1118, peak2_cent=1447):
-
-
-    if filetype == 'headless_txt':
-        Ne_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
-
-    if filetype=='Witec_ASCII':
-        Ne_df=read_witec_to_df(path=path, filename=filename)
-
-    if filetype=='Renishaw_txt':
-        Ne_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        Ne_df=Ne_df_long.iloc[:, 0:2]
-
-    if filetype=='HORIBA_txt':
-        Ne_df=read_HORIBA_to_df(path=path, filename=filename)
-
-    Ne_in=np.array(Ne_df)
 
 
 
-    # Exclude range
-    if exclude_range_1 is None and exclude_range_2 is None:
-        Ne=Ne_in
-    if exclude_range_1 is not None:
-        Ne=Ne_in[ (Ne_in[:, 0]<exclude_range_1[0]) | (Ne_in[:, 0]>exclude_range_1[1]) ]
+def fit_Ne_Line(*, Ne=None, filename=None, path=None, Ne_center_1=1117.1, Ne_center_2=1447, x_span_1447=20, x_span_1117_up=8,
+N_poly_1447_baseline=1, N_poly_1117_baseline=1,
+x_span_1117_low=10, LH_offset_mini=[1.5, 3], peaks_1117=2,
+prefix=True, amplitude=100, plot_figure=True, print_report=False):
+    """ This function reads in a user file, fits the Ne lines, and if required, saves an image
+    into a new sub folder
 
-    if exclude_range_2 is not None:
-        Ne=Ne_in[ (Ne_in[:, 0]<exclude_range_2[0]) | (Ne_in[:, 0]>exclude_range_2[1]) ]
+    Parameters
+    -----------
 
-    # Find peaks
-    y=Ne[:, 1]
-    x=Ne[:, 0]
+    Ne: np.array
+        x coordinate (wavenumber) and y coordinate (intensity)
 
-    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
-    ax0.plot(x, y, '-r')
-    miny=np.min(y)
-    maxy=np.max(y)
-    ax0.plot([1117, 1117], [miny, maxy], ':k')
-    ax0.plot([1220, 1220], [miny, maxy], ':k')
-    ax0.plot([1310, 1310], [miny, maxy], ':k')
-    ax0.plot([1398, 1398], [miny, maxy], ':k')
-    ax0.plot([1447, 1447], [miny, maxy], ':k')
-    ax0.plot([1566, 1566], [miny, maxy], ':k')
-
-    ax0.set_ylabel('Amplitude')
-    ax0.set_xlabel('Wavenumber')
+    filename and path: str
+        used to save filename in datatable, and to make a new folder.
 
 
-    peaks = find_peaks(y,height = height, threshold = threshold, distance = distance, prominence=prominence, width=width)
+    Ne_center_1: float (default=1117.1)
+        Center position for lower Ne line being fitted
 
-    n_peaks=6
-    height = peaks[1]['peak_heights'] #list of the heights of the peaks
-    peak_pos = x[peaks[0]] #list of the peaks positions
-    df=pd.DataFrame(data={'pos': peak_pos,
-                        'height': height})
+    amplitude: integer (default = 98)
+        peak amplitude
 
-    # Find bigest peaks,
-    df_sort_Ne=df.sort_values('height', axis=0, ascending=False)
-    df_sort_Ne_trim=df_sort_Ne[0:n_peaks]
-    df_1117=df_sort_Ne.loc[df['pos'].between(peak1_cent-5, peak1_cent+5)]
-    df_1447=df_sort_Ne.loc[df['pos'].between(peak2_cent-5, peak2_cent+5)]
+    sigma: float (default =0.28)
+        sigma of the voigt peak
 
-    df_1117_trim=df_1117[0:1]
-    df_1447_trim=df_1447[0:1]
+    peaks_1117: integer
+        number of peaks to fit, e.g. 1, single voigt, 2 to get shoulder peak
+
+    LH_offset_mini: list length 2
+        Forces second peak to be within -1.5 to -3 from the main peak position.
+
+    print_report: bool
+        if True, prints fit report.
 
 
-    ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '-c', label='input')
-    ax1.plot(x, y, '-r', label='filtered')
-    ax1.plot(df['pos'], df['height'], '*c', label='all peaks')
-    if len(df_1117)==0:
-        ax1.plot(1117, df_1447_trim['height'], '*k')
-    else:
-        ax1.plot(df_1117_trim['pos'], df_1117_trim['height'], '*k', label='selected peak')
-    ax1.plot(df_1447_trim['pos'], df_1447_trim['height'], '*k', label='selected peak')
-    ax1.legend()
-    ax1.set_xlim([1110, 1130])
+    """
 
-    ax2.plot(x, y, '-r')
-    ax2.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*k')
-    #print(df_1117)
 
-    if len(df_1117)==0:
-        pos_1117=str(1117)
-    else:
-        pos_1117=str(np.round(df_1117_trim['pos'].iloc[0], 1))
-    pos_1447=str(np.round(df_1447_trim['pos'].iloc[0], 1))
-    if len(df_1117)==0:
-        ax1.annotate(pos_1117, xy=(1117-5,
-        100-10), xycoords="data", fontsize=10, rotation=90)
-    else:
-        ax1.annotate(pos_1117, xy=(df_1117_trim['pos']-5,
-        df_1117_trim['height']-10), xycoords="data", fontsize=10, rotation=90)
+    #Remove the baselines
+    y_corr_1117, Py_base_1117, x_1117, Ne_short_1117, Py_base_1117, Baseline_ysub_1117, Baseline_x_1117=remove_Ne_baseline_1117(Ne, Ne_center_1=Ne_center_1, N_poly_1117_baseline=N_poly_1117_baseline)
 
-    ax2.annotate(pos_1447, xy=(df_1447_trim['pos']-5,
-        df_1447_trim['height']-100), xycoords="data", fontsize=10, rotation=90)
-    ax1.set_xlim([1110, 1130])
+    y_corr_1447, Py_base_1447, x_1447, Ne_short_1447, Py_base_1447, Baseline_ysub_1447, Baseline_x_1447=remove_Ne_baseline_1447(Ne, Ne_center_2=Ne_center_2, N_poly_1447_baseline=N_poly_1447_baseline)
 
-    ax2.set_xlim([1430, 1460])
+    # Fit the 1117 peak
+    cent_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps = fit_1117(x_1117, y_corr_1117, x_span_up=x_span_1117_up, x_span_low=x_span_1117_low, Ne_center=Ne_center_1, LH_offset_mini=LH_offset_mini, peaks_1117=peaks_1117,
+    amplitude=amplitude, print_report=print_report)
 
-    #fig.tight_layout()
-    if len(df_1117)==0:
-        nearest_1117=1117.1
-    else:
-        nearest_1117=float(df_1117_trim['pos'])
-    nearest_1447=float(df_1447_trim['pos'])
-    print(nearest_1117)
-    print(nearest_1447)
-    return Ne, df_sort_Ne_trim, nearest_1117, nearest_1447
+    # Fit the 1447 peak
+    cent_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx = fit_1447(x_1447, y_corr_1447, x_span=x_span_1447/2, Ne_center=Ne_center_2, amplitude=amplitude, print_report=print_report)
 
-## Plotting and removing diad baseline
+    # Calculate difference between peak centers, and Delta Ne
+    DeltaNe=cent_1447-cent_1117
+    DeltaNe_ideal=330.477634
+    Ne_Corr=DeltaNe_ideal/DeltaNe
+
+    # Calculate maximum splitting (+1 sigma)
+    DeltaNe_max=(cent_1447+error_1447)-(cent_1117-error_1117)
+    DeltaNe_min=(cent_1447-error_1447)-(cent_1117+error_1117)
+    Ne_Corr_max=DeltaNe_ideal/DeltaNe_min
+    Ne_Corr_min=DeltaNe_ideal/DeltaNe_max
+
+    # Calculating least square residual
+    residual_1117=np.sum(((Ne_1117_reg_y-result_1117_origx)**2)**0.5)/(len(Ne_1117_reg_y))
+    residual_1447=np.sum(((Ne_1447_reg_y-result_1447_origx)**2)**0.5)/(len(Ne_1447_reg_y))
+    if plot_figure is True:
+        # Make a summary figure of the backgrounds and fits
+        fig, ((ax2, ax3), (ax4, ax5), (ax0, ax1)) = plt.subplots(3,2, figsize = (12,15)) # adjust dimensions of figure here
+        fig.suptitle(filename, fontsize=16)
+
+        ax0.plot(Ne_short_1447[:,0], Py_base_1447, '-k')
+        ax0.plot(Ne_short_1447[:,0], Ne_short_1447[:,1], '-r')
+        ax0.plot(Baseline_x_1447, Baseline_ysub_1447, '.b', ms=5)
+
+        ax0.set_title('1447 background fitting')
+        ax0.set_xlabel('Wavenumber')
+        ax0.set_ylabel('Intensity')
+        mean_baseline=np.mean(Py_base_1447)
+        ax0.set_ylim([min(Ne_short_1447[:,1])-10, min(Ne_short_1447[:,1])+0.2*max(Ne_short_1447[:,1])])
+        #ax0.set_ylim([mean_baseline-50, mean_baseline+50])
+
+        ax1.plot(Ne_short_1117[:,0], Py_base_1117, '-k')
+        ax1.plot(Ne_short_1117[:,0], Ne_short_1117[:,1], '-r')
+        ax1.plot(Baseline_x_1117, Baseline_ysub_1117, '.b', ms=6)
+
+
+        ax1.set_title('1117 background fitting')
+        ax1.set_xlabel('Wavenumber')
+        ax1.set_ylabel('Intensity')
+
+        ax2.plot(Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, 'xb', label='data')
+        ax2.plot(Ne_1447_reg_x, Ne_1447_reg_y, '+k', label='data')
+        ax2.plot(xx_1447, result_1447, 'r-', label='interpolated fit')
+        ax2.set_title('1447 peak fitting')
+        ax2.set_xlabel('Wavenumber')
+        ax2.set_ylabel('Intensity')
+        ax2.set_xlim([cent_1447-5, cent_1447+5])
+
+
+        ax3.plot(Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, 'xb', label='data')
+        ax3.plot(Ne_1117_reg_x, Ne_1117_reg_y, '+k', label='data')
+
+        ax3.set_title('1117 peak fitting')
+        ax3.set_xlabel('Wavenumber')
+        ax3.set_ylabel('Intensity')
+        ax3.plot(xx_1117, comps.get('p1_'), '-r', label='p1')
+        if peaks_1117>1:
+            ax3.plot(xx_1117, comps.get('p2_'), '-c', label='p2')
+        ax3.plot(xx_1117, result_1117, 'g-', label='best fit')
+        ax3.legend()
+        ax3.set_xlim([cent_1117-5,cent_1117+5 ])
+
+        # Residuals for charlotte
+        ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, '-r', label='residual')
+        ax5.plot(Ne_1117_reg_x, Ne_1117_reg_y-result_1117_origx, '-r',  label='residual')
+        ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, 'ok', mfc='r', label='residual')
+        ax5.plot(Ne_1117_reg_x, Ne_1117_reg_y-result_1117_origx, 'ok', mfc='r', label='residual')
+        ax4.set_ylabel('Residual (Intensity units')
+        ax4.set_xlabel('Wavenumber')
+        ax5.set_ylabel('Residual (Intensity units)')
+        ax5.set_xlabel('Wavenumber')
+
+        fig.tight_layout()
+
+        # Save figure
+        path3=path+'/'+'Peak_fit_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'Peak_fit_images', exist_ok=False)
+
+        figure_str=path+'/'+ 'Peak_fit_images'+ '/'+ filename+str('_Ne_Line_Fit')+str('.png')
+
+        fig.savefig(figure_str, dpi=200)
+
+    if prefix is True:
+
+        filename=filename.split(' ')[1:][0]
+    df=pd.DataFrame(data={'File_Name': filename,
+                          '1447_peak_cent':cent_1447,
+                          'error_1447': error_1447,
+                          '1117_peak_cent':cent_1117,
+                          'error_1117': error_1117,
+                         'deltaNe': DeltaNe,
+                         'Ne_Corr': Ne_Corr,
+                         'Ne_Corr_min':Ne_Corr_min,
+                         'Ne_Corr_max': Ne_Corr_max,
+                         'residual_1447':residual_1447,
+                         'residual_1117': residual_1117}, index=[0])
+
+    df.to_clipboard(excel=True, header=False, index=False)
+
+    return df, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot
+
+
+
+
+## Functions for plotting and fitting Diads
+
 
 def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_diad1=2, n_peaks_diad2=3,
         exclude_range1=None, exclude_range2=None,
@@ -1218,128 +1214,6 @@ def remove_super_dense_baseline(*, path=None, filename, filetype='Witec_ASCII',
 ####
 
 
-def fit_Ne_Line(*, Ne=None, filename=None, path=None, Ne_center_1=1117.1, Ne_center_2=1447, x_span_1447=20, x_span_1117_up=8,
-N_poly_1447_baseline=1, N_poly_1117_baseline=1,
-x_span_1117_low=10, LH_offset_mini=[1.5, 3], peaks_1117=2,
-prefix=True, amplitude=100, plot_figure=True, print_report=False):
-    """ This function reads Ne lines from a user input file
-    """
-
-
-    #Remove the baselines
-    y_corr_1117, Py_base_1117, x_1117, Ne_short_1117, Py_base_1117, Baseline_ysub_1117, Baseline_x_1117=remove_Ne_baseline_1117(Ne, Ne_center_1=Ne_center_1, N_poly_1117_baseline=N_poly_1117_baseline)
-
-    y_corr_1447, Py_base_1447, x_1447, Ne_short_1447, Py_base_1447, Baseline_ysub_1447, Baseline_x_1447=remove_Ne_baseline_1447(Ne, Ne_center_2=Ne_center_2, N_poly_1447_baseline=N_poly_1447_baseline)
-
-    # Fit the 1117 peak
-    cent_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps = fit_1117(x_1117, y_corr_1117, x_span_up=x_span_1117_up, x_span_low=x_span_1117_low, Ne_center=Ne_center_1, LH_offset_mini=LH_offset_mini, peaks_1117=peaks_1117,
-    amplitude=amplitude, print_report=print_report)
-
-    # Fit the 1447 peak
-    cent_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx = fit_1447(x_1447, y_corr_1447, x_span=x_span_1447/2, Ne_center=Ne_center_2, amplitude=amplitude, print_report=print_report)
-
-    # Calculate difference between peak centers, and Delta Ne
-    DeltaNe=cent_1447-cent_1117
-    DeltaNe_ideal=330.477634
-    Ne_Corr=DeltaNe_ideal/DeltaNe
-
-    # Calculate maximum splitting (+1 sigma)
-    DeltaNe_max=(cent_1447+error_1447)-(cent_1117-error_1117)
-    DeltaNe_min=(cent_1447-error_1447)-(cent_1117+error_1117)
-    Ne_Corr_max=DeltaNe_ideal/DeltaNe_min
-    Ne_Corr_min=DeltaNe_ideal/DeltaNe_max
-
-    # Calculating least square residual
-    residual_1117=np.sum(((Ne_1117_reg_y-result_1117_origx)**2)**0.5)/(len(Ne_1117_reg_y))
-    residual_1447=np.sum(((Ne_1447_reg_y-result_1447_origx)**2)**0.5)/(len(Ne_1447_reg_y))
-    if plot_figure is True:
-        # Make a summary figure of the backgrounds and fits
-        fig, ((ax2, ax3), (ax4, ax5), (ax0, ax1)) = plt.subplots(3,2, figsize = (12,15)) # adjust dimensions of figure here
-        fig.suptitle(filename, fontsize=16)
-
-        ax0.plot(Ne_short_1447[:,0], Py_base_1447, '-k')
-        ax0.plot(Ne_short_1447[:,0], Ne_short_1447[:,1], '-r')
-        ax0.plot(Baseline_x_1447, Baseline_ysub_1447, '.b', ms=5)
-
-        ax0.set_title('1447 background fitting')
-        ax0.set_xlabel('Wavenumber')
-        ax0.set_ylabel('Intensity')
-        mean_baseline=np.mean(Py_base_1447)
-        ax0.set_ylim([min(Ne_short_1447[:,1])-10, min(Ne_short_1447[:,1])+0.2*max(Ne_short_1447[:,1])])
-        #ax0.set_ylim([mean_baseline-50, mean_baseline+50])
-
-        ax1.plot(Ne_short_1117[:,0], Py_base_1117, '-k')
-        ax1.plot(Ne_short_1117[:,0], Ne_short_1117[:,1], '-r')
-        ax1.plot(Baseline_x_1117, Baseline_ysub_1117, '.b', ms=6)
-
-
-        ax1.set_title('1117 background fitting')
-        ax1.set_xlabel('Wavenumber')
-        ax1.set_ylabel('Intensity')
-
-        ax2.plot(Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, 'xb', label='data')
-        ax2.plot(Ne_1447_reg_x, Ne_1447_reg_y, '+k', label='data')
-        ax2.plot(xx_1447, result_1447, 'r-', label='interpolated fit')
-        ax2.set_title('1447 peak fitting')
-        ax2.set_xlabel('Wavenumber')
-        ax2.set_ylabel('Intensity')
-        ax2.set_xlim([cent_1447-5, cent_1447+5])
-
-
-        ax3.plot(Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, 'xb', label='data')
-        ax3.plot(Ne_1117_reg_x, Ne_1117_reg_y, '+k', label='data')
-
-        ax3.set_title('1117 peak fitting')
-        ax3.set_xlabel('Wavenumber')
-        ax3.set_ylabel('Intensity')
-        ax3.plot(xx_1117, comps.get('p1_'), '-r', label='p1')
-        if peaks_1117>1:
-            ax3.plot(xx_1117, comps.get('p2_'), '-c', label='p2')
-        ax3.plot(xx_1117, result_1117, 'g-', label='best fit')
-        ax3.legend()
-        ax3.set_xlim([cent_1117-5,cent_1117+5 ])
-
-        # Residuals for charlotte
-        ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, '-r', label='residual')
-        ax5.plot(Ne_1117_reg_x, Ne_1117_reg_y-result_1117_origx, '-r',  label='residual')
-        ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, 'ok', mfc='r', label='residual')
-        ax5.plot(Ne_1117_reg_x, Ne_1117_reg_y-result_1117_origx, 'ok', mfc='r', label='residual')
-        ax4.set_ylabel('Residual (Intensity units')
-        ax4.set_xlabel('Wavenumber')
-        ax5.set_ylabel('Residual (Intensity units)')
-        ax5.set_xlabel('Wavenumber')
-
-        fig.tight_layout()
-
-        # Save figure
-        path3=path+'/'+'Peak_fit_images'
-        if os.path.exists(path3):
-            out='path exists'
-        else:
-            os.makedirs(path+'/'+ 'Peak_fit_images', exist_ok=False)
-
-        figure_str=path+'/'+ 'Peak_fit_images'+ '/'+ filename+str('_Ne_Line_Fit')+str('.png')
-
-        fig.savefig(figure_str, dpi=200)
-
-    if prefix is True:
-
-        filename=filename.split(' ')[1:][0]
-    df=pd.DataFrame(data={'File_Name': filename,
-                          '1447_peak_cent':cent_1447,
-                          'error_1447': error_1447,
-                          '1117_peak_cent':cent_1117,
-                          'error_1117': error_1117,
-                         'deltaNe': DeltaNe,
-                         'Ne_Corr': Ne_Corr,
-                         'Ne_Corr_min':Ne_Corr_min,
-                         'Ne_Corr_max': Ne_Corr_max,
-                         'residual_1447':residual_1447,
-                         'residual_1117': residual_1117}, index=[0])
-
-    df.to_clipboard(excel=True, header=False, index=False)
-
-    return df, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot
 
 
 ### Fit diads
@@ -2436,7 +2310,7 @@ def loop_over_Ne_Lines(path=None,filename=None,  filetype=None,  nearest_1117=No
 # filename=filename, filetype=filetype,  n_peaks=6,
 # height=100, threshold=0.6, distance=1, prominence=100, width=1,
 # exclude_range_1=exclude_range_1, exclude_range_2=exclude_range_2)
-    Ne=get_Ne_data(path=path, filename=filename, filetype=filetype)
+    Ne=get_data(path=path, filename=filename, filetype=filetype)
 
     # How many degrees in polynomials
     N_poly_1447_baseline=1
@@ -2456,3 +2330,304 @@ def loop_over_Ne_Lines(path=None,filename=None,  filetype=None,  nearest_1117=No
 
 
     return df
+
+## Instrument specific metadata things
+## Functions to extract metadata from WITEC files (v instrument specific)
+
+def extract_time_stamp_witec(*, path, filename):
+    """ Extracts time stamps
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Start'):
+            line=l
+            break
+    return line
+
+def extract_laser_power_witec(*, path, filename):
+    """ Extracts laser power
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Laser'):
+            line=l
+            break
+    return line
+
+def extract_accumulations(*, path, filename):
+    """ Extracts accumulations
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Number'):
+            line=l
+            break
+    return line
+
+
+def extract_Integration_Time(*, path, filename):
+    """ Extracts Integration time
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Integration'):
+            line=l
+            break
+    return line
+
+def extract_objective(*, path, filename):
+    """ Extracts objective magnification
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if "Magnification" in l:
+            line=l
+            break
+    return line
+
+def extract_duration(*, path, filename):
+    """ Extracts analysis duration
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Duration'):
+            line=l
+            break
+    return line
+
+def extract_date(*, path, filename):
+    """ Extracts date"""
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Start Date'):
+            line=l
+            break
+    return line
+
+def checks_if_video(*, path, filename):
+    """ Checks if file is an image (as doesnt have all metadata)
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+    l1=fr.readline()
+    #print(l1)
+    if 'Video' in l1:
+        return 'Video'
+    else:
+
+        return 'not Video'
+
+def checks_if_imagescan(*, path, filename):
+    """ Checks if file is an imagescan (as doesnt have all metadata)
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+    l1=fr.readline()
+    #print(l1)
+    if 'Scan' in l1:
+        return 'Scan'
+    else:
+
+        return 'not Scan'
+
+def checks_if_general(*, path, filename):
+    """ Checks if file is a spectra file with all the right metadata
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+    l1=fr.readline()
+    #print(l1)
+    if 'General' in l1:
+        return 'General'
+    else:
+        return 'not General'
+
+## Functions for extracting the metadata from WITEC files
+
+def extract_acq_params(*, path, filename):
+    """ This function checks what type of file you have, and if its a spectra file,
+    uses the functions above to extract various bits of metadata
+    """
+
+    line_general=checks_if_general(path=path, filename=filename)
+    line_video_check=checks_if_video(path=path, filename=filename)
+    line_scan=checks_if_imagescan(path=path, filename=filename)
+
+    # If not a
+    if line_video_check == "Video":
+        power=np.nan
+        accums=np.nan
+        integ=np.nan
+        Obj=np.nan
+        Dur=np.nan
+        dat=np.nan
+    if line_scan == "Scan":
+        power=np.nan
+        accums=np.nan
+        integ=np.nan
+        Obj=np.nan
+        Dur=np.nan
+        dat=np.nan
+    if line_general == 'General':
+        power=np.nan
+        accums=np.nan
+        integ=np.nan
+        Obj=np.nan
+        Dur=np.nan
+        dat=np.nan
+
+    # If a real spectra file
+    if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
+        power_str=extract_laser_power_witec(path=path, filename=filename)
+        power=float(power_str.split()[3])
+
+        accums_str=extract_accumulations(path=path, filename=filename)
+        accums=float(accums_str.split()[3])
+
+        integ_str=extract_Integration_Time(path=path, filename=filename)
+        integ=float(integ_str.split()[3])
+
+        Obj_str=extract_objective(path=path, filename=filename)
+        Obj=float(Obj_str.split()[2])
+
+        Dur_str=extract_duration(path=path, filename=filename)
+        Dur=Dur_str.split()[1:]
+
+        dat_str=extract_date(path=path, filename=filename)
+        dat=dat_str.split(':')[1].split(',',1)[1].lstrip( )
+
+    return power, accums, integ, Obj, Dur, dat
+
+
+
+
+def calculates_time(*, path, filename):
+    """ calculates time for non video files for WITEC files"""
+
+    # Need to throw out video and peak fit files "general"
+    line_general=checks_if_general(path=path, filename=filename)
+    line_video_check=checks_if_video(path=path, filename=filename)
+    line_scan=checks_if_imagescan(path=path, filename=filename)
+
+    # If not a
+    if line_video_check == "Video":
+        line3_sec_int=np.nan
+        line2=np.nan
+    if line_general == 'General':
+        line3_sec_int=np.nan
+        line2=np.nan
+    if line_scan== "Scan":
+        line3_sec_int=np.nan
+        line2=np.nan
+    # If a real spectra file
+    if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
+        line=extract_time_stamp_witec(path=path, filename=filename)
+
+
+        line2=line.strip('Start Time:\t')
+        if 'PM' in line2:
+            line3=line2.strip(' PM\n')
+            line3_hr=line3.split(':')[0]
+            line3_min=re.search(':(.*):', line3).group(1)
+            line3_sec=re.search(':(.*)', line2).group(1)[3:5]
+
+
+        if 'AM' in line2:
+            line3=line2.strip(' AM\n')
+            line3_hr=line3.split(':')[0]
+            line3_min=re.search(':(.*):', line3).group(1)
+            line3_sec=re.search(':(.*)', line2).group(1)[3:5]
+
+
+
+        if line3_hr != '12' and 'PM' in line2:
+            line3_sec_int=12*60*60+float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)
+        else:
+            line3_sec_int=float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)
+
+
+    return line3_sec_int, line2
+
+def stitch_in_loop(*, Allfiles=None, path=None, prefix=True):
+    """ Stitches together WITEC metadata for all files in a loop
+    """
+    # string values
+    time_str=[]
+    filename_str=[]
+    duration_str=[]
+    date_str=[]
+    # Numerical values
+    Int_time=np.empty(len(Allfiles), dtype=float)
+    objec=np.empty(len(Allfiles), dtype=float)
+    time=np.empty(len(Allfiles), dtype=float)
+    power=np.empty(len(Allfiles), dtype=float)
+    accumulations=np.empty(len(Allfiles), dtype=float)
+
+    for i in range(0, len(Allfiles)):
+        filename1=Allfiles[i] #.rsplit('.',1)[0]
+        if prefix is True:
+            filename=filename1.split(' ')[1:][0]
+        else:
+            filename=filename1
+        print('working on file' + str(filename1))
+        time_num, t_str=calculates_time(path=path, filename=filename1)
+
+        powr, accums, integ, Obj, Dur, dat=extract_acq_params(path=path,
+                                                       filename=filename1)
+
+
+        Int_time[i]=integ
+        objec[i]=Obj
+        power[i]=powr
+        accumulations[i]=accums
+
+
+        time[i]=time_num
+        time_str.append(format(t_str))
+        filename_str.append(format(filename))
+        duration_str.append(format(Dur))
+        date_str.append(format(dat))
+
+
+
+
+    Time_Df=pd.DataFrame(data={'name': filename_str,
+                               'date': date_str,
+                               'power': power,
+                               'Int_time': Int_time,
+                               'accumulations': accumulations,
+                               'Mag (X)': objec,
+                               'duration': duration_str,
+                   '24hr_time': time_str,
+    'sec since midnight': time
+                              })
+    Time_Df_2=Time_Df[Time_Df['sec since midnight'].notna()]
+    Time_Df_2['index']=Time_Df_2.index
+
+    Time_Df_2=Time_Df_2.sort_values('sec since midnight', axis=0, ascending=True)
+    Time_Df_2.to_clipboard(excel=True)
+    print('Done')
+
+    return Time_Df_2
