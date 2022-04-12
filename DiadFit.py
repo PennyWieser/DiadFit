@@ -17,6 +17,36 @@ encode="ISO-8859-1"
 
 
 ## Functions for getting file names
+def get_Ne_files(path, ID_str='Ne', file_fmt='txt', exclude_str=None, sort=True):
+    """ This function takes a user path, and extracts all files which contain the ID_str
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+    sort: bool
+        If true, sorts files alphabetically
+    ID_str: str
+        Finds all files containing this string (e.g. Ne, NE)
+    exclude_str: str
+        Excludes files with this string in the name
+    file_fmt: str
+        Gets all files of this format only (e.g. txt)
+
+
+    Returns
+    -----------
+    Returns file names as a list.
+
+    """
+    Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
+    Ne_files=[item for item in Allfiles if ID_str in item and file_fmt in item and exclude_str not in item]
+
+    if sort is True:
+        Ne_files=sorted(Ne_files)
+    return Ne_files
+
 
 def get_diad_files(path, sort=True, exclude_str='Ne', exclude_type='.png'):
     """ This function takes a user path, and extracts all files which dont contain the excluded string and type
@@ -592,7 +622,7 @@ LH_offset_mini=[1.5, 3], peaks_1117=2, print_report=False) :
         minp2=Center_p0-LH_offset_mini[1]
         maxp2=Center_p0-LH_offset_mini[0]
 
-        print('Trying to place second peak between'+str(np.round(minp2, 2))+'and'+ str(np.round(maxp2, 2)))
+        print('Trying to place second peak between '+str(np.round(minp2, 2))+'and'+ str(np.round(maxp2, 2)))
         pars[prefix + 'center'].set(Center_p0, min=minp2,
         max=maxp2)
 
@@ -604,7 +634,7 @@ LH_offset_mini=[1.5, 3], peaks_1117=2, print_report=False) :
 
         model_combo=model1+peak
         pars1.update(pars)
-        print('made it here')
+
 
     if peaks_1117==1:
         print('fitting a single peak, if you want the shoulder, do peaks_1117=2')
@@ -745,8 +775,8 @@ def fit_1447(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=
     params = model.make_params(center=Ne_center, amplitude=amplitude, sigma=sigma)
 
     # Place bounds on center allowed
-    params['center'].min = Ne_center-x_span
-    params['center'].max = Ne_center+x_span
+    params['center'].min = Ne_center+x_span[0]
+    params['center'].max = Ne_center+x_span[1]
 
 
 
@@ -773,11 +803,15 @@ def fit_1447(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=
 
 
 
+def fit_Ne_lines(*, Ne=None, filename=None, path=None, prefix=True,
+Ne_center_1=1117.1, N_poly_1_baseline=1, x_span_1=[-10, 8],
+LH_offset_mini=[1.5, 3], peaks_1=2,
+lower_bck_pk1=[-50, -25], upper_bck1_pk1=[8, 15], upper_bck2_pk1=[30, 50],
+Ne_center_2=1147, N_poly_2_baseline=1, x_span_2=[-5, 5],
+lower_bck_pk2=[-44.2, -22], upper_bck1_pk2=[15, 50], upper_bck2_pk2=[50, 51],
+amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_range=1000):
 
-def fit_Ne_Line(*, Ne=None, filename=None, path=None, Ne_center_1=1117.1, Ne_center_2=1447, x_span_1447=20, x_span_1117_up=8,
-N_poly_1447_baseline=1, N_poly_1117_baseline=1,
-x_span_1117_low=10, LH_offset_mini=[1.5, 3], peaks_1117=2,
-prefix=True, amplitude=100, plot_figure=True, print_report=False):
+
     """ This function reads in a user file, fits the Ne lines, and if required, saves an image
     into a new sub folder
 
@@ -790,40 +824,85 @@ prefix=True, amplitude=100, plot_figure=True, print_report=False):
     filename and path: str
         used to save filename in datatable, and to make a new folder.
 
+    filetype: str
+        Identifies type of file
+        Witec_ASCII: Datafile from WITEC with metadata for first few lines
+        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
+        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
+        Renishaw_txt: Datafile from renishaw with column headings.
 
-    Ne_center_1: float (default=1117.1)
-        Center position for lower Ne line being fitted
+    amplitude: int or float
+        first guess of peak amplitude
 
-    amplitude: integer (default = 98)
-        peak amplitude
+    plot_figure: bool
+        if True, saves figure of fit in a new folder
 
-    sigma: float (default =0.28)
-        sigma of the voigt peak
+    Loop: bool
+        If True, only returns df.
 
-    peaks_1117: integer
-        number of peaks to fit, e.g. 1, single voigt, 2 to get shoulder peak
+    x_range: flt, int
+        How much x range outside selected baseline the baseline selection plot shows.
+    y_range: flt, int
+        How much above the baseline position is shown on the y axis.
 
-    LH_offset_mini: list length 2
-        Forces second peak to be within -1.5 to -3 from the main peak position.
+    Things for Diad 1 (~1117):
 
-    print_report: bool
-        if True, prints fit report.
+        N_poly_1_baseline: int
+            Degree of polynomial used to fit the background
+
+        Ne_center_1: float
+            Center position for Ne line being fitted
+
+        lower_bck_1, upper_bck1, upper_bck1: 3 lists of length 2:
+            Positions used for background relative to peak.[-50, -20] takes a
+            background -50 and -20 from the peak center
+
+        x_span_1: list length 2. Default [-10, 8]
+            Span either side of peak center used for fitting,
+            e.g. by default, fits to 10 wavenumbers below peak, 8 above.
 
 
+        peaks_1: int
+            How many peaks to fit to the 1117 diad, if 2, tries to put a shoulder peak
+
+        LH_offset_mini: list
+            If peaks>1, puts second peak within this range left of the main peak
+
+
+
+
+    Things for Diad 2 (~1447):
+        N_poly_2_baseline: int
+            Degree of polynomial used to fit the background
+
+        Ne_center_2: float
+            Center position for Ne line being fitted
+
+        lower_bck_2, upper_bck2, upper_bck2: 3 lists of length 2:
+            Positions used for background relative to peak.[-50, -20] takes a
+            background -50 and -20 from the peak center
+
+        x_span_2: list length 2. Default [-10, 8]
+            Span either side of peak center used for fitting,
+            e.g. by default, fits to 10 wavenumbers below peak, 8 above.
     """
 
 
     #Remove the baselines
-    y_corr_1117, Py_base_1117, x_1117, Ne_short_1117, Py_base_1117, Baseline_ysub_1117, Baseline_x_1117=remove_Ne_baseline_1117(Ne, Ne_center_1=Ne_center_1, N_poly_1117_baseline=N_poly_1117_baseline)
+    y_corr_1117, Py_base_1117, x_1117, Ne_short_1117, Py_base_1117, Baseline_ysub_1117, Baseline_x_1117=remove_Ne_baseline_1117(Ne, Ne_center_1=Ne_center_1,
+    N_poly_1117_baseline=N_poly_1_baseline,
+    lower_bck=lower_bck_pk1, upper_bck1=upper_bck1_pk1, upper_bck2=upper_bck2_pk1)
 
-    y_corr_1447, Py_base_1447, x_1447, Ne_short_1447, Py_base_1447, Baseline_ysub_1447, Baseline_x_1447=remove_Ne_baseline_1447(Ne, Ne_center_2=Ne_center_2, N_poly_1447_baseline=N_poly_1447_baseline)
+    y_corr_1447, Py_base_1447, x_1447, Ne_short_1447, Py_base_1447, Baseline_ysub_1447, Baseline_x_1447=remove_Ne_baseline_1447(Ne, Ne_center_2=Ne_center_2, N_poly_1447_baseline=N_poly_2_baseline,
+    lower_bck=lower_bck_pk2, upper_bck1=upper_bck1_pk2, upper_bck2=upper_bck2_pk2)
 
     # Fit the 1117 peak
-    cent_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps = fit_1117(x_1117, y_corr_1117, x_span_up=x_span_1117_up, x_span_low=x_span_1117_low, Ne_center=Ne_center_1, LH_offset_mini=LH_offset_mini, peaks_1117=peaks_1117,
-    amplitude=amplitude, print_report=print_report)
+    cent_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps = fit_1117(x_1117, y_corr_1117, x_span=x_span_1, Ne_center=Ne_center_1, LH_offset_mini=LH_offset_mini, peaks_1117=peaks_1, amplitude=amplitude, print_report=print_report)
+
 
     # Fit the 1447 peak
-    cent_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx = fit_1447(x_1447, y_corr_1447, x_span=x_span_1447/2, Ne_center=Ne_center_2, amplitude=amplitude, print_report=print_report)
+    cent_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx = fit_1447(x_1447, y_corr_1447, x_span=x_span_2,  Ne_center=Ne_center_2, amplitude=amplitude, print_report=print_report)
+
 
     # Calculate difference between peak centers, and Delta Ne
     DeltaNe=cent_1447-cent_1117
@@ -839,30 +918,46 @@ prefix=True, amplitude=100, plot_figure=True, print_report=False):
     # Calculating least square residual
     residual_1117=np.sum(((Ne_1117_reg_y-result_1117_origx)**2)**0.5)/(len(Ne_1117_reg_y))
     residual_1447=np.sum(((Ne_1447_reg_y-result_1447_origx)**2)**0.5)/(len(Ne_1447_reg_y))
+
     if plot_figure is True:
         # Make a summary figure of the backgrounds and fits
-        fig, ((ax2, ax3), (ax4, ax5), (ax0, ax1)) = plt.subplots(3,2, figsize = (12,15)) # adjust dimensions of figure here
+        fig, ((ax3, ax2), (ax5, ax4), (ax1, ax0)) = plt.subplots(3,2, figsize = (12,15)) # adjust dimensions of figure here
         fig.suptitle(filename, fontsize=16)
 
         ax0.plot(Ne_short_1447[:,0], Py_base_1447, '-k')
         ax0.plot(Ne_short_1447[:,0], Ne_short_1447[:,1], '-r')
-        ax0.plot(Baseline_x_1447, Baseline_ysub_1447, '.b', ms=5)
 
-        ax0.set_title('1447 background fitting')
+
+
+        ax0.plot(Baseline_x_1447, Baseline_ysub_1447, '.b', ms=5, label='Selected background')
+
+        ax0.set_title('Peak2: 1447 background fitting')
         ax0.set_xlabel('Wavenumber')
         ax0.set_ylabel('Intensity')
         mean_baseline=np.mean(Py_base_1447)
-        ax0.set_ylim([min(Ne_short_1447[:,1])-10, min(Ne_short_1447[:,1])+0.2*max(Ne_short_1447[:,1])])
+        std_baseline=np.std(Py_base_1447)
+        ax0.set_ylim([min(Ne_short_1447[:,1])-10, min(Ne_short_1447[:,1])+y_range])
+        ax0.set_xlim([min(Ne_short_1447[:,0])-20, max(Ne_short_1447[:,0])+y_range])
         #ax0.set_ylim([mean_baseline-50, mean_baseline+50])
 
         ax1.plot(Ne_short_1117[:,0], Py_base_1117, '-k')
         ax1.plot(Ne_short_1117[:,0], Ne_short_1117[:,1], '-r')
-        ax1.plot(Baseline_x_1117, Baseline_ysub_1117, '.b', ms=6)
+        ax1.plot(Baseline_x_1117, Baseline_ysub_1117, '.b', ms=6, label='Selected background')
 
+        std_baseline=np.std(Py_base_1117)
+        ax1.set_ylim([min(Ne_short_1117[:,1])-10, min(Ne_short_1117[:,1])+y_range])
 
-        ax1.set_title('1117 background fitting')
+        ax1.set_title('Peak1: 1117 background fitting')
         ax1.set_xlabel('Wavenumber')
         ax1.set_ylabel('Intensity')
+
+        #Testing
+        ax0.legend()
+        ax1.legend()
+        ax0.plot(Ne[:,0], Ne[:,1], '-', color='grey', zorder=0)
+        ax1.plot(Ne[:,0], Ne[:,1], '-', color='grey', zorder=0)
+        ax0.set_xlim([min(Ne_short_1447[:,0])-x_range, max(Ne_short_1447[:,0])+x_range])
+        ax1.set_xlim([min(Ne_short_1117[:,0])-x_range, max(Ne_short_1117[:,0])+x_range])
 
         ax2.plot(Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, 'xb', label='data')
         ax2.plot(Ne_1447_reg_x, Ne_1447_reg_y, '+k', label='data')
@@ -880,7 +975,7 @@ prefix=True, amplitude=100, plot_figure=True, print_report=False):
         ax3.set_xlabel('Wavenumber')
         ax3.set_ylabel('Intensity')
         ax3.plot(xx_1117, comps.get('p1_'), '-r', label='p1')
-        if peaks_1117>1:
+        if peaks_1>1:
             ax3.plot(xx_1117, comps.get('p2_'), '-c', label='p2')
         ax3.plot(xx_1117, result_1117, 'g-', label='best fit')
         ax3.legend()
@@ -891,7 +986,7 @@ prefix=True, amplitude=100, plot_figure=True, print_report=False):
         ax5.plot(Ne_1117_reg_x, Ne_1117_reg_y-result_1117_origx, '-r',  label='residual')
         ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, 'ok', mfc='r', label='residual')
         ax5.plot(Ne_1117_reg_x, Ne_1117_reg_y-result_1117_origx, 'ok', mfc='r', label='residual')
-        ax4.set_ylabel('Residual (Intensity units')
+        ax4.set_ylabel('Residual (Intensity units)')
         ax4.set_xlabel('Wavenumber')
         ax5.set_ylabel('Residual (Intensity units)')
         ax5.set_xlabel('Wavenumber')
@@ -926,7 +1021,39 @@ prefix=True, amplitude=100, plot_figure=True, print_report=False):
 
     df.to_clipboard(excel=True, header=False, index=False)
 
-    return df, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot
+    if loop is False:
+
+        return df, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot
+    if loop is True:
+        return df
+
+
+def each_Ne_Line(path=None,filename=None,  filetype=None,  nearest_1117=None,nearest_1447=None, amplitude=None, prefix=None, LH_offset_mini=None, plot_figure=False):
+    """
+    This function does all the steps for each Ne line, e.g. background fitting,
+    """
+
+    Ne=get_data(path=path, filename=filename, filetype=filetype)
+
+    # How many degrees in polynomials
+    N_poly_1447_baseline=1
+    N_poly_1117_baseline=2
+    #If you have weak Ne lines and no secondary peak, set to 1
+    peaks_1117=2
+    # If weak, set to 10
+    amplitude=amplitude
+
+    df, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot=fit_Ne_lines(Ne=Ne,
+    filename=filename, path=path,
+    Ne_center_1=nearest_1117, Ne_center_2=nearest_1447,
+    peaks_1117=peaks_1117,
+    x_span_1447=20, x_span_1117_up=8, x_span_1117_low=10,
+    LH_offset_mini=LH_offset_mini,  prefix=prefix, amplitude=amplitude, plot_figure=plot_figure)
+
+
+
+    return df
+
 
 
 
@@ -2305,31 +2432,7 @@ def calculate_density_cornell(temp='SupCrit', Split=None):
 
     ## Loop over Ne lines
 
-def loop_over_Ne_Lines(path=None,filename=None,  filetype=None,  nearest_1117=None,nearest_1447=None, amplitude=None, prefix=None, LH_offset_mini=None, plot_figure=False):
-#     Ne, df_sort_Ne_trim, nearest_1117, nearest_1447=pf.plot_Ne_lines(path=path,
-# filename=filename, filetype=filetype,  n_peaks=6,
-# height=100, threshold=0.6, distance=1, prominence=100, width=1,
-# exclude_range_1=exclude_range_1, exclude_range_2=exclude_range_2)
-    Ne=get_data(path=path, filename=filename, filetype=filetype)
 
-    # How many degrees in polynomials
-    N_poly_1447_baseline=1
-    N_poly_1117_baseline=2
-    #If you have weak Ne lines and no secondary peak, set to 1
-    peaks_1117=2
-    # If weak, set to 10
-    amplitude=amplitude
-
-    df, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot=fit_Ne_Line(Ne=Ne,
-    filename=filename, path=path,
-    Ne_center_1=nearest_1117, Ne_center_2=nearest_1447,
-    peaks_1117=peaks_1117,
-    x_span_1447=20, x_span_1117_up=8, x_span_1117_low=10,
-    LH_offset_mini=LH_offset_mini,  prefix=prefix, amplitude=amplitude, plot_figure=plot_figure)
-
-
-
-    return df
 
 ## Instrument specific metadata things
 ## Functions to extract metadata from WITEC files (v instrument specific)
