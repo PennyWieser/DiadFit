@@ -105,21 +105,21 @@ def get_data(*, path=None, filename, filetype='Witec_ASCII'):
     Extracts data as a np.array from user file of differen types
     """
     if filetype == 'headless_txt':
-        Ne_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
+        df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
 
     if filetype=='Witec_ASCII':
-        Ne_df=read_witec_to_df(path=path, filename=filename)
+        df=read_witec_to_df(path=path, filename=filename)
 
     if filetype=='Renishaw_txt':
-        Ne_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        Ne_df=Ne_df_long.iloc[:, 0:2]
+        df_long=pd.read_csv(path+'/'+filename, sep="\t" )
+        df=Ne_df_long.iloc[:, 0:2]
 
     if filetype=='HORIBA_txt':
-        Ne_df=read_HORIBA_to_df(path=path, filename=filename)
+        df=read_HORIBA_to_df(path=path, filename=filename)
 
-    Ne_in=np.array(Ne_df)
+    df_in=np.array(df)
 
-    return Ne_in
+    return df_in
 
 
 
@@ -286,20 +286,8 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
     """
 
 
-    if filetype == 'headless_txt':
-        Ne_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
+    Ne_in=get_data(path=path, filename=filename, filetype=filetype)
 
-    if filetype=='Witec_ASCII':
-        Ne_df=read_witec_to_df(path=path, filename=filename)
-
-    if filetype=='Renishaw_txt':
-        Ne_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        Ne_df=Ne_df_long.iloc[:, 0:2]
-
-    if filetype=='HORIBA_txt':
-        Ne_df=read_HORIBA_to_df(path=path, filename=filename)
-
-    Ne_in=np.array(Ne_df)
 
 
 
@@ -1063,21 +1051,60 @@ def each_Ne_Line(path=None,filename=None,  filetype=None,  nearest_1117=None,nea
 
 def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_diad1=2, n_peaks_diad2=3,
         exclude_range1=None, exclude_range2=None,
-        discard_diad1=None, discard_diad2=None,
-        height = 10, threshold = 0.6, distance = 1, prominence=10, width=2):
+        height = 10, threshold = 0.6, distance = 1, prominence=10, width=2,
+        plot_figure=True):
+    """
+    This function loads your file, and excludes up to 2 user-defined ranges.
+    It then uses scipy find peaks to get a first guess of peak positions to feed into later functions
 
-    if filetype == 'headless_txt':
-        Diad_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
 
-    if filetype=='Witec_ASCII':
-        Diad_df=read_witec_to_df(path=path, filename=filename)
+    Parameters
+    -----------
 
-    if filetype=='Renishaw_txt':
-        Diad_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        Diad_df=Diad_df_long.iloc[:, 0:2]
+    path: str
+        Folder user wishes to read data from
 
-    if filetype=='HORIBA_txt':
-        Diad_df=read_HORIBA_to_df(path=path, filename=filename)
+    filename: str
+        Specific file being read
+
+    filetype: str
+        Identifies type of file
+        Witec_ASCII: Datafile from WITEC with metadata for first few lines
+        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
+        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
+        Renishaw_txt: Datafile from renishaw with column headings.
+
+    n_peaks_diad1:
+        How many peaks you want the code to try to identify around the LH diad
+        1: Just the diad
+        2: Diad and Hot Band
+
+    n_peaks_diad2:
+        How many peaks you want the code to try to identify around the RH diad
+        1: Just the diad
+        2: Diad and Hot Band
+        3: Diad, Hot band and C13
+
+    exclude_range1: None or list length 2
+        Excludes a region, e.g. a cosmic ray
+
+    exclude_range2: None or list length 2
+        Excludes a region, e.g. a cosmic ray
+
+    height, threshold, distance, prominence, width: int or float
+        parameters that can be tweaked from scipy find peaks
+
+    plot_figure: bool
+        if True, plots figure, if False, doesn't.
+
+    Returns
+    -----------
+
+
+
+    """
+
+    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
 
     Diad=np.array(Diad_df)
     if exclude_range1 is None and exclude_range2 is None:
@@ -1110,34 +1137,6 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
             ((Diad_old[:, 0]>=exclude_range2[0]) & (Diad_old[:, 0]<=exclude_range2[1]))
             ]
 
-    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
-    ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
-    if Discard_str is not False:
-        ax0.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
-        ax1.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
-        ax2.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
-
-    ax0.plot([1286, 1286],
-    [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D1 pos')
-    ax0.plot([1389, 1389],
-    [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D2 pos')
-    ax1.plot([1286, 1286],
-    [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D1 pos')
-    ax1.plot([1389, 1389],
-    [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D2 pos')
-    ax2.plot([1286, 1286],
-    [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D1 pos')
-    ax2.plot([1389, 1389],
-    [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D2 pos')
-
-    ax0.legend()
-    ax1.set_title('Diad1')
-    ax1.plot(Diad[:, 0],Diad[:, 1], '-r')
-    ax1.set_xlim([1200, 1350])
-    ax2.set_title('Diad2')
-    ax2.plot(Diad[:, 0],Diad[:, 1], '-r')
-    ax2.set_xlim([1350, 1450])
-    #ax0.set_ylim[np.min(Diad[:, 1]), np.max(Diad[:, 1]) ])
 
     y=Diad[:, 1]
     x=Diad[:, 0]
@@ -1152,11 +1151,11 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
     # Find peaks within the 2nd diad window
     df_pks_diad2=df[(df['pos']>1350) & (df['pos']<1430) ]
 
-    if discard_diad1 is not None:
-        df_pks_diad1=df_pks_diad1[~(df_pks_diad1['pos'].between(discard_diad1-0.1, discard_diad1+0.1))]
-
-    if discard_diad2 is not None:
-        df_pks_diad2=df_pks_diad2[~(df_pks_diad2['pos'].between(discard_diad2-0.1, discard_diad2+0.1))]
+    # if discard_diad1 is not None:
+    #     df_pks_diad1=df_pks_diad1[~(df_pks_diad1['pos'].between(discard_diad1-0.1, discard_diad1+0.1))]
+    #
+    # if discard_diad2 is not None:
+    #     df_pks_diad2=df_pks_diad2[~(df_pks_diad2['pos'].between(discard_diad2-0.1, discard_diad2+0.1))]
 
     df_sort_diad1=df_pks_diad1.sort_values('height', axis=0, ascending=False)
     df_sort_diad1_trim=df_sort_diad1[0:n_peaks_diad1]
@@ -1164,27 +1163,6 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
     df_sort_diad2=df_pks_diad2.sort_values('height', axis=0, ascending=False)
     df_sort_diad2_trim=df_sort_diad2[0:n_peaks_diad2]
 
-    #print('Upper diad'+str(diad2))
-    fig.tight_layout()
-    ax2.plot(df_sort_diad2_trim['pos'], df_sort_diad2_trim['height'], '*k')
-    ax1.plot(df_sort_diad1_trim['pos'], df_sort_diad1_trim['height'], '*k')
-    ax0.set_xlabel('Wavenumber')
-    ax0.set_ylabel('Intensity')
-    ax1.set_xlabel('Wavenumber')
-    ax1.set_ylabel('Intensity')
-    ax2.set_xlabel('Wavenumber')
-    ax2.set_ylabel('Intensity')
-
-    for i in range(0, len(df_sort_diad1_trim)):
-        ax1.annotate(str(np.round(df_sort_diad1_trim['pos'].iloc[i], 1)), xy=(df_sort_diad1_trim['pos'].iloc[i]-10,
-        df_sort_diad1_trim['height'].iloc[i]-1/7*(df_sort_diad1_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
-
-    for i in range(0, len(df_sort_diad2_trim)):
-        ax2.annotate(str(np.round(df_sort_diad2_trim['pos'].iloc[i], 1)), xy=(df_sort_diad2_trim['pos'].iloc[i]-10,
-        df_sort_diad2_trim['height'].iloc[i]-1/7*(df_sort_diad2_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
-
-    # ax1.set_ylim([np.min(y), np.max(df_sort_diad1_trim['height'])+np.max(df_sort_diad1_trim['height'])/3+50 ])
-    # ax2.set_ylim([np.min(y), np.max(df_sort_diad2_trim['height'])+np.max(df_sort_diad1_trim['height'])/3+50 ])
     if any(df_sort_diad2_trim['pos'].between(1385, 1391)):
         diad_2_peaks=tuple(df_sort_diad2_trim['pos'].values)
     else:
@@ -1206,40 +1184,122 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
 
     print('Using initial estimates: Diad1+HB=' +str(np.round(diad_1_peaks, 1)) + ', Diad2+HB=' + str(np.round(diad_2_peaks, 1)))
 
+
+    if plot_figure is True:
+        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
+        ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
+        if Discard_str is not False:
+            ax0.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
+            ax1.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
+            ax2.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
+
+        ax0.plot([1286, 1286],
+        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='Approx. D1 pos')
+        ax0.plot([1389, 1389],
+        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D2 pos')
+        ax1.plot([1286, 1286],
+        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D1 pos')
+        ax1.plot([1389, 1389],
+        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D2 pos')
+        ax2.plot([1286, 1286],
+        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D1 pos')
+        ax2.plot([1389, 1389],
+        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D2 pos')
+
+        ax0.legend()
+        ax1.set_title('Diad1')
+        ax1.plot(Diad[:, 0],Diad[:, 1], '-r')
+        ax1.set_xlim([1200, 1350])
+        ax2.set_title('Diad2')
+        ax2.plot(Diad[:, 0],Diad[:, 1], '-r')
+        ax2.set_xlim([1350, 1450])
+        #ax0.set_ylim[np.min(Diad[:, 1]), np.max(Diad[:, 1]) ])
+        fig.tight_layout()
+        ax2.plot(df_sort_diad2_trim['pos'], df_sort_diad2_trim['height'], '*k')
+        ax1.plot(df_sort_diad1_trim['pos'], df_sort_diad1_trim['height'], '*k')
+        ax0.set_xlabel('Wavenumber')
+        ax0.set_ylabel('Intensity')
+        ax1.set_xlabel('Wavenumber')
+        ax1.set_ylabel('Intensity')
+        ax2.set_xlabel('Wavenumber')
+        ax2.set_ylabel('Intensity')
+
+        for i in range(0, len(df_sort_diad1_trim)):
+            ax1.annotate(str(np.round(df_sort_diad1_trim['pos'].iloc[i], 1)), xy=(df_sort_diad1_trim['pos'].iloc[i]-10,
+            df_sort_diad1_trim['height'].iloc[i]-1/7*(df_sort_diad1_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
+
+        for i in range(0, len(df_sort_diad2_trim)):
+            ax2.annotate(str(np.round(df_sort_diad2_trim['pos'].iloc[i], 1)), xy=(df_sort_diad2_trim['pos'].iloc[i]-10,
+            df_sort_diad2_trim['height'].iloc[i]-1/7*(df_sort_diad2_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
+
+
+
     return diad_1_peaks, diad_2_peaks
 
 
 
-def remove_super_dense_baseline(*, path=None, filename, filetype='Witec_ASCII',
-                    exclude_range1=None, exclude_range2=None,
-                    N_poly=1,
-            lower_range=[1200, 1250],
-            upper_range=[1320, 1330]):
-    """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
-    between user-specified limits
+def remove_diad_baseline(*, path=None, filename, filetype='Witec_ASCII',
+            exclude_range1=None, exclude_range2=None,N_poly=1,
+            lower_range=[1200, 1250], upper_range=[1320, 1330], sigma=4,
+            plot_figure=True):
+    """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline between user-specified limits
 
-    Outputs:
-        y_corr: Background subtracted data, trimmed for the full range of x defined by user
-        Py_base: Fitted baseline function, for the full range of x defined by user
-        x: x values in trimmed x range from user
-        Diad_short: input x and y values, trimmed for x range from user
-        Py_base: predicted y values over range of x values
-        Baseline_ysub: Predicted baseline only for points within filter
-        Baseline_x: X values only within noise filter.
+    Parameters
+    -----------
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
+
+    filetype: str
+        Identifies type of file
+        Witec_ASCII: Datafile from WITEC with metadata for first few lines
+        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
+        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
+        Renishaw_txt: Datafile from renishaw with column headings.
+
+
+    exclude_range1: None or list length 2
+        Excludes a region, e.g. a cosmic ray
+
+    exclude_range2: None or list length 2
+        Excludes a region, e.g. a cosmic ray
+
+    sigma: int
+        Number of sigma to filter out points from the mean of the baseline
+
+
+    N_poly: int
+        Degree of polynomial to fit to the backgroun
+
+    lower_range: list len 2
+        wavenumbers of LH baseline region
+
+    upper_range: list len 2
+        wavenumbers of RH baseline region
+
+
+    plot_figure: bool
+        if True, plots figure, if False, doesn't.
+
+    Returns
+    -----------
+    y_corr, Py_base, x,  Diad_short, Py_base, Baseline_ysub, Baseline_x, Baseline
+
+        y_corr: Background subtracted y values trimmed in baseline range
+        x: initial x values trimmed in baseline range
+        Diad_short: Initial data (x and y) trimmed in baseline range
+        Py_base: Fitted baseline for trimmed x coordinates
+        Baseline_ysub: Baseline fitted for x coordinates in baseline
+        Baseline_x: x co-ordinates in baseline.
+        Baseline: Filtered to remove points outside sigma*std dev of baseline
+
+
 
     """
-    if filetype == 'headless_txt':
-        Diad_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
 
-    if filetype=='Witec_ASCII':
-        Diad_df=read_witec_to_df(path=path, filename=filename)
-
-    if filetype=='Renishaw_txt':
-        Diad_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        Diad_df=Diad_df_long.iloc[:, 0:2]
-
-    if filetype=='HORIBA_txt':
-        Diad_df=read_HORIBA_to_df(path=path, filename=filename)
+    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
 
 
     Diad=np.array(Diad_df)
@@ -1250,7 +1310,7 @@ def remove_super_dense_baseline(*, path=None, filename, filetype='Witec_ASCII',
         Diad=Diad[(Diad[:, 0]<exclude_range1[0])|(Diad[:, 0]>exclude_range1[1])]
         Discard=Diad_old[(Diad_old[:, 0]>=exclude_range1[0]) & (Diad_old[:, 0]<=exclude_range1[1])]
 
-    # NEED TO FIX
+
     if exclude_range2 is not None and exclude_range1 is None:
         Diad_old=Diad.copy()
         Diad=Diad[(Diad[:, 0]<exclude_range2[0])|(Diad[:, 0]>exclude_range2[1])]
@@ -1294,9 +1354,9 @@ def remove_super_dense_baseline(*, path=None, filename, filetype='Witec_ASCII',
     Std_Baseline=np.std(Baseline_with_outl[:, 1])
 
     # Removes any points in the baseline outside of 2 sigma (helps remove cosmic rays etc).
-    Baseline=Baseline_with_outl[(Baseline_with_outl[:, 1]<Median_Baseline+4*Std_Baseline)
+    Baseline=Baseline_with_outl[(Baseline_with_outl[:, 1]<Median_Baseline+sigma*Std_Baseline)
                                 &
-                                (Baseline_with_outl[:, 1]>Median_Baseline-4*Std_Baseline)
+                                (Baseline_with_outl[:, 1]>Median_Baseline-sigma*Std_Baseline)
                                ]
     print(Std_Baseline)
 
@@ -1308,46 +1368,47 @@ def remove_super_dense_baseline(*, path=None, filename, filetype='Witec_ASCII',
     Pf_baseline = np.poly1d(np.polyfit(Baseline[:, 0], Baseline[:, 1], N_poly))
     Py_base =Pf_baseline(Diad_short[:, 0])
 
-    # Plotting what its doing
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
-    ax1.set_title('Background fit')
-    ax1.plot(Diad_short[:, 0], Diad_short[:, 1], '-r')
-
-    ax1.plot(Baseline[:, 0], Baseline[:, 1], '.b')
-    ax1.plot(Diad_short[:, 0], Py_base, '-k')
-
-    ax1.set_ylim([
-    np.min(Baseline[:, 1])-10*np.std(Baseline[:, 1]),
-    np.max(Baseline[:, 1])+10*np.std(Baseline[:, 1])
-    ] )
-    ax1.set_ylabel('Intensity')
-    ax2.set_ylabel('Intensity')
-    ax2.set_xlabel('Wavenumber')
 
     Baseline_ysub=Pf_baseline(Baseline[:, 0])
     Baseline_x=Baseline[:, 0]
     y_corr= Diad_short[:, 1]-  Py_base
     x=Diad_short[:, 0]
 
-    ax2.set_title('Background corrected')
-    ax2.plot(x, y_corr, '-r')
-    height_p=np.max(Diad_short[:, 1])-np.min(Diad_short[:, 1])
-    ax2.set_ylim([np.min(y_corr), 1.2*height_p ])
-    ax1.set_xlabel('Wavenumber')
+     # Plotting what its doing
+    if plot_figure is True:
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
+        ax1.set_title('Background fit')
+        ax1.plot(Diad_short[:, 0], Diad_short[:, 1], '-r')
+
+        ax1.plot(Baseline[:, 0], Baseline[:, 1], '.b')
+        ax1.plot(Diad_short[:, 0], Py_base, '-k')
+
+        ax1.set_ylim([
+        np.min(Baseline[:, 1])-10*np.std(Baseline[:, 1]),
+        np.max(Baseline[:, 1])+10*np.std(Baseline[:, 1])
+        ] )
+        ax1.set_ylabel('Intensity')
+        ax2.set_ylabel('Intensity')
+        ax2.set_xlabel('Wavenumber')
 
 
-    return y_corr, Py_base, x,  Diad_short, Py_base, Baseline_ysub, Baseline_x
 
-####
+        ax2.set_title('Background corrected')
+        ax2.plot(x, y_corr, '-r')
+        height_p=np.max(Diad_short[:, 1])-np.min(Diad_short[:, 1])
+        ax2.set_ylim([np.min(y_corr), 1.2*height_p ])
+        ax1.set_xlabel('Wavenumber')
 
 
-
-
-### Fit diads
+    return y_corr, Py_base, x,  Diad_short, Py_base, Baseline_ysub, Baseline_x, Baseline
 
 
 
 def add_peak(*, prefix=None, center=None, min_cent=None, max_cent=None,  amplitude=100, sigma=0.2):
+    """
+    This function iteratively adds peaks for lmfit
+    """
     Model_combo=VoigtModel(prefix=prefix) ##+ConstantModel(prefix=prefix) Stops getting results
     peak =  Model_combo
     pars = peak.make_params()
@@ -1368,22 +1429,42 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                                 peak_pos_voigt=(1263, 1283),
                                 peak_pos_gauss=None,
                                 amplitude=100,
-                                save_fig=True, dpi=200):
+                                plot_figure=True, dpi=200):
 
-    """ This function fits diad 1 at ~1283, and the hot band
+    """ This function fits diad 1 at ~1283, and the hot band if present
 
     Parameters
-    --------------
-    peak_pos_gauss:  tuple, e.g.,  peak_pos_gauss=(1280)
-    The approximate position of the gaussian background peak under the diads
-    (this is only really needed for high densites). If None, doesnt fit one.
+    -----------
+    path: str
+        Folder user wishes to read data from
 
-    peak_pos_voigt: The peak positions of the voigt curves, e.g. if you want 3 voigt peaks
-    at pos x, y, z, enter (x, y, z)
+    filename: str
+        Specific file being read
 
-    xdat: wavenumber as an np array
+    xdat, ydat: pd.series
+        x and background substracted y data to fit.
 
-    ydat: background corrected intensities as a np.array
+    peak_pos_voigt: list
+        Estimates of peak positions for peaks
+
+    peak_pos_gauss: None, int, or flota
+        If you want a gaussian as part of your fit, put an approximate center here
+
+    amplitude: int, float
+        Approximate amplitude of main peak
+
+    plot_figure: bool
+        if True, saves figure
+
+    dpi: int
+        dpi for saved figure
+
+    Returns
+    -----------
+    result, df_out, y_best_fit, x_lin
+
+        result: fitted model
+        df_out: Dataframe of fit parameters for diad.
 
 
 
@@ -1503,7 +1584,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
 
     x_lin=np.linspace(Peak1_Cent-30, Peak1_Cent+30, 2000)
     y_best_fit=result.eval(x=x_lin)
-    background=result.eval_components(x=x_lin)
+    components=result.eval_components(x=x_lin)
 
 
         # Uncommnet to get full report
@@ -1530,48 +1611,56 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         df_out['Peak3_Area']=Peak3_Int
 
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
-
-    ax1.plot(xdat, ydat,  '.k', label='data')
 
 
 
-    ax1.plot(x_lin, y_best_fit, '-g', label='best fit')
-    ax1.legend()
     if len(peak_pos_voigt)>1:
         lowerpeak=np.min([Peak1_Cent, Peak2_Cent])
         upperpeak=np.max([Peak1_Cent, Peak2_Cent])
         print(lowerpeak)
         print(upperpeak)
-        ax1.set_xlim([Peak1_Cent-50, Peak1_Cent+20])
-        ax2.set_xlim([Peak1_Cent-50, Peak1_Cent+20])
+        ax1_xlim=[Peak1_Cent-50, Peak1_Cent+20]
+        ax2_xlim=[Peak1_Cent-50, Peak1_Cent+20]
     else:
-        ax1.set_xlim([Peak1_Cent-20, Peak1_Cent+20])
-        ax2.set_xlim([Peak1_Cent-20, Peak1_Cent+20])
+        ax1_xlim=[Peak1_Cent-20, Peak1_Cent+20]
+        ax2_xlim=[Peak1_Cent-20, Peak1_Cent+20]
+
+    # Calculating residuals
+    # Y evaluated at actual axes
+    result_diad1_origx=result.eval(x=xdat)
+    residual_diad1_coords=ydat-result_diad1_origx
+    residual_diad1=np.sum(((ydat-result_diad1_origx)**2)**0.5)/(len(ydat))
+    df_out['Residual']=residual_diad1
+
+
+    if plot_figure is True:
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15,5), sharey=True)
+        # Residuals
+        ax3.plot(xdat, ydat-result_diad1_origx, '-r')
+        ax3.set_xlabel('Wavenumber')
+        ax3.set_ylabel('Residual')
+        ax1.plot(xdat, ydat,  '.k', label='data')
 
 
 
+        ax1.plot(x_lin, y_best_fit, '-g', label='best fit')
+        ax1.legend()
 
-    ax2.plot(xdat, ydat, '.k')
-    if peak_pos_gauss is not None:
-        ax2.plot(x_lin, background.get('bkg_'), '-c', label='Gaussian bck', linewidth=1)
-    if len(peak_pos_voigt)>1:
-        ax2.plot(x_lin, background.get('lz2_'), '-r', linewidth=2, label='Peak2')
-    ax2.plot(x_lin, background.get('lz1_'), '-b', linewidth=2, label='Peak1')
-    #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
-    ax2.legend()
-    fitspan=max(y_best_fit)-min(y_best_fit)
-    ax2.set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
+        ax2.plot(xdat, ydat, '.k')
+        if peak_pos_gauss is not None:
+            ax2.plot(x_lin, components.get('bkg_'), '-c', label='Gaussian bck', linewidth=1)
+        if len(peak_pos_voigt)>1:
+            ax2.plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+        ax2.plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
+        #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
+        ax2.legend()
+        fitspan=max(y_best_fit)-min(y_best_fit)
+        ax2.set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
 
-    ax1.set_ylabel('Intensity')
-    ax1.set_xlabel('Wavenumber')
-    ax2.set_ylabel('Intensity')
-    ax2.set_xlabel('Wavenumber')
-
-
-
-
-    if save_fig is True:
+        ax1.set_ylabel('Intensity')
+        ax1.set_xlabel('Wavenumber')
+        ax2.set_ylabel('Intensity')
+        ax2.set_xlabel('Wavenumber')
 
         path3=path+'/'+'Peak_fit_images'
         if os.path.exists(path3):
@@ -1584,28 +1673,55 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         file=filename.rsplit('.txt', 1)[0]
         fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=dpi)
 
+    # Result = Model fitted
+    #df_out=df of peak positions
+    #y_best_fit = Best fit evaluated at x_lin (linspace of points covering range)
+    # components - fit for different components of fit (e.g. multiple lines
+    # xdat and ydat, data being fitted (background corrected)
+    #ax1_xlim, ax2_xlim: Limits for 2 axes.
 
-
-    return result, df_out, y_best_fit, x_lin
+    return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss, residual_diad1_coords
 
 
 def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, peak_pos_voigt=(1389, 1410),
-                    amplitude=100, peak_pos_gauss=(1400), save_fig=True, dpi=200):
+                    amplitude=100, peak_pos_gauss=(1400), plot_figure=True, dpi=200):
+
 
     """ This function fits diad 2, at ~1389 and the hot band and C13 peak
 
     Parameters
-    --------------
-    peak_pos_gauss: The approximate position of the gaussian background peak under the diads
-    (this is only really needed for high densites)
+    -----------
+    path: str
+        Folder user wishes to read data from
 
-    peak_pos_voigt: The peak positions of the voigt curves, e.g. if you want 3 voigt peaks
-    at pos x, y, z, enter (x, y, z)
+    filename: str
+        Specific file being read
 
-    xdat: wavenumber as an np array
+    xdat, ydat: pd.series
+        x and background substracted y data to fit.
 
-    ydat: background corrected intensities as a np.array
+    peak_pos_voigt: list
+        Estimates of peak positions for peaks.
+        Fits as many peaks as positions in this list
 
+    peak_pos_gauss: None, int, or flota
+        If you want a gaussian as part of your fit, put an approximate center here
+
+    amplitude: int, float
+        Approximate amplitude of main peak
+
+    plot_figure: bool
+        if True, saves figure
+
+    dpi: int
+        dpi for saved figure
+
+    Returns
+    -----------
+    result, df_out, y_best_fit, x_lin
+
+        result: fitted model
+        df_out: Dataframe of fit parameters for diad.
 
 
     """
@@ -1737,54 +1853,27 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     y_best_fit=result.eval(x=x_lin)
     background=result.eval_components(x=x_lin)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
-    ax1.plot(x_lin, y_best_fit, '-g', linewidth=2, label='best fit')
-    ax1.plot(xdat, ydat,  '.k', label='data')
-    ax1.legend()
 
-
-
-
-
-
-    if peak_pos_gauss is not None:
-        ax2.plot(x_lin, background.get('bkg_'), '-c',linewidth=2,  label='Gaussian bck')
-    ax2.plot(x_lin, background.get('lz1_'), '-b', linewidth=2, label='Peak1')
-    ax2.plot(xdat, ydat, '.k')
-
-
-    #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
-
-    fitspan=max(y_best_fit)-min(y_best_fit)
-    ax2.set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
-
-
-    ax1.set_ylabel('Intensity')
-    ax1.set_xlabel('Wavenumber')
-    ax2.set_ylabel('Intensity')
-    ax2.set_xlabel('Wavenumber')
 
 
     if type(peak_pos_voigt) is float and type(peak_pos_voigt) is int:
         if len(peak_pos_voigt)==1:
             Peak2_Cent=None
             Peak3_Cent=None
-            ax1.set_xlim([peak_pos_voigt[0]-15, peak_pos_voigt[0]+15])
-            ax2.set_xlim([peak_pos_voigt[0]-15, peak_pos_voigt[0]+15])
+            ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
+            ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not int:
         if len(peak_pos_voigt)==1:
             Peak2_Cent=None
             Peak3_Cent=None
-            ax1.set_xlim([peak_pos_voigt[0]-15, peak_pos_voigt[0]+15])
-            ax2.set_xlim([peak_pos_voigt[0]-15, peak_pos_voigt[0]+15])
-            print('set limit')
+            ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
+            ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
         if len(peak_pos_voigt)==2:
             Peak2_Cent=result.best_values.get('lz2_center')
             Peak2_Int=result.best_values.get('lz2_amplitude')
             Peak3_Cent=None
-            ax1.set_xlim([peak_pos_voigt[0]-15, peak_pos_voigt[0]+30])
-            ax2.set_xlim([peak_pos_voigt[0]-15, peak_pos_voigt[0]+30])
-
+            ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+30]
+            ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+30]
 
         if len(peak_pos_voigt)==3:
             Peak2_Cent=result.best_values.get('lz2_center')
@@ -1792,20 +1881,6 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
             Peak3_Cent=result.best_values.get('lz3_center')
             Peak3_Int=result.best_values.get('lz3_amplitude')
 
-
-        if len(peak_pos_voigt)>1:
-            ax2.plot(x_lin, background.get('lz2_'), '-r', linewidth=2, label='Peak2')
-
-        if len(peak_pos_voigt)>2:
-            ax2.plot(x_lin, background.get('lz3_'), '-m', linewidth=2, label='Peak3')
-        if len(peak_pos_voigt)>1:
-            lowerpeak=np.min([Peak1_Cent, Peak2_Cent])
-            upperpeak=np.max([Peak1_Cent, Peak2_Cent])
-            ax1.set_xlim([lowerpeak-15, upperpeak+15])
-        if len(peak_pos_voigt)>1:
-            ax2.set_xlim([lowerpeak-20, upperpeak+20])
-
-    ax2.legend()
 
     # Now work out what peak is what
 
@@ -1879,80 +1954,59 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
             df_out['C13_Cent']=C13_Cent
             df_out['C13_Area']=C13_Int
 
-
-    # #     C13_Cent=np.min(Peaks)
-    #
-    #     # If peak cent in diad range, 1380, to 1400, its the diad
-    #     if (Peak1_Cent>1380) & (Peak1_Cent<1400):
-    #         Diad2_Cent=Peak1_Cent
-    #         Diad2_Int=Peak1_Int
-    #         # If have a second peak, if its >Peak1, its the hotband
-    #         if Peak2_Cent>Peak1_Cent:
-    #             HB2_Cent=Peak2_Cent
-    #             HB2_Int=Peak2_Int
-    #     # If Peak2 in diad range
-    #
-    #     if (Peak2_Cent>1380) & (Peak2_Cent<1400):
-    #         Diad2_Cent=Peak2_Cent
-    #         Diad2_Int=Peak2_Int
-    #         # If have a second peak, if its >Peak1, its the hotband
-    #         if Peak1_Cent>Peak2_Cent:
-    #             HB2_Cent=Peak1_Cent
-    #             HB2_Int=Peak1_Int
-    #     else:
-    #         print('Ambigous peak assignement')
-
-    # if Peak3_Cent is not None:
-    #     Peaks=np.array([Peak1_Cent, Peak2_Cent, Peak3_Cent])
-    #     C13_Cent=np.min(Peaks)
-    #
-    #     # If peak cent in diad range, 1380, to 1400, its the diad
-    #     if (Peak1_Cent>1380) & (Peak1_Cent<1400):
-    #         Diad2_Cent=Peak1_Cent
-    #         Diad2_Int=Peak1_Int
-    #
-    #         # If have a second peak, if its >Peak1, its the hotband
-    #         if Peak2_Cent>Peak1_Cent:
-    #             HB2_Cent=Peak2_Cent
-    #             HB2_Int=Peak2_Int
-    #     # If Peak2 in diad range
-    #
-    #     if (Peak2_Cent>1380) & (Peak2_Cent<1400):
-    #         Diad2_Cent=Peak2_Cent
-    #         Diad2_Int=Peak2_Int
-    #         # If have a second peak, if its >Peak1, its the hotband
-    #         if Peak1_Cent>Peak2_Cent:
-    #             HB2_Cent=Peak1_Cent
-    #             HB2_Int=Peak1_Int
-    #     else:
-    #         print('Ambigous peak assignement')
+    result_diad2_origx=result.eval(x=xdat)
+    residual_diad2_coords=ydat-result_diad2_origx
+    residual_diad2=np.sum(((ydat-result_diad2_origx)**2)**0.5)/(len(ydat))
+    df_out['Residual']=residual_diad2
 
 
 
+    if plot_figure is True:
 
-    # print('peak pos')
-    # print(Peak1_Cent)
-    # print(Peak2_Cent)
-    # print(Peak3_Cent)
-    #
-    # if Peak3_Cent is not None:
-    #     if Peak3_Cent<Diad2_Cent:
-    #         C13_Cent=Peak3_Cent
-    #         C13_Int=Peak3_Int
-    #     else:
-    #             C13_Cent=np.nan
-    #             C13_Int=np.nan
-    #             raise TypeError('Not sure what peak 3 is, youve found a bug, email penny your ipynb and spectra!')
-    #
-    #     df_out['C13_Cent']=C13_Cent
-    #     df_out['C13_Area']=C13_Int
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
+        ax1.plot(x_lin, y_best_fit, '-g', linewidth=2, label='best fit')
+        ax1.plot(xdat, ydat,  '.k', label='data')
+        ax1.legend()
+        ax1.set_xlim(ax1_xlim)
+        ax2.set_xlim(ax2_xlim)
 
 
 
 
 
 
-    if save_fig is True:
+        if peak_pos_gauss is not None:
+            ax2.plot(x_lin, background.get('bkg_'), '-c',linewidth=2,  label='Gaussian bck')
+        ax2.plot(x_lin, background.get('lz1_'), '-b', linewidth=2, label='Peak1')
+        ax2.plot(xdat, ydat, '.k')
+
+
+    #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
+
+        fitspan=max(y_best_fit)-min(y_best_fit)
+        ax2.set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
+
+
+        ax1.set_ylabel('Intensity')
+        ax1.set_xlabel('Wavenumber')
+        ax2.set_ylabel('Intensity')
+        ax2.set_xlabel('Wavenumber')
+
+
+        if len(peak_pos_voigt)>1:
+            ax2.plot(x_lin, background.get('lz2_'), '-r', linewidth=2, label='Peak2')
+
+        if len(peak_pos_voigt)>2:
+            ax2.plot(x_lin, background.get('lz3_'), '-m', linewidth=2, label='Peak3')
+        if len(peak_pos_voigt)>1:
+            lowerpeak=np.min([Peak1_Cent, Peak2_Cent])
+            upperpeak=np.max([Peak1_Cent, Peak2_Cent])
+            ax1.set_xlim([lowerpeak-15, upperpeak+15])
+        if len(peak_pos_voigt)>1:
+            ax2.set_xlim([lowerpeak-20, upperpeak+20])
+
+        ax2.legend()
+
         path3=path+'/'+'Peak_fit_images'
         if os.path.exists(path3):
             out='path exists'
@@ -1963,17 +2017,74 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
         file=filename.rsplit('.txt', 1)[0]
         fig.savefig(path3+'/'+'Diad2_Fit_{}.png'.format(file), dpi=dpi)
 
+
+
+
     best_fit=result.best_fit
-    return result, df_out, y_best_fit, x_lin
+    return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss, residual_diad2_coords
 
 ## Overall function for fitting diads in 1 single step
 def fit_diad_2_w_bck(*, path=None, filename=None, filetype='headless_txt',
 exclude_range1=None, exclude_range2=None, amplitude=100,
-N_poly_bck_diad2=3, lower_baseline_diad2=[1320, 1350], upper_baseline_diad2=[1440, 1500],
-peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), save_fig=True, dpi=200):
+N_poly_bck_diad2=2, lower_baseline_diad2=[1320, 1350], upper_baseline_diad2=[1440, 1500],
+peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=200):
+
+    """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
+
+    filetype: str
+        Identifies type of file
+        Witec_ASCII: Datafile from WITEC with metadata for first few lines
+        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
+        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
+        Renishaw_txt: Datafile from renishaw with column headings.
+
+    exclude_range1: None or list length 2
+        Excludes a region, e.g. a cosmic ray
+
+    exclude_range2: None or list length 2
+        Excludes a region, e.g. a cosmic ray
+
+    amplitude: int, float
+        Approximate amplitude of main peak
+
+    N_poly_bck_diad2: int
+        Degree of polynomial to fit the background with
+
+    lower_baseline_diad2: list len 2
+        wavenumbers of LH baseline region
+
+    upper_baseline_diad2: list len 2
+        wavenumbers of RH baseline region
+
+
+    peak_pos_voigt: list
+        Estimates of peak positions for peaks
+
+    peak_pos_gauss: None, int, or flota
+        If you want a gaussian as part of your fit, put an approximate center here
+
+
+    plot_figure: bool
+        if True, saves figure
+
+    dpi: int
+        dpi for saved figure
+
+
+    """
+
 
     #Fit baseline
-    y_corr_diad2, Py_base_diad2, x_diad2,  Ne_short_diad2, Py_base_diad2, Baseline_ysub_diad2, Baseline_x_diad2=remove_super_dense_baseline(
+    y_corr_diad2, Py_base_diad2, x_diad2,  Ne_short_diad2, Py_base_diad2, Baseline_ysub_diad2, Baseline_x_diad2=remove_diad_baseline(
    path=path, filename=filename,filetype=filetype,
                        exclude_range1=exclude_range1, exclude_range2=exclude_range2,
                         N_poly=N_poly_bck_diad2,
@@ -1981,7 +2092,7 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), save_fig=True, dpi=200)
 
     result_diad2, df_out, best_fit_diad2, xdat_diad2=fit_gaussian_voigt_diad2(path=path, filename=filename, xdat=x_diad2, ydat=y_corr_diad2,
                     peak_pos_voigt=peak_pos_voigt,amplitude=amplitude,
-                    peak_pos_gauss=peak_pos_gauss, save_fig=save_fig, dpi=dpi)
+                    peak_pos_gauss=peak_pos_gauss, plot_figure=plot_figure, dpi=dpi)
 
     return df_out, result_diad2, best_fit_diad2, xdat_diad2
 
@@ -1990,19 +2101,166 @@ def fit_diad_1_w_bck(*, path=None, filename=None, filetype='headless_txt',
 exclude_range1=None, exclude_range2=None,
 N_poly_bck_diad1=2, lower_baseline_diad1=[1170, 1220],
 upper_baseline_diad1=[1330, 1350], peak_pos_voigt=(1263, 1283),
-peak_pos_gauss=(1270), amplitude=100, save_fig=True, dpi=200):
+peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
+    """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
+
+    filetype: str
+        Identifies type of file
+        Witec_ASCII: Datafile from WITEC with metadata for first few lines
+        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
+        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
+        Renishaw_txt: Datafile from renishaw with column headings.
+
+    exclude_range1: None or list length 2
+        Excludes a region, e.g. a cosmic ray
+
+    exclude_range2: None or list length 2
+        Excludes a region, e.g. a cosmic ray
+
+    amplitude: int, float
+        Approximate amplitude of main peak
+
+    N_poly_bck_diad1: int
+        Degree of polynomial to fit the background with
+
+    lower_baseline_diad1: list len 2
+        wavenumbers of LH baseline region
+
+    upper_baseline_diad1: list len 2
+        wavenumbers of RH baseline region
+
+
+    peak_pos_voigt: list
+        Estimates of peak positions for peaks
+
+    peak_pos_gauss: None, int, or flota
+        If you want a gaussian as part of your fit, put an approximate center here
+
+
+    plot_figure: bool
+        if True, saves figure
+
+    dpi: int
+        dpi for saved figure
+
+
+    """
 
     # Fit baseline
-    y_corr_diad1, Py_base_diad1, x_diad1,  Ne_short_diad1, Py_base_diad1, Baseline_ysub_diad1, Baseline_x_diad1=remove_super_dense_baseline(
+    #y_corr, Py_base, x,  Diad_short, Py_base, Baseline_ysub, Baseline_x, Baseline
+
+
+
+
+
+    y_corr_diad1, Py_base_diad1, x_diad1,  Diad_short, Py_base_diad1, Baseline_ysub_diad1, Baseline_x_diad1, Baseline=remove_diad_baseline(
    path=path, filename=filename, filetype=filetype, exclude_range1=exclude_range1, exclude_range2=exclude_range2, N_poly=N_poly_bck_diad1,
-    lower_range=lower_baseline_diad1, upper_range=upper_baseline_diad1)
+    lower_range=lower_baseline_diad1, upper_range=upper_baseline_diad1, plot_figure=False)
 
 
-    result_diad1, df_out, best_fit_diad1, xdat_diad1=fit_gaussian_voigt_diad1(path=path, filename=filename,
+
+    result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad1_coords=fit_gaussian_voigt_diad1(path=path, filename=filename,
                     xdat=x_diad1, ydat=y_corr_diad1, amplitude=amplitude,
                     peak_pos_voigt=peak_pos_voigt,
-                    peak_pos_gauss=peak_pos_gauss, save_fig=save_fig, dpi=dpi)
-    return df_out, result_diad1, best_fit_diad1, xdat_diad1
+                    peak_pos_gauss=peak_pos_gauss, plot_figure=False)
+
+
+    # Get diad data to plot
+    Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
+
+    Spectra=np.array(Spectra_df)
+
+
+    # Make nice figure
+
+    figure_mosaic="""
+    AB
+    CD
+    EE
+    """
+    fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(10, 16))
+
+    # Plot best fit on the LHS, and individual fits on the RHS at the top
+
+    axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1)
+    axes['A'].plot(xdat, ydat,  '.k', label='data')
+    axes['A'].legend()
+
+    axes['B'].plot(xdat, ydat, '.k')
+    if peak_pos_gauss is not None:
+        axes['B'].plot(x_lin, components.get('bkg_'), '-c', label='Gaussian bck', linewidth=1)
+    if len(peak_pos_voigt)>1:
+        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+    axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
+    #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
+    axes['B'].legend()
+    fitspan=max(y_best_fit)-min(y_best_fit)
+    axes['B'].set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
+
+    axes['A'].set_ylabel('Intensity')
+    axes['A'].set_xlabel('Wavenumber')
+    axes['B'].set_ylabel('Intensity')
+    axes['B'].set_xlabel('Wavenumber')
+
+    axes['A'].set_xlim(ax1_xlim)
+    axes['B'].set_xlim(ax2_xlim)
+    axes['A'].set_title('Overall Best Fit')
+    axes['B'].set_title('Fit Components')
+
+    # Residual on plot C
+    axes['C'].set_title('Residual')
+    axes['C'].plot(xdat, residual_diad1_coords, 'ok', mfc='red' )
+    axes['C'].plot(xdat, residual_diad1_coords, '-r' )
+    axes['C'].set_ylabel('Residual')
+    axes['C'].set_xlabel('Wavenumber')
+    axes['C'].set_xlim(ax1_xlim)
+
+    #Background fit on plot D
+    axes['D'].set_title('Background fit')
+    axes['D'].plot(Diad_short[:, 0], Diad_short[:, 1], '-r')
+
+    axes['D'].plot(Baseline[:, 0], Baseline[:, 1], '.b')
+    axes['D'].plot(Diad_short[:, 0], Py_base_diad1, '-k')
+
+    axes['D'].set_ylim([
+    np.min(Baseline[:, 1])-10*np.std(Baseline[:, 1]),
+    np.max(Baseline[:, 1])+10*np.std(Baseline[:, 1])
+    ] )
+    axes['D'].set_ylabel('Intensity')
+    axes['D'].set_xlabel('Wavenumber')
+
+
+    # Overal spectra
+    axes['E'].set_title(filename)
+    axes['E'].plot(Spectra[:, 0], Spectra[:, 1], '-r')
+    axes['E'].set_ylabel('Intensity')
+    axes['E'].set_xlabel('Wavenumber')
+
+
+    path3=path+'/'+'Peak_fit_images'
+    if os.path.exists(path3):
+        out='path exists'
+    else:
+        os.makedirs(path+'/'+ 'Peak_fit_images', exist_ok=False)
+
+
+    print(path)
+    file=filename.rsplit('.txt', 1)[0]
+    fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=dpi)
+
+
+
+
+    return df_out, result, y_best_fit, x_lin
 
 
 def combine_diad_outputs(*, filename=None, prefix=True, Diad1_fit=None, Diad2_fit=None, Carb_fit=None):
@@ -2074,19 +2332,7 @@ def combine_diad_outputs(*, filename=None, prefix=True, Diad1_fit=None, Diad2_fi
 
 def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII'):
 
-    if filetype == 'headless_txt':
-        Spectra_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
-
-    if filetype=='Witec_ASCII':
-        Spectra_df=read_witec_to_df(path=path, filename=filename)
-
-    if filetype=='Renishaw_txt':
-        Spectra_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        Spectra_df=Spectra_df_long.iloc[:, 0:2]
-
-    if filetype=='HORIBA_txt':
-        Spectra_df=read_HORIBA_to_df(path=path, filename=filename)
-
+    Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
 
     Spectra=np.array(Spectra_df)
 
@@ -2103,10 +2349,13 @@ def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII'):
     ax1.plot([1389, 1389], [miny, maxy], '-m', alpha=0.5, label='Diad2')
     ax1.legend()
     ax1.plot(Spectra[:, 0], Spectra[:, 1], '-r')
+    ax1.set_xlabel('Wavenumber (cm-1)')
+    ax1.set_ylabel('Intensity')
+
 def fit_carbonate_peak(*,path=None, filename=None, filetype='Witec_ASCII',
 lower_range=[1030, 1050], upper_range=[1140, 1200], amplitude=1000,
 exclude_range=None,
-N_poly=2, outlier_sigma=12, cent=1090, save_fig=True, dpi=100,
+N_poly=2, outlier_sigma=12, cent=1090, plot_figure=True, dpi=100,
 height = 20, threshold = 1, distance = 5, prominence=1, width=3,
 N_peaks=2, fit_carbonate=True):
 
@@ -2240,7 +2489,7 @@ N_peaks=2, fit_carbonate=True):
 
 
 
-        if save_fig is True:
+        if plot_figure is True:
             path3=path+'/'+'Peak_fit_images'
             if os.path.exists(path3):
                 out='path exists'
