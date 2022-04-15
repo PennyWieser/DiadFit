@@ -48,7 +48,7 @@ def get_Ne_files(path, ID_str='Ne', file_fmt='txt', exclude_str=None, sort=True)
     return Ne_files
 
 
-def get_diad_files(path, sort=True, exclude_str='Ne', exclude_type='.png'):
+def get_diad_files(path, sort=True, file_fmt='txt', exclude_str='Ne', exclude_type='.png'):
     """ This function takes a user path, and extracts all files which dont contain the excluded string and type
 
     Parameters
@@ -58,6 +58,8 @@ def get_diad_files(path, sort=True, exclude_str='Ne', exclude_type='.png'):
         Folder user wishes to read data from
     sort: bool
         If true, sorts files alphabetically
+    file_fmt: str
+        File format. Default txt, could also enter csv etc.
     exclude_str: str
         Excludes files with this string in their name. E.g. if exclude_str='Ne' it will exclude Ne lines
     exclude_type: str
@@ -68,7 +70,6 @@ def get_diad_files(path, sort=True, exclude_str='Ne', exclude_type='.png'):
     Returns file names as a list.
 
     """
-    file_fmt='txt'
     exclude=exclude_type
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
     Diad_files=[item for item in Allfiles if exclude_str not in item and file_fmt in item and exclude not in item]
@@ -116,6 +117,9 @@ def get_data(*, path=None, filename, filetype='Witec_ASCII'):
 
     if filetype=='HORIBA_txt':
         df=read_HORIBA_to_df(path=path, filename=filename)
+
+    if filetype=='headless_csv':
+        df=pd.read_csv(path+str('/')+filename, header=None)
 
     df_in=np.array(df)
 
@@ -320,6 +324,8 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
 
 
     peaks = find_peaks(y,height = height, threshold = threshold, distance = distance, prominence=prominence, width=width)
+    print('Found peaks at wavenumber=')
+    print(x[peaks[0]])
 
     n_peaks=6
     height = peaks[1]['peak_heights'] #list of the heights of the peaks
@@ -337,46 +343,65 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
     df_1447_trim=df_1447[0:1]
 
 
+
     ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '-c', label='input')
     ax1.plot(x, y, '-r', label='filtered')
     ax1.plot(df['pos'], df['height'], '*c', label='all peaks')
-    if len(df_1117)==0:
-        ax1.plot(1117, df_1447_trim['height'], '*k')
+
+    if len(df_1117_trim)==0:
+        print('No peak found within +-5 wavenumbers of peak position 1, have returned user-entered peak')
+        #ax1.plot(peak2_cent, df_1447_trim['height'], '*k')
+        pos_1117=str(peak1_cent)
+        ax1.annotate(pos_1117, xy=(peak1_cent,
+        100-10), xycoords="data", fontsize=10, rotation=90)
+        nearest_1117=peak1_cent
+
     else:
         ax1.plot(df_1117_trim['pos'], df_1117_trim['height'], '*k', label='selected peak')
-    ax1.plot(df_1447_trim['pos'], df_1447_trim['height'], '*k', label='selected peak')
-    ax1.legend()
-    ax1.set_xlim([1110, 1130])
+        pos_1117=str(np.round(df_1117_trim['pos'].iloc[0], 1))
+        ax1.annotate(pos_1117, xy=(df_1117_trim['pos']-5,
+        df_1117_trim['height']-10), xycoords="data", fontsize=10, rotation=90)
+        nearest_1117=float(df_1117_trim['pos'])
+
+    if len(df_1447_trim)==0:
+        print('No peak found within +-5 wavenumbers of peak position 2, have returned user-entered peak')
+        pos_1447=str(peak2_cent)
+        nearest_1447=peak2_cent
+        ax2.annotate(pos_1447, xy=(nearest_1447,
+        200), xycoords="data", fontsize=10, rotation=90)
+
+    else:
+        ax2.plot(df_1447_trim['pos'], df_1447_trim['height'], '*k', label='selected peak')
+        ax2.legend()
+        pos_1447=str(np.round(df_1447_trim['pos'].iloc[0], 1))
+        nearest_1447=float(df_1447_trim['pos'])
+
+        ax2.annotate(pos_1447, xy=(df_1447_trim['pos']-5,
+        df_1447_trim['height']-100), xycoords="data", fontsize=10, rotation=90)
+
+    ax1.set_xlim([peak1_cent-15, peak1_cent+15])
+
+    ax1.set_xlim([peak1_cent-10, peak1_cent+10])
 
     ax2.plot(x, y, '-r')
     ax2.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*k')
     #print(df_1117)
 
-    if len(df_1117)==0:
-        pos_1117=str(1117)
-    else:
-        pos_1117=str(np.round(df_1117_trim['pos'].iloc[0], 1))
-    pos_1447=str(np.round(df_1447_trim['pos'].iloc[0], 1))
-    if len(df_1117)==0:
-        ax1.annotate(pos_1117, xy=(1117-5,
-        100-10), xycoords="data", fontsize=10, rotation=90)
-    else:
-        ax1.annotate(pos_1117, xy=(df_1117_trim['pos']-5,
-        df_1117_trim['height']-10), xycoords="data", fontsize=10, rotation=90)
 
-    ax2.annotate(pos_1447, xy=(df_1447_trim['pos']-5,
-        df_1447_trim['height']-100), xycoords="data", fontsize=10, rotation=90)
-    ax1.set_xlim([1110, 1130])
 
-    ax2.set_xlim([1430, 1460])
 
-    #fig.tight_layout()
-    if len(df_1117)==0:
-        nearest_1117=1117.1
-    else:
-        nearest_1117=float(df_1117_trim['pos'])
-    nearest_1447=float(df_1447_trim['pos'])
+
+
+
+
+
+
+    ax2.set_xlim([peak2_cent-15, peak2_cent+15])
+
+
+    print('selected Peak 1 Pos')
     print(nearest_1117)
+    print('selected Peak 2 Pos')
     print(nearest_1447)
     return Ne, df_sort_Ne_trim, nearest_1117, nearest_1447
 
@@ -580,7 +605,7 @@ LH_offset_mini=[1.5, 3], peaks_1117=2, print_report=False) :
     if peaks_1117>1:
 
         # Setting up lmfit
-        model0 = VoigtModel(prefix='p0_')+ ConstantModel(prefix='c0')
+        model0 = VoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
         pars0 = model0.make_params(p0_center=Ne_center, p0_amplitude=amplitude)
         init0 = model0.eval(pars0, x=xdat)
         result0 = model0.fit(ydat, pars0, x=xdat)
@@ -596,7 +621,7 @@ LH_offset_mini=[1.5, 3], peaks_1117=2, print_report=False) :
         #Ne_center=Ne_center
         #rough_peak_positions=Ne_center-2
 
-        model1 = VoigtModel(prefix='p1_')+ ConstantModel(prefix='c1')
+        model1 = VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c1')
         pars1 = model1.make_params()
         pars1['p1_'+ 'amplitude'].set(Amp_p0, min=0.8*Amp_p0, max=1.2*Amp_p0)
         pars1['p1_'+ 'center'].set(Center_p0, min=Center_p0-0.2, max=Center_p0+0.2)
@@ -627,7 +652,7 @@ LH_offset_mini=[1.5, 3], peaks_1117=2, print_report=False) :
     if peaks_1117==1:
         print('fitting a single peak, if you want the shoulder, do peaks_1117=2')
 
-        model_combo = VoigtModel(prefix='p1_')+ ConstantModel()
+        model_combo = VoigtModel(prefix='p1_')#+ ConstantModel()
 
 
         # create parameters with initial values
@@ -756,7 +781,7 @@ def fit_1447(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=
     Ne_1447_reg_y_plot=y_corr[(x>(lower_1447-3))&(x<(upper_1447+3))]
 
 
-    model = VoigtModel()+ ConstantModel()
+    model = VoigtModel()#+ ConstantModel()
 
 
     # create parameters with initial values
@@ -1476,7 +1501,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
 
         # If peak find functoin has put out a float, does this for 1 peak
         if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int:
-            model_F = VoigtModel(prefix='lz1_') + ConstantModel(prefix='c1')
+            model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
             pars1 = model_F.make_params()
             pars1['lz1_'+ 'amplitude'].set(amplitude)
             pars1['lz1_'+ 'center'].set(peak_pos_voigt)
@@ -1485,7 +1510,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         else:
             #  If peak find function put out a tuple length 1
             if len(peak_pos_voigt)==1:
-                model_F = VoigtModel(prefix='lz1_')+ ConstantModel(prefix='c1')
+                model_F = VoigtModel(prefix='lz1_') #+ ConstantModel(prefix='c1')
                 pars1 = model_F.make_params()
                 pars1['lz1_'+ 'amplitude'].set(amplitude)
                 pars1['lz1_'+ 'center'].set(peak_pos_voigt[0])
@@ -1494,7 +1519,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
             if len(peak_pos_voigt)==2:
 
                 # Code from 1447
-                model_prel = VoigtModel(prefix='lzp_')+ ConstantModel(prefix='c1')
+                model_prel = VoigtModel(prefix='lzp_') #+ ConstantModel(prefix='c1')
                 pars2 = model_prel.make_params()
                 pars2['lzp_'+ 'amplitude'].set(amplitude, min=0)
                 pars2['lzp_'+ 'center'].set(peak_pos_voigt[0])
@@ -1509,7 +1534,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
 
 
                 # Then use these to inform next peak
-                model1 = VoigtModel(prefix='lz1_')+ ConstantModel(prefix='c1')
+                model1 = VoigtModel(prefix='lz1_')#+ ConstantModel(prefix='c1')
                 pars1 = model1.make_params()
                 pars1['lz1_'+ 'amplitude'].set(Peakp_Area, min=Peakp_Area/2, max=Peakp_Area*2)
                 pars1['lz1_'+ 'center'].set(Peakp_Cent, min=Peakp_Cent-1, max=Peakp_Cent+2)
@@ -1742,7 +1767,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
         # Fit just as many peaks as there are peak_pos_voigt
 
         if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int:
-            model_F = VoigtModel(prefix='lz1_')+ ConstantModel(prefix='c1')
+            model_F = VoigtModel(prefix='lz1_')#+ ConstantModel(prefix='c1')
             pars1 = model_F.make_params()
             pars1['lz1_'+ 'amplitude'].set(amplitude, min=0)
             pars1['lz1_'+ 'center'].set(peak_pos_voigt)
@@ -1750,7 +1775,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
         else:
             if len(peak_pos_voigt)==1:
-                model_F = VoigtModel(prefix='lz1_')+ ConstantModel(prefix='c1')
+                model_F = VoigtModel(prefix='lz1_')#+ ConstantModel(prefix='c1')
                 pars1 = model_F.make_params()
                 pars1['lz1_'+ 'amplitude'].set(amplitude, min=0)
                 pars1['lz1_'+ 'center'].set(peak_pos_voigt[0])
@@ -1758,7 +1783,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
             if len(peak_pos_voigt)==2:
                 # Do a prelim fit
-                model_prel = VoigtModel(prefix='lzp_')+ ConstantModel(prefix='c1')
+                model_prel = VoigtModel(prefix='lzp_')#+ ConstantModel(prefix='c1')
                 pars2 = model_prel.make_params()
                 pars2['lzp_'+ 'amplitude'].set(amplitude, min=0)
                 pars2['lzp_'+ 'center'].set(peak_pos_voigt[0])
@@ -1775,7 +1800,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
 
                 # Then use these to inform next peak
-                model1 = VoigtModel(prefix='lz1_')+ ConstantModel(prefix='c1')
+                model1 = VoigtModel(prefix='lz1_')#+ ConstantModel(prefix='c1')
                 pars1 = model1.make_params()
                 pars1['lz1_'+ 'amplitude'].set(Peakp_Area, min=Peakp_Area/2, max=Peakp_Area*2)
                 pars1['lz1_'+ 'center'].set(Peakp_Cent, min=Peakp_Cent-1, max=Peakp_Cent+2)
@@ -1799,7 +1824,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
                 high_peak=np.max(peak_pos_voigt)
                 peak_pos_left=np.array([low_peak, high_peak])
 
-                model = VoigtModel(prefix='lz1_')+ ConstantModel(prefix='c1')
+                model = VoigtModel(prefix='lz1_')#+ ConstantModel(prefix='c1')
                 params = model.make_params()
                 params['lz1_'+ 'amplitude'].set(amplitude, min=0)
                 params['lz1_'+ 'center'].set(med_peak)
@@ -2136,13 +2161,18 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
     axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1)
     axes['A'].plot(xdat, ydat,  '.k', label='data')
     axes['A'].legend()
+    axes['A'].set_ylabel('Intensity')
+    axes['A'].set_xlabel('Wavenumber')
+    axes['A'].set_xlim(ax1_xlim)
+    axes['A'].set_title('a) Overall Best Fit')
 
-    axes['B'].plot(xdat, ydat, '.k')
+    axes['B'].plot(xdat, ydat, '.k', label='data')
     if peak_pos_gauss is not None:
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=1)
     if len(peak_pos_voigt)==2:
         axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
     if len(peak_pos_voigt)>2:
+         axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
          axes['B'].plot(x_lin, components.get('lz3_'), '-k', linewidth=2, label='Peak3')
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
 
@@ -2151,16 +2181,12 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
     axes['B'].legend()
     fitspan=max(y_best_fit)-min(y_best_fit)
     axes['B'].set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
-
-    axes['A'].set_ylabel('Intensity')
-    axes['A'].set_xlabel('Wavenumber')
     axes['B'].set_ylabel('Intensity')
     axes['B'].set_xlabel('Wavenumber')
-
-    axes['A'].set_xlim(ax1_xlim)
-    axes['B'].set_xlim(ax2_xlim)
-    axes['A'].set_title('a) Overall Best Fit')
     axes['B'].set_title('b) Fit Components')
+    axes['B'].set_xlim(ax2_xlim)
+
+
 
     # Residual on plot C
     axes['C'].set_title('d) Residual')
@@ -2193,7 +2219,7 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
     if len(peak_pos_voigt)>1:
         axes['D'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
     if len(peak_pos_voigt)>2:
-         axes['B'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-k', linewidth=1, label='Peak3')
+         axes['D'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-k', linewidth=1, label='Peak3')
 
     axes['D'].set_title('c) Background fit')
 
@@ -2213,6 +2239,7 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
 
 
     path3=path+'/'+'Peak_fit_images'
+    fig.tight_layout()
     if os.path.exists(path3):
         out='path exists'
     else:
@@ -2410,7 +2437,7 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
     else:
         os.makedirs(path+'/'+ 'Peak_fit_images', exist_ok=False)
 
-
+    fig.tight_layout()
     print(path)
     file=filename.rsplit('.txt', 1)[0]
     fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=dpi)
@@ -2601,7 +2628,7 @@ N_peaks=2, fit_carbonate=True):
 
         # NOw into the voigt fitting
 
-        model0 = VoigtModel()+ ConstantModel()
+        model0 = VoigtModel()#+ ConstantModel()
 
         # create parameters with initial values
         pars0 = model0.make_params()
