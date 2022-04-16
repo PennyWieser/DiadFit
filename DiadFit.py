@@ -1432,11 +1432,12 @@ def remove_diad_baseline(*, path=None, filename, filetype='Witec_ASCII',
 
 
 
-def add_peak(*, prefix=None, center=None, min_cent=None, max_cent=None,  amplitude=100, sigma=0.2):
+def add_peak(*, prefix=None, center=None,
+min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sigma=0.2):
     """
     This function iteratively adds peaks for lmfit
     """
-    Model_combo=VoigtModel(prefix=prefix) ##+ConstantModel(prefix=prefix) Stops getting results
+    Model_combo=VoigtModel(prefix=prefix)#+ConstantModel(prefix=prefix) #Stops getting results
     peak =  Model_combo
     pars = peak.make_params()
 
@@ -1447,7 +1448,11 @@ def add_peak(*, prefix=None, center=None, min_cent=None, max_cent=None,  amplitu
 
 
     pars[prefix + 'amplitude'].set(amplitude, min=0)
-    pars[prefix + 'sigma'].set(sigma, min=0)
+
+    if min_sigma is not None:
+        pars[prefix+'sigma'].set(fwhm, max=max_sigma)
+    else:
+        pars[prefix + 'sigma'].set(sigma, min=0)
     return peak, pars
 
 
@@ -1718,7 +1723,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
 
 
 def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, peak_pos_voigt=(1389, 1410),
-                    amplitude=100, peak_pos_gauss=(1400), span=None, plot_figure=True, dpi=200):
+                    amplitude=100, peak_pos_gauss=(1400), gauss_sigma=None, gauss_amp=100, span=None, plot_figure=True, dpi=200):
 
 
     """ This function fits diad 2, at ~1389 and the hot band and C13 peak
@@ -1762,6 +1767,30 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
 
     """
+    # Super useful in all cases to fit a first peak, which is the biggest peak
+    if len(peak_pos_voigt)==1:
+        initial_guess=peak_pos_voigt
+    if len(peak_pos_voigt)==2:
+        initial_guess=np.min(peak_pos_voigt)
+    if len(peak_pos_voigt)==3:
+        initial_guess=np.median(peak_pos_voigt)
+
+    model_ini = VoigtModel()#+ ConstantModel()
+
+    # create parameters with initial values
+    params_ini = model_ini.make_params(center=initial_guess)
+
+    init_ini = model_ini.eval(params_ini, x=xdat)
+    result_ini  = model_ini.fit(ydat, params_ini, x=xdat)
+    comps_ini  = result_ini.eval_components()
+    Center_ini=result_ini.best_values.get('center')
+    Amplitude_ini=result_ini.params.get('amplitude')
+    sigma_ini=result_ini.params.get('sigma')
+    fwhm_ini=result_ini.params.get('fwhm')
+    print(Center_ini)
+    print(sigma_ini)
+
+
 
     if peak_pos_gauss is None:
         # Fit just as many peaks as there are peak_pos_voigt
@@ -1783,19 +1812,20 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
             if len(peak_pos_voigt)==2:
                 # Do a prelim fit
-                model_prel = VoigtModel(prefix='lzp_')#+ ConstantModel(prefix='c1')
-                pars2 = model_prel.make_params()
-                pars2['lzp_'+ 'amplitude'].set(amplitude, min=0)
-                pars2['lzp_'+ 'center'].set(peak_pos_voigt[0])
+                # model_prel = VoigtModel(prefix='lzp_')#+ ConstantModel(prefix='c1')
+                # pars2 = model_prel.make_params()
+                # pars2['lzp_'+ 'amplitude'].set(amplitude, min=0, max=Amplitude_ini)
+                # pars2['lzp_'+ 'center'].set(peak_pos_voigt[0])
+                # pars2['lzp_'+ 'sigma'].set(sigma_ini, min=sigma_ini/5, max=sigma_ini*5)
+                #
+                #
+                # init = model_prel.eval(pars2, x=xdat)
+                # result_prel = model_prel.fit(ydat, pars2, x=xdat)
+                # comps_prel = result_prel.eval_components()
 
-
-                init = model_prel.eval(pars2, x=xdat)
-                result_prel = model_prel.fit(ydat, pars2, x=xdat)
-                comps_prel = result_prel.eval_components()
-
-                Peakp_Cent=result_prel.best_values.get('lzp_center')
-                Peakp_Area=result_prel.best_values.get('lzp_amplitude')
-                Peakp_HW=result_prel.params.get('lzp_fwhm')
+                Peakp_Cent=Center_ini
+                Peakp_Area=Amplitude_ini
+                Peakp_HW=fwhm_ini
 
 
 
@@ -1811,14 +1841,14 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
                 pars = peak.make_params()
                 pars[prefix + 'center'].set(max(peak_pos_voigt), min=max(peak_pos_voigt)-2, max=max(peak_pos_voigt)+2)
                 pars[prefix + 'amplitude'].set(amplitude/5, min=Peakp_Area/100, max=Peakp_Area/5)
-                pars[prefix+ 'fwhm'].set(Peakp_HW, min=Peakp_HW/5, max=Peakp_HW*2)
+                pars[prefix+ 'fwhm'].set(Peakp_HW, min=Peakp_HW/10, max=Peakp_HW*2)
 
                 model_F=model1+peak
                 pars1.update(pars)
                 params=pars1
 
             if len(peak_pos_voigt)==3:
-                print('got here')
+                print('Trying to iteratively fit 3 peaks')
                 low_peak=np.min(peak_pos_voigt)
                 med_peak=np.median(peak_pos_voigt)
                 high_peak=np.max(peak_pos_voigt)
@@ -1831,7 +1861,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
                 for i, cen in enumerate(peak_pos_left):
 
-                    peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen, min_cent=cen-3, max_cent=cen+3 )
+                    peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
+                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*5)
                     model = peak+model
                     params.update(pars)
 
@@ -1844,8 +1875,14 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     if peak_pos_gauss is not None:
 
         model = GaussianModel(prefix='bkg_')
-        params = model.make_params(center=peak_pos_gauss)
-        params.add('amplitude', value=amplitude, min=0)
+        params = model.make_params(center=peak_pos_gauss, sigma=gauss_sigma)
+        #params.add('amplitude', value=50, min=0)
+
+        # model = GaussianModel(prefix='bkg_')
+        # params = model.make_params()#center=peak_pos_gauss, max=peak_pos_gauss+50, min=peak_pos_gauss-50)
+        # params.add('bkg_'+ 'center', value=peak_pos_gauss, min=peak_pos_gauss-50, max=peak_pos_gauss+50)
+        # #params.add('bkg_'+ 'amplitude', value=gauss_amp, min=0, max=gauss_amp*20)
+        # params.add('bkg_'+'sigma', value=gauss_fwhm, min=gauss_fwhm/5, max=gauss_fwhm*5)
 
         rough_peak_positions = peak_pos_voigt
         # If you want a Gaussian background
@@ -1860,15 +1897,29 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
                 model = peak+model
                 params.update(pars)
 
-            if len(peak_pos_voigt)>1:
-                print('got here')
+            if len(peak_pos_voigt)==2:
+                print('Fitting 2 voigt peaks iteratively ')
                 for i, cen in enumerate(peak_pos_voigt):
+                    print('working on voigt peak' + str(i))
+                    #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
+                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*5)
 
-                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
+
                     model = peak+model
                     params.update(pars)
 
+            if len(peak_pos_voigt)==3:
+                print('Fitting 2 peaks iteratively, then adding C13')
+                for i, cen in enumerate(peak_pos_voigt):
+                    print('working on voigt peak' + str(i))
+                    #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
+                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*2)
 
+
+                    model = peak+model
+                    params.update(pars)
 
         model_F=model
 
@@ -1886,6 +1937,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     # Get first peak center
     Peak1_Cent=result.best_values.get('lz1_center')
     Peak1_Int=result.best_values.get('lz1_amplitude')
+    print('fwhm gauss')
+    print(result.best_values)
 
 
     x_lin=np.linspace(span[0], span[1], 2000)
@@ -1920,8 +1973,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
             Peak3_Cent=result.best_values.get('lz3_center')
             Peak3_Int=result.best_values.get('lz3_amplitude')
 
-            ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+30]
-            ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+30]
+            ax1_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+30]
+            ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+30]
 
     if Peak2_Cent is None:
         df_out=pd.DataFrame(data={'Diad2_Cent': Peak1_Cent,
@@ -1950,6 +2003,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
         if Peak3_Cent is not None:
             Peaks=np.array([Peak1_Cent, Peak2_Cent, Peak3_Cent])
+            print(Peaks)
             # C13 is lower peak
             C13_Cent=np.min(Peaks)
             # Diad is medium peak
@@ -2020,7 +2074,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
 
         if peak_pos_gauss is not None:
-            ax2.plot(x_lin, components.get('bkg_'), '-c',linewidth=2,  label='Gaussian bck')
+            ax2.plot(x_lin, components.get('bkg_'), '.c',linewidth=2,  label='Gaussian bck')
         ax2.plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
         ax2.plot(xdat, ydat, '.k')
 
@@ -2071,7 +2125,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 def fit_diad_2_w_bck(*, path=None, filename=None, filetype='headless_txt',
 exclude_range1=None, exclude_range2=None, amplitude=100,
 N_poly_bck_diad2=2, lower_baseline_diad2=[1320, 1350], upper_baseline_diad2=[1440, 1500],
-peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=200):
+peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_fwhm_min=None, gauss_amp=100, plot_figure=True, dpi=200):
 
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
@@ -2138,7 +2192,9 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
     result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad2_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_diad2(path=path, filename=filename,
                     xdat=x_diad2, ydat=y_corr_diad2, amplitude=amplitude,
                     peak_pos_voigt=peak_pos_voigt,
-                    peak_pos_gauss=peak_pos_gauss, span=span, plot_figure=False)
+                    peak_pos_gauss=peak_pos_gauss, gauss_sigma=gauss_sigma,
+
+                    span=span, plot_figure=False)
 
 
     # Get diad data to plot
@@ -2154,7 +2210,7 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
     DC
     EE
     """
-    fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(10, 16))
+    fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
 
     # Plot best fit on the LHS, and individual fits on the RHS at the top
 
@@ -2173,7 +2229,7 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
         axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
     if len(peak_pos_voigt)>2:
          axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
-         axes['B'].plot(x_lin, components.get('lz3_'), '-k', linewidth=2, label='Peak3')
+         axes['B'].plot(x_lin, components.get('lz3_'), ':k', linewidth=2, label='Peak3')
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
 
 
@@ -2190,6 +2246,12 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
 
     # Residual on plot C
     axes['C'].set_title('d) Residual')
+    axes['C'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-b')
+    if len(peak_pos_voigt)>=2:
+        axes['C'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-r')
+    if len(peak_pos_voigt)==3:
+        axes['C'].plot([df_out['C13_Cent'], df_out['C13_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-k')
+
     axes['C'].plot(xdat_inrange, residual_diad2_coords, 'ok', mfc='c' )
     axes['C'].plot(xdat_inrange, residual_diad2_coords, '-c' )
     axes['C'].set_ylabel('Residual')
@@ -2201,7 +2263,7 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
     #Background fit on plot D
     #Background fit on plot D
     axes['D'].set_title('c) Background fit')
-    axes['D'].plot(Diad_short[:, 0], Diad_short[:, 1], '-c', label='Data')
+    axes['D'].plot(Diad_short[:, 0], Diad_short[:, 1], '.c', label='Data')
 
     axes['D'].set_ylim([
     np.min(Baseline[:, 1])-10*np.std(Baseline[:, 1]),
@@ -2219,7 +2281,7 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), plot_figure=True, dpi=2
     if len(peak_pos_voigt)>1:
         axes['D'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
     if len(peak_pos_voigt)>2:
-         axes['D'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-k', linewidth=1, label='Peak3')
+         axes['D'].plot(x_lin, components.get('lz3_')+ybase_xlin, ':k', linewidth=1, label='Peak3')
 
     axes['D'].set_title('c) Background fit')
 
@@ -2357,7 +2419,7 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
     DC
     EE
     """
-    fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(10, 16))
+    fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
 
     # Plot best fit on the LHS, and individual fits on the RHS at the top
 
@@ -2389,6 +2451,10 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
 
     # Residual on plot C
     axes['C'].set_title('d) Residual')
+    axes['C'].plot([df_out['Diad1_Cent'], df_out['Diad1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], '-b')
+    if len(peak_pos_voigt)>=2:
+        axes['C'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], '-r')
+
     axes['C'].plot(xdat_inrange, residual_diad1_coords, 'ok', mfc='c' )
     axes['C'].plot(xdat_inrange, residual_diad1_coords, '-c' )
     axes['C'].set_ylabel('Residual')
@@ -2398,7 +2464,7 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
 
     #Background fit on plot D
     axes['D'].set_title('c) Background fit')
-    axes['D'].plot(Diad_short[:, 0], Diad_short[:, 1], '-c', label='Data')
+    axes['D'].plot(Diad_short[:, 0], Diad_short[:, 1], '.c', label='Data')
 
     axes['D'].set_ylim([
     np.min(Baseline[:, 1])-10*np.std(Baseline[:, 1]),

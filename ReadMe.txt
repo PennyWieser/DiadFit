@@ -1,15 +1,44 @@
 This is a python package in progress allowing users to fit Ne lines, Fermi diads and carbonate peaks.
 
+Requirements: lmfit
 
-Spectra included as examples:
+FileFormats
+_________________________________________
+For screenshots of the accepted file formats, please see FileFormats.ipynb. If your file isn't one of these, please send penny an example. 
+
+
+Diad Spectra included as examples:
+_________________________________________
 
 1. Strong Diad with carbonate
-headless_txt_FG18_6_MI1.txt: Headless txt file from Witec showing a strong diad, hot bands and C13 
+'headless_txt_FG18_6_MI1.txt': Headless txt file from Witec showing a strong diad, hot bands and C13 
 
-See Peak_Fitting_headlesstxt_Gaussian.ipynb to fit this using a Gaussian background + 5 voigt peaks
+'DiadFit_headlesstxt_Dense_Gaussian.ipynb' fits this using a Gaussian background + 5 voigt peaks (splitting = 103.79765)
+'DiadFit_headlesstxt_Dense_Local.ipynb' fits this using 4 voigt peaks (splitting =103.798393)
 
 
 2. Weak Diad no carbonate
-WITEC_ASCII_MS14_11_MI1_50X.txt: WITEC ASCII file (e.g. metadata + data), Diad and very weak hotbands
-See Diad_Fitting_WITEC_Weak.ipynb for how to fit this
+'WITEC_ASCII_MS14_11_MI1_50X.txt': WITEC ASCII file (e.g. metadata + data), Diad and very weak hotbands
+'Diad_Fitting_WITEC_Weak.ipynb': Shows how to fit this.  
 
+
+Ne Lines included as example
+__________________________________________________
+* so far, the code is configured to fit just 2 user selected lines. For 1117, you can choose 1 peak or 2 (e.g. fits shoulder voigt).  
+
+1. Fitting all lines at once: Spectra in folder 'Ne_Test_Loop', notebook='Ne_Line_Fitting_Loop_txt.ipynb'
+
+
+2. Fitting each line individually (e.g. for weaker signals) -  
+	Ne_Line_Fitting_WITEC_Strong_SingleSpectra.ipynb
+
+
+Stripping Metadata
+__________________________________________________________
+
+So far, you can link to your WITEC folder with metadata, and it will get laser power, time since midnight, acquision time etc. 
+See String_Stripping_encoding_withdates_WITEC.ipynb
+
+
+
+	
