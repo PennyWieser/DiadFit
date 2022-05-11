@@ -113,7 +113,7 @@ def get_data(*, path=None, filename, filetype='Witec_ASCII'):
 
     if filetype=='Renishaw_txt':
         df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        df=Ne_df_long.iloc[:, 0:2]
+        df=df_long.iloc[:, 0:2]
 
     if filetype=='HORIBA_txt':
         df=read_HORIBA_to_df(path=path, filename=filename)
@@ -821,8 +821,11 @@ Ne_center_1=1117.1, N_poly_1_baseline=1, x_span_1=[-10, 8],
 LH_offset_mini=[1.5, 3], peaks_1=2,
 lower_bck_pk1=[-50, -25], upper_bck1_pk1=[8, 15], upper_bck2_pk1=[30, 50],
 Ne_center_2=1147, N_poly_2_baseline=1, x_span_2=[-5, 5],
+x_span_pk1_override=None, x_span_pk2_override=None,
 lower_bck_pk2=[-44.2, -22], upper_bck1_pk2=[15, 50], upper_bck2_pk2=[50, 51],
 amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_range=1000):
+
+
 
 
     """ This function reads in a user file, fits the Ne lines, and if required, saves an image
@@ -857,6 +860,9 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
         How much x range outside selected baseline the baseline selection plot shows.
     y_range: flt, int
         How much above the baseline position is shown on the y axis.
+
+    x_span_pk2_override, x_span_pk1_override: list
+        determins how mayn point to either side of peak you want to fit, if different from background positions
 
     Things for Diad 1 (~1117):
 
@@ -909,12 +915,27 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
     y_corr_1447, Py_base_1447, x_1447, Ne_short_1447, Py_base_1447, Baseline_ysub_1447, Baseline_x_1447=remove_Ne_baseline_1447(Ne, Ne_center_2=Ne_center_2, N_poly_1447_baseline=N_poly_2_baseline,
     lower_bck=lower_bck_pk2, upper_bck1=upper_bck1_pk2, upper_bck2=upper_bck2_pk2)
 
+    if x_span_pk1_override is None:
+
+        x_span_pk1=[lower_bck_pk1[1], upper_bck1_pk1[0]]
+        x_span_pk1_dist=abs(lower_bck_pk1[1]-upper_bck1_pk1[0])
+    else:
+        x_span_pk1=x_span_pk1_override
+        x_span_pk1_dist=abs(x_span_pk1[1]-x_span_pk1[0])
+
+    if x_span_pk2_override is None:
+        x_span_pk2=[lower_bck_pk2[1], upper_bck1_pk2[0]]
+        x_span_pk2_dist=abs(lower_bck_pk2[1]-upper_bck1_pk2[0])
+    else:
+        x_span_pk2=x_span_pk2_override
+        x_span_pk2_dist=abs(x_span_pk2[1]-x_span_pk2[0])
+
     # Fit the 1117 peak
-    cent_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps = fit_1117(x_1117, y_corr_1117, x_span=x_span_1, Ne_center=Ne_center_1, LH_offset_mini=LH_offset_mini, peaks_1117=peaks_1, amplitude=amplitude, print_report=print_report)
+    cent_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps = fit_1117(x_1117, y_corr_1117, x_span=x_span_pk1, Ne_center=Ne_center_1, LH_offset_mini=LH_offset_mini, peaks_1117=peaks_1, amplitude=amplitude, print_report=print_report)
 
 
     # Fit the 1447 peak
-    cent_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx = fit_1447(x_1447, y_corr_1447, x_span=x_span_2,  Ne_center=Ne_center_2, amplitude=amplitude, print_report=print_report)
+    cent_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx = fit_1447(x_1447, y_corr_1447, x_span=x_span_pk2,  Ne_center=Ne_center_2, amplitude=amplitude, print_report=print_report)
 
 
     # Calculate difference between peak centers, and Delta Ne
@@ -978,7 +999,7 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
         ax2.set_title('1447 peak fitting')
         ax2.set_xlabel('Wavenumber')
         ax2.set_ylabel('Intensity')
-        ax2.set_xlim([cent_1447-5, cent_1447+5])
+        ax2.set_xlim([cent_1447-x_span_pk2_dist/2, cent_1447++x_span_pk2_dist/2])
 
 
         ax3.plot(Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, 'xb', label='data')
@@ -992,7 +1013,7 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
             ax3.plot(xx_1117, comps.get('p2_'), '-c', label='p2')
         ax3.plot(xx_1117, result_1117, 'g-', label='best fit')
         ax3.legend()
-        ax3.set_xlim([cent_1117-5,cent_1117+5 ])
+        ax3.set_xlim([cent_1117-x_span_pk1_dist/2,cent_1117+x_span_pk1_dist/2 ])
 
         # Residuals for charlotte
         ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, '-r', label='residual')

@@ -1,6 +1,6 @@
 This is a python package in progress allowing users to fit Ne lines, Fermi diads and carbonate peaks.
 
-Requirements: lmfit
+Requirements: lmfit, matplotlib v.3.5 up for subplot mosaic
 
 FileFormats
 _________________________________________
