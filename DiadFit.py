@@ -1406,7 +1406,7 @@ def remove_diad_baseline(*, path=None, filename, filetype='Witec_ASCII',
                                 &
                                 (Baseline_with_outl[:, 1]>Median_Baseline-sigma*Std_Baseline)
                                ]
-    print(Std_Baseline)
+
 
     #Baseline=Baseline_with_outl
 
@@ -1526,7 +1526,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         # Fit just as many peaks as there are peak_pos_voigt
 
         # If peak find functoin has put out a float, does this for 1 peak
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int:
+        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
             model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
             pars1 = model_F.make_params()
             pars1['lz1_'+ 'amplitude'].set(amplitude)
@@ -1589,7 +1589,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
 
         rough_peak_positions = peak_pos_voigt
         # If you want a Gaussian background
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int:
+        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
                 peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, amplitude=amplitude)
                 model = peak+model
                 params.update(pars)
@@ -1610,7 +1610,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                     peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen, amplitude=amplitude)
                     model = peak+model
                     params.update(pars)
-                if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int:
+                if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
                     peak, pars = add_peak(prefix='lz1_', center=cen, amplitude=amplitude)
                     model = peak+model
                     params.update(pars)
@@ -1670,8 +1670,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
     if len(peak_pos_voigt)>1:
         lowerpeak=np.min([Peak1_Cent, Peak2_Cent])
         upperpeak=np.max([Peak1_Cent, Peak2_Cent])
-        print(lowerpeak)
-        print(upperpeak)
+
         ax1_xlim=[Peak1_Cent-50, Peak1_Cent+20]
         ax2_xlim=[Peak1_Cent-50, Peak1_Cent+20]
     else:
@@ -1789,12 +1788,27 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
     """
     # Super useful in all cases to fit a first peak, which is the biggest peak
-    if len(peak_pos_voigt)==1:
+
+
+        # If peak find functoin has put out a float, does this for 1 peak
+
+    if type(peak_pos_voigt) is np.ndarray:
+        peak_pos_voigt=peak_pos_voigt[0]
+
+
+    if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
         initial_guess=peak_pos_voigt
-    if len(peak_pos_voigt)==2:
-        initial_guess=np.min(peak_pos_voigt)
-    if len(peak_pos_voigt)==3:
-        initial_guess=np.median(peak_pos_voigt)
+        type_peak="int"
+            # Sometimes length 1 can be with a comma
+    else:
+
+
+        if len(peak_pos_voigt)==1:
+            initial_guess=peak_pos_voigt
+        if len(peak_pos_voigt)==2:
+            initial_guess=np.min(peak_pos_voigt)
+        if len(peak_pos_voigt)==3:
+            initial_guess=np.median(peak_pos_voigt)
 
     model_ini = VoigtModel()#+ ConstantModel()
 
@@ -1802,6 +1816,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     params_ini = model_ini.make_params(center=initial_guess)
 
     init_ini = model_ini.eval(params_ini, x=xdat)
+
+
     result_ini  = model_ini.fit(ydat, params_ini, x=xdat)
     comps_ini  = result_ini.eval_components()
     Center_ini=result_ini.best_values.get('center')
@@ -1816,7 +1832,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     if peak_pos_gauss is None:
         # Fit just as many peaks as there are peak_pos_voigt
 
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int:
+        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
             model_F = VoigtModel(prefix='lz1_')#+ ConstantModel(prefix='c1')
             pars1 = model_F.make_params()
             pars1['lz1_'+ 'amplitude'].set(amplitude, min=0)
@@ -1907,10 +1923,11 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
         rough_peak_positions = peak_pos_voigt
         # If you want a Gaussian background
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int:
-                peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, amplitude=amplitude)
-                model = peak+model
-                params.update(pars)
+        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
+            type_peak="int"
+            peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, amplitude=amplitude)
+            model = peak+model
+            params.update(pars)
         else:
 
             if len(peak_pos_voigt)==1:
@@ -1958,8 +1975,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     # Get first peak center
     Peak1_Cent=result.best_values.get('lz1_center')
     Peak1_Int=result.best_values.get('lz1_amplitude')
-    print('fwhm gauss')
-    print(result.best_values)
+    # print('fwhm gauss')
+    # print(result.best_values)
 
 
     x_lin=np.linspace(span[0], span[1], 2000)
@@ -1969,13 +1986,16 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
 
     # Work out what peak is what
-    if type(peak_pos_voigt) is float and type(peak_pos_voigt) is int:
-        if len(peak_pos_voigt)==1:
-            Peak2_Cent=None
-            Peak3_Cent=None
-            ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-            ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not int:
+
+
+    if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
+
+        Peak2_Cent=None
+        Peak3_Cent=None
+        ax1_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
+        ax2_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
+
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
         if len(peak_pos_voigt)==1:
             Peak2_Cent=None
             Peak3_Cent=None
@@ -2246,11 +2266,14 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
     axes['B'].plot(xdat, ydat, '.k', label='data')
     if peak_pos_gauss is not None:
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=1)
-    if len(peak_pos_voigt)==2:
-        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
-    if len(peak_pos_voigt)>2:
-         axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
-         axes['B'].plot(x_lin, components.get('lz3_'), ':k', linewidth=2, label='Peak3')
+
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
+
+        if len(peak_pos_voigt)==2:
+            axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+        if len(peak_pos_voigt)>2:
+            axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+            axes['B'].plot(x_lin, components.get('lz3_'), ':k', linewidth=2, label='Peak3')
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
 
 
@@ -2268,10 +2291,11 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
     # Residual on plot C
     axes['C'].set_title('d) Residual')
     axes['C'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-b')
-    if len(peak_pos_voigt)>=2:
-        axes['C'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-r')
-    if len(peak_pos_voigt)==3:
-        axes['C'].plot([df_out['C13_Cent'], df_out['C13_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-k')
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
+        if len(peak_pos_voigt)>=2:
+            axes['C'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-r')
+        if len(peak_pos_voigt)==3:
+            axes['C'].plot([df_out['C13_Cent'], df_out['C13_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-k')
 
     axes['C'].plot(xdat_inrange, residual_diad2_coords, 'ok', mfc='c' )
     axes['C'].plot(xdat_inrange, residual_diad2_coords, '-c' )
@@ -2299,10 +2323,13 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
 
     axes['D'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='best fit')
     axes['D'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
-    if len(peak_pos_voigt)>1:
-        axes['D'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
-    if len(peak_pos_voigt)>2:
-         axes['D'].plot(x_lin, components.get('lz3_')+ybase_xlin, ':k', linewidth=1, label='Peak3')
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
+
+
+        if len(peak_pos_voigt)>1:
+            axes['D'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
+        if len(peak_pos_voigt)>2:
+            axes['D'].plot(x_lin, components.get('lz3_')+ybase_xlin, ':k', linewidth=1, label='Peak3')
 
     axes['D'].set_title('c) Background fit')
 
@@ -2450,8 +2477,9 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
 
     axes['B'].plot(xdat, ydat, '.k')
 
-    if len(peak_pos_voigt)>1:
-        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
+        if len(peak_pos_voigt)>1:
+            axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
     if peak_pos_gauss is not None:
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
@@ -2473,8 +2501,9 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
     # Residual on plot C
     axes['C'].set_title('d) Residual')
     axes['C'].plot([df_out['Diad1_Cent'], df_out['Diad1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], '-b')
-    if len(peak_pos_voigt)>=2:
-        axes['C'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], '-r')
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
+        if len(peak_pos_voigt)>=2:
+            axes['C'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], '-r')
 
     axes['C'].plot(xdat_inrange, residual_diad1_coords, 'ok', mfc='c' )
     axes['C'].plot(xdat_inrange, residual_diad1_coords, '-c' )
@@ -2866,6 +2895,9 @@ def calculate_density_cornell(temp='SupCrit', Split=None):
 
     roomT=df['Temperature']=="RoomT"
     SupCrit=df['Temperature']=="SupCrit"
+    # If splitting is 0
+    zero=df['Splitting']==0
+
     # Range for SC low density
     min_lowD_SC_Split=df['Splitting']>=102.72
     max_lowD_SC_Split=df['Splitting']<=103.16
@@ -2888,6 +2920,10 @@ def calculate_density_cornell(temp='SupCrit', Split=None):
     # Too low density
     Too_Low_SC=df['Splitting']<102.72
     Too_Low_RT=df['Splitting']<102.734115670188
+
+    df.loc[zero, 'Preferred_D']=0
+    df.loc[zero, 'Notes']=0
+
 
     # If room T, low density, set as low density
     df.loc[roomT&(min_lowD_RoomT_Split&max_lowD_RoomT_Split), 'Preferred D'] = LowD_RT
@@ -2939,6 +2975,8 @@ def calculate_density_cornell(temp='SupCrit', Split=None):
     df.loc[roomT&Imposs_upper_end, 'Notes']='Impossible Density, high density'
     df.loc[roomT&Imposs_upper_end, 'in range']='N'
 
+
+    #df.loc[zero, 'in range']='Y'
     # If high densiy, and beyond the upper calibration limit
     Upper_Cal_RT=df['Splitting']>105.1
     Upper_Cal_SC=df['Splitting']>104.95
