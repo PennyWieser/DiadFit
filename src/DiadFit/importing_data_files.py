@@ -1,0 +1,535 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import patches
+import lmfit
+from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel
+from scipy.signal import find_peaks
+import os
+import re
+from os import listdir
+from os.path import isfile, join
+
+encode="ISO-8859-1"
+
+## Functions for getting file names
+def get_Ne_files(path, ID_str='Ne', file_fmt='txt', exclude_str=None, sort=True):
+    """ This function takes a user path, and extracts all files which contain the ID_str
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+    sort: bool
+        If true, sorts files alphabetically
+    ID_str: str
+        Finds all files containing this string (e.g. Ne, NE)
+    exclude_str: str
+        Excludes files with this string in the name
+    file_fmt: str
+        Gets all files of this format only (e.g. txt)
+
+
+    Returns
+    -----------
+    Returns file names as a list.
+
+    """
+    Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
+    Ne_files=[item for item in Allfiles if ID_str in item and file_fmt in item and exclude_str not in item]
+
+    if sort is True:
+        Ne_files=sorted(Ne_files)
+    return Ne_files
+
+
+def get_diad_files(path, sort=True, file_fmt='txt', exclude_str='Ne', exclude_type='.png'):
+    """ This function takes a user path, and extracts all files which dont contain the excluded string and type
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+    sort: bool
+        If true, sorts files alphabetically
+    file_fmt: str
+        File format. Default txt, could also enter csv etc.
+    exclude_str: str
+        Excludes files with this string in their name. E.g. if exclude_str='Ne' it will exclude Ne lines
+    exclude_type: str
+        Excludes files of this type, e.g. exclude_type='png' gets rid of image files.
+
+    Returns
+    -----------
+    Returns file names as a list.
+
+    """
+    exclude=exclude_type
+    Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
+    Diad_files=[item for item in Allfiles if exclude_str not in item and file_fmt in item and exclude not in item]
+    if sort is True:
+
+        Diad_files2=sorted(Diad_files)
+    else:
+        Diad_files2=Diad_files
+    return Diad_files2
+
+
+
+def get_all_txt_files(path):
+    """ This function takes a user path, and gets all the .txt. files in that path.
+
+    Parameters
+    -----------
+    path: str
+        Folder user wishes to read data from
+    """
+
+    Allfiles_all = [f for f in listdir(path) if isfile(join(path, f))]
+    # Use only txt files
+    type(Allfiles_all)
+    All_files=[]
+    for file in Allfiles_all:
+        if '.txt' in file and 'pandas' not in file:
+            All_files.append(format(file))
+    return All_files
+
+
+## Functions to just simply get data to plot up
+def get_data(*, path=None, filename, filetype='Witec_ASCII'):
+    """
+    Extracts data as a np.array from user file of differen types
+    """
+    if filetype == 'headless_txt':
+        df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
+
+    if filetype=='Witec_ASCII':
+        df=read_witec_to_df(path=path, filename=filename)
+
+    if filetype=='Renishaw_txt':
+        df_long=pd.read_csv(path+'/'+filename, sep="\t" )
+        df=df_long.iloc[:, 0:2]
+
+    if filetype=='HORIBA_txt':
+        df=read_HORIBA_to_df(path=path, filename=filename)
+
+    if filetype=='headless_csv':
+        df=pd.read_csv(path+str('/')+filename, header=None)
+
+    df_in=np.array(df)
+
+    return df_in
+
+## Reading different file formats
+def read_HORIBA_to_df(*,  path=None, filename):
+    """ This function takes in a HORIBA .txt. file with headers with #, and looks down to the row where Data starts (no #),
+    and saves this to a new file called pandas_.... old file. It exports the data as a pandas dataframe
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
+
+
+    """
+    path2=path+'/'+ 'Peak_fits_txt'
+    if os.path.exists(path2):
+        a='path exists'
+    else:
+        os.makedirs(path+'/'+ 'Peak_fits_txt', exist_ok=False)
+        print('Ive made a new folder to store your intermediate txt files in')
+
+    if path is None:
+        fr = open(filename, 'r', encoding=encode)
+
+        fw=open('pandas2_'+filename, 'w')
+    else:
+        fr = open(path+'/'+filename, 'r', encoding=encode)
+        fw= open(path+'/'+'Peak_fits_txt'+'/'+'pandas2_'+filename, 'w')
+
+    if fr.readline().startswith('#Acq. time'):
+        out='HORIBA txt file recognised'
+    else:
+        raise TypeError('Not a HORIBA txt file with headers')
+    while True:
+        l=fr.readline()
+        if not l.startswith('#'):
+
+            break
+
+    for line in fr:
+        fw.write(line)
+
+    fw.close()
+    fr.close()
+    if path is None:
+        print(filename)
+        df=pd.read_csv('pandas2_'+filename, sep="\t", header=None)
+    else:
+        print(filename)
+        df=pd.read_csv(path+'/'+'Peak_fits_txt'+'/'+'pandas2_'+filename, sep="\t", header=None)
+
+        return df
+
+def read_witec_to_df(*,  path=None, filename):
+    """ This function takes in a WITec ASCII.txt. file with metadata mixed with data, and looks down to the row where Data starts,
+    and saves this to a new file called pandas_.... old file. It exports the data as a pandas dataframe
+
+    Parameters
+    -----------
+
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
+
+    """
+    path2=path+'/'+ 'Peak_fits_txt'
+    if os.path.exists(path2):
+        a='path exists'
+    else:
+        os.makedirs(path+'/'+ 'Peak_fits_txt', exist_ok=False)
+        print('Ive made a new folder to store your intermediate txt files in')
+
+    if path is None:
+        fr = open(filename, 'r', encoding=encode)
+        fw=open('pandas2_'+filename, 'w')
+    else:
+        fr = open(path+'/'+filename, 'r', encoding=encode)
+        fw= open(path+'/'+'Peak_fits_txt'+'/'+'pandas2_'+filename, 'w')
+
+    if fr.readline().startswith('//Exported ASCII'):
+        out='ASCI file recognised'
+    else:
+        raise TypeError('file not an ASCI file')
+
+    while True:
+        l=fr.readline()
+
+        if l.startswith('[Data]'):
+
+            break
+
+    for line in fr:
+        fw.write(line)
+
+    fw.close()
+    fr.close()
+    if path is None:
+        print(filename)
+        df=pd.read_csv('pandas2_'+filename, sep="\t")
+    else:
+        print(filename)
+        df=pd.read_csv(path+'/'+'Peak_fits_txt'+'/'+'pandas2_'+filename, sep="\t")
+
+    return df
+
+
+
+## Instrument specific metadata things
+## Functions to extract metadata from WITEC files (v instrument specific)
+
+def extract_time_stamp_witec(*, path, filename):
+    """ Extracts time stamps
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Start'):
+            line=l
+            break
+    return line
+
+def extract_laser_power_witec(*, path, filename):
+    """ Extracts laser power
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Laser'):
+            line=l
+            break
+    return line
+
+def extract_accumulations(*, path, filename):
+    """ Extracts accumulations
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Number'):
+            line=l
+            break
+    return line
+
+
+def extract_Integration_Time(*, path, filename):
+    """ Extracts Integration time
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Integration'):
+            line=l
+            break
+    return line
+
+def extract_objective(*, path, filename):
+    """ Extracts objective magnification
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if "Magnification" in l:
+            line=l
+            break
+    return line
+
+def extract_duration(*, path, filename):
+    """ Extracts analysis duration
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Duration'):
+            line=l
+            break
+    return line
+
+def extract_date(*, path, filename):
+    """ Extracts date"""
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Start Date'):
+            line=l
+            break
+    return line
+
+def checks_if_video(*, path, filename):
+    """ Checks if file is an image (as doesnt have all metadata)
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+    l1=fr.readline()
+    #print(l1)
+    if 'Video' in l1:
+        return 'Video'
+    else:
+
+        return 'not Video'
+
+def checks_if_imagescan(*, path, filename):
+    """ Checks if file is an imagescan (as doesnt have all metadata)
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+    l1=fr.readline()
+    #print(l1)
+    if 'Scan' in l1:
+        return 'Scan'
+    else:
+
+        return 'not Scan'
+
+def checks_if_general(*, path, filename):
+    """ Checks if file is a spectra file with all the right metadata
+    """
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+    l1=fr.readline()
+    #print(l1)
+    if 'General' in l1:
+        return 'General'
+    else:
+        return 'not General'
+
+## Functions for extracting the metadata from WITEC files
+
+def extract_acq_params(*, path, filename):
+    """ This function checks what type of file you have, and if its a spectra file,
+    uses the functions above to extract various bits of metadata
+    """
+
+    line_general=checks_if_general(path=path, filename=filename)
+    line_video_check=checks_if_video(path=path, filename=filename)
+    line_scan=checks_if_imagescan(path=path, filename=filename)
+
+    # If not a
+    if line_video_check == "Video":
+        power=np.nan
+        accums=np.nan
+        integ=np.nan
+        Obj=np.nan
+        Dur=np.nan
+        dat=np.nan
+    if line_scan == "Scan":
+        power=np.nan
+        accums=np.nan
+        integ=np.nan
+        Obj=np.nan
+        Dur=np.nan
+        dat=np.nan
+    if line_general == 'General':
+        power=np.nan
+        accums=np.nan
+        integ=np.nan
+        Obj=np.nan
+        Dur=np.nan
+        dat=np.nan
+
+    # If a real spectra file
+    if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
+        power_str=extract_laser_power_witec(path=path, filename=filename)
+        power=float(power_str.split()[3])
+
+        accums_str=extract_accumulations(path=path, filename=filename)
+        accums=float(accums_str.split()[3])
+
+        integ_str=extract_Integration_Time(path=path, filename=filename)
+        integ=float(integ_str.split()[3])
+
+        Obj_str=extract_objective(path=path, filename=filename)
+        Obj=float(Obj_str.split()[2])
+
+        Dur_str=extract_duration(path=path, filename=filename)
+        Dur=Dur_str.split()[1:]
+
+        dat_str=extract_date(path=path, filename=filename)
+        dat=dat_str.split(':')[1].split(',',1)[1].lstrip( )
+
+    return power, accums, integ, Obj, Dur, dat
+
+
+
+
+def calculates_time(*, path, filename):
+    """ calculates time for non video files for WITEC files"""
+
+    # Need to throw out video and peak fit files "general"
+    line_general=checks_if_general(path=path, filename=filename)
+    line_video_check=checks_if_video(path=path, filename=filename)
+    line_scan=checks_if_imagescan(path=path, filename=filename)
+
+    # If not a
+    if line_video_check == "Video":
+        line3_sec_int=np.nan
+        line2=np.nan
+    if line_general == 'General':
+        line3_sec_int=np.nan
+        line2=np.nan
+    if line_scan== "Scan":
+        line3_sec_int=np.nan
+        line2=np.nan
+    # If a real spectra file
+    if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
+        line=extract_time_stamp_witec(path=path, filename=filename)
+
+
+        line2=line.strip('Start Time:\t')
+        if 'PM' in line2:
+            line3=line2.strip(' PM\n')
+            line3_hr=line3.split(':')[0]
+            line3_min=re.search(':(.*):', line3).group(1)
+            line3_sec=re.search(':(.*)', line2).group(1)[3:5]
+
+
+        if 'AM' in line2:
+            line3=line2.strip(' AM\n')
+            line3_hr=line3.split(':')[0]
+            line3_min=re.search(':(.*):', line3).group(1)
+            line3_sec=re.search(':(.*)', line2).group(1)[3:5]
+
+
+
+        if line3_hr != '12' and 'PM' in line2:
+            line3_sec_int=12*60*60+float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)
+        else:
+            line3_sec_int=float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)
+
+
+    return line3_sec_int, line2
+
+def stitch_in_loop(*, Allfiles=None, path=None, prefix=True):
+    """ Stitches together WITEC metadata for all files in a loop
+    """
+    # string values
+    time_str=[]
+    filename_str=[]
+    duration_str=[]
+    date_str=[]
+    # Numerical values
+    Int_time=np.empty(len(Allfiles), dtype=float)
+    objec=np.empty(len(Allfiles), dtype=float)
+    time=np.empty(len(Allfiles), dtype=float)
+    power=np.empty(len(Allfiles), dtype=float)
+    accumulations=np.empty(len(Allfiles), dtype=float)
+
+    for i in range(0, len(Allfiles)):
+        filename1=Allfiles[i] #.rsplit('.',1)[0]
+        if prefix is True:
+            filename=filename1.split(' ')[1:][0]
+        else:
+            filename=filename1
+        print('working on file' + str(filename1))
+        time_num, t_str=calculates_time(path=path, filename=filename1)
+
+        powr, accums, integ, Obj, Dur, dat=extract_acq_params(path=path,
+                                                       filename=filename1)
+
+
+        Int_time[i]=integ
+        objec[i]=Obj
+        power[i]=powr
+        accumulations[i]=accums
+
+
+        time[i]=time_num
+        time_str.append(format(t_str))
+        filename_str.append(format(filename))
+        duration_str.append(format(Dur))
+        date_str.append(format(dat))
+
+
+
+
+    Time_Df=pd.DataFrame(data={'name': filename_str,
+                               'date': date_str,
+                               'power': power,
+                               'Int_time': Int_time,
+                               'accumulations': accumulations,
+                               'Mag (X)': objec,
+                               'duration': duration_str,
+                   '24hr_time': time_str,
+    'sec since midnight': time
+                              })
+    Time_Df_2=Time_Df[Time_Df['sec since midnight'].notna()]
+    Time_Df_2['index']=Time_Df_2.index
+
+    Time_Df_2=Time_Df_2.sort_values('sec since midnight', axis=0, ascending=True)
+    Time_Df_2.to_clipboard(excel=True)
+    print('Done')
+
+    return Time_Df_2
