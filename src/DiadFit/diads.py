@@ -9,6 +9,7 @@ import os
 import re
 from os import listdir
 from os.path import isfile, join
+from DiadFit.importing_data_files import *
 
 encode="ISO-8859-1"
 
@@ -136,17 +137,18 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
         if n_peaks_diad2==2:
             print('Couldnt find diad2, set peak guess to 1389.1, 1410')
             diad_2_peaks=np.array([1389.1, 1410])
-
+        if n_peaks_diad2==3:
+            raise TypeError('Couldnt find diad2, and you specified 3 peaks, try adjusting the Scipy peak parameters')
 
     if any(df_sort_diad1_trim['pos'].between(1283, 1290)):
         diad_1_peaks=tuple(df_sort_diad1_trim['pos'].values)
     else:
-        print('Couldnt find diad1, set peak guess to 1286')
+        print('Couldnt find diad1, set peak guess to 1286.1')
         diad_1_peaks=np.array([1286.1])
 
 
 
-    print('Using initial estimates: Diad1+HB=' +str(np.round(diad_1_peaks, 1)) + ', Diad2+HB=' + str(np.round(diad_2_peaks, 1)))
+    print('Initial estimates: Diad1+HB=' +str(np.round(diad_1_peaks, 1)) + ', Diad2+HB=' + str(np.round(diad_2_peaks, 1)))
 
 
     if plot_figure is True:
@@ -202,7 +204,7 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
 
 
 
-def remove_diad_baseline(*, path=None, filename, filetype='Witec_ASCII',
+def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII',
             exclude_range1=None, exclude_range2=None,N_poly=1,
             lower_range=[1200, 1250], upper_range=[1320, 1330], sigma=4,
             plot_figure=True):
@@ -215,6 +217,11 @@ def remove_diad_baseline(*, path=None, filename, filetype='Witec_ASCII',
 
     filename: str
         Specific file being read
+
+    OR
+
+    Diad_files: str
+        Filename if in same folder as script.
 
     filetype: str
         Identifies type of file
@@ -264,6 +271,7 @@ def remove_diad_baseline(*, path=None, filename, filetype='Witec_ASCII',
     """
 
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+
 
 
     Diad=np.array(Diad_df)
@@ -1084,7 +1092,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 def fit_diad_2_w_bck(*, path=None, filename=None, filetype='headless_txt',
 exclude_range1=None, exclude_range2=None, amplitude=100,
 N_poly_bck_diad2=2, lower_baseline_diad2=[1320, 1350], upper_baseline_diad2=[1440, 1500],
-peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_fwhm_min=None, gauss_amp=100, plot_figure=True, dpi=200):
+peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_fwhm_min=None, gauss_amp=100, plot_figure=True, dpi=200, return_other_params=False):
 
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
@@ -1137,8 +1145,17 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
         dpi for saved figure
 
 
+    return_other_params: bool (default False)
+        if False, just returns a dataframe of peak parameters
+        if True, also returns:
+            result: fit parameters
+            y_best_fit: best fit to all curves in y
+            x_lin: linspace of best fit coordinates in x.
+
     """
 
+
+    #Fit baseline
 
     #Fit baseline
 
@@ -1147,18 +1164,17 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
     lower_range=lower_baseline_diad2, upper_range=upper_baseline_diad2, plot_figure=False)
 
 
+    # Fit voigt (+-) gaussian to data
 
     result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad2_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_diad2(path=path, filename=filename,
                     xdat=x_diad2, ydat=y_corr_diad2, amplitude=amplitude,
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=peak_pos_gauss, gauss_sigma=gauss_sigma,
-
                     span=span, plot_figure=False)
 
 
     # Get diad data to plot
     Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
-
     Spectra=np.array(Spectra_df)
 
 
@@ -1166,12 +1182,12 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
 
     figure_mosaic="""
     AB
-    DC
+    CD
     EE
     """
     fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
 
-    # Plot best fit on the LHS, and individual fits on the RHS at the top
+    # Overall best fit
 
     axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1)
     axes['A'].plot(xdat, ydat,  '.k', label='data')
@@ -1180,6 +1196,9 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
     axes['A'].set_xlabel('Wavenumber')
     axes['A'].set_xlim(ax1_xlim)
     axes['A'].set_title('a) Overall Best Fit')
+
+
+    # Split into separate components
 
     axes['B'].plot(xdat, ydat, '.k', label='data')
     if peak_pos_gauss is not None:
@@ -1191,7 +1210,7 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
             axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
         if len(peak_pos_voigt)>2:
             axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
-            axes['B'].plot(x_lin, components.get('lz3_'), ':k', linewidth=2, label='Peak3')
+            axes['B'].plot(x_lin, components.get('lz3_'), '-', color='yellow', linewidth=2, label='Peak3')
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
 
 
@@ -1204,57 +1223,64 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
     axes['B'].set_title('b) Fit Components')
     axes['B'].set_xlim(ax2_xlim)
 
+    # Fits, but not background subtracted to visualize background
 
+    #Background fit on plot C
+    axes['C'].set_title('c) Background fit')
+    axes['C'].plot(Diad_short[:, 0], Diad_short[:, 1], '.c', label='Data')
+    axes['C'].plot(Baseline[:, 0], Baseline[:, 1], '.b', label='bck')
+    axes['C'].plot(Diad_short[:, 0], Py_base_diad2, '-k', label='Poly bck fit')
 
-    # Residual on plot C
-    axes['C'].set_title('d) Residual')
-    axes['C'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-b')
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)>=2:
-            axes['C'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-r')
-        if len(peak_pos_voigt)==3:
-            axes['C'].plot([df_out['C13_Cent'], df_out['C13_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-k')
-
-    axes['C'].plot(xdat_inrange, residual_diad2_coords, 'ok', mfc='c' )
-    axes['C'].plot(xdat_inrange, residual_diad2_coords, '-c' )
-    axes['C'].set_ylabel('Residual')
-    axes['C'].set_xlabel('Wavenumber')
-    axes['C'].set_xlim(ax1_xlim)
-    axes['C'].set_xlim(ax2_xlim)
-    #axes['C'].set_xlim(ax1_xlim)
-
-    #Background fit on plot D
-    #Background fit on plot D
-    axes['D'].set_title('c) Background fit')
-    axes['D'].plot(Diad_short[:, 0], Diad_short[:, 1], '.c', label='Data')
-
-    axes['D'].set_ylim([
+    axes['C'].set_ylim([
     np.min(Baseline[:, 1])-10*np.std(Baseline[:, 1]),
     np.max(Baseline[:, 1])+10*np.std(Baseline[:, 1])
     ] )
-    axes['D'].set_ylabel('Intensity')
-    axes['D'].set_xlabel('Wavenumber')
+    axes['C'].set_ylabel('Intensity')
+    axes['C'].set_xlabel('Wavenumber')
     ybase_xlin=Pf_baseline(x_lin)
     if peak_pos_gauss is not None:
 
-        axes['D'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
+        axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
 
-    axes['D'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='best fit')
-    axes['D'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
+    axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='best fit')
+    axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
 
 
         if len(peak_pos_voigt)>1:
-            axes['D'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
+            axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
         if len(peak_pos_voigt)>2:
-            axes['D'].plot(x_lin, components.get('lz3_')+ybase_xlin, ':k', linewidth=1, label='Peak3')
+            axes['C'].plot(x_lin, components.get('lz3_')+ybase_xlin, ':', color='yellow', linewidth=1, label='Peak3')
 
-    axes['D'].set_title('c) Background fit')
+    axes['C'].set_title('c) Background fit')
 
 
-    axes['D'].plot(Baseline[:, 0], Baseline[:, 1], '.b', label='bck')
-    axes['D'].plot(Diad_short[:, 0], Py_base_diad2, '-k', label='bck fit')
-    axes['D'].legend()
+
+    axes['C'].legend()
+
+    # Residual on plot D
+    axes['D'].set_title('d) Residual')
+    axes['D'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-b')
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
+        if len(peak_pos_voigt)>=2:
+            axes['D'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-r')
+        if len(peak_pos_voigt)==3:
+            axes['D'].plot([df_out['C13_Cent'], df_out['C13_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-', color='yellow')
+
+    axes['D'].plot(xdat_inrange, residual_diad2_coords, 'ok', mfc='c' )
+    axes['D'].plot(xdat_inrange, residual_diad2_coords, '-c' )
+    axes['D'].set_ylabel('Residual')
+    axes['D'].set_xlabel('Wavenumber')
+    axes['D'].set_xlim(ax1_xlim)
+    axes['D'].set_xlim(ax2_xlim)
+
+    axes['D'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], ':b')
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
+        if len(peak_pos_voigt)>=2:
+            axes['D'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], ':r')
+    #axes['D'].set_xlim(ax1_xlim)
+
+
 
 
 
@@ -1268,6 +1294,8 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
 
     path3=path+'/'+'Peak_fit_images'
     fig.tight_layout()
+
+
     if os.path.exists(path3):
         out='path exists'
     else:
@@ -1276,30 +1304,21 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
 
     print(path)
     file=filename.rsplit('.txt', 1)[0]
-    fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=dpi)
+    fig.savefig(path3+'/'+'Diad2_Fit_{}.png'.format(file), dpi=dpi)
 
 
 
-
-    return df_out, result, y_best_fit, x_lin
-   #  y_corr_diad2, Py_base_diad2, x_diad2,  Ne_short_diad2, Py_base_diad2, Baseline_ysub_diad2, Baseline_x_diad2=remove_diad_baseline(
-   # path=path, filename=filename,filetype=filetype,
-   #                     exclude_range1=exclude_range1, exclude_range2=exclude_range2,
-   #                      N_poly=N_poly_bck_diad2,
-   #  lower_range=lower_baseline_diad2, upper_range=upper_baseline_diad2)
-   #
-   #  result_diad2, df_out, best_fit_diad2, xdat_diad2=fit_gaussian_voigt_diad2(path=path, filename=filename, xdat=x_diad2, ydat=y_corr_diad2,
-   #                  peak_pos_voigt=peak_pos_voigt,amplitude=amplitude,
-   #                  peak_pos_gauss=peak_pos_gauss, plot_figure=plot_figure, dpi=dpi)
-   #
-   #  return df_out, result_diad2, best_fit_diad2, xdat_diad2
+    if return_other_params is True:
+        return df_out, result, y_best_fit, x_lin
+    else:
+        return df_out
 
 
 def fit_diad_1_w_bck(*, path=None, filename=None, filetype='headless_txt',
 exclude_range1=None, exclude_range2=None,
 N_poly_bck_diad1=2, lower_baseline_diad1=[1170, 1220],
 upper_baseline_diad1=[1330, 1350], peak_pos_voigt=(1263, 1283),
-peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
+peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200, return_other_params=False):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -1350,15 +1369,16 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
     dpi: int
         dpi for saved figure
 
+    return_other_params: bool (default False)
+        if False, just returns a dataframe of peak parameters
+        if True, also returns:
+            result: fit parameters
+            y_best_fit: best fit to all curves in y
+            x_lin: linspace of best fit coordinates in x.
+
 
     """
-
-    # Fit baseline
-    #y_corr, Py_base, x,  Diad_short, Py_base, Baseline_ysub, Baseline_x, Baseline
-
-
-
-
+    # First, we feed data into the remove baseline function, which returns corrected data
 
     y_corr_diad1, Py_base_diad1, x_diad1,  Diad_short, Py_base_diad1, Pf_baseline,  Baseline_ysub_diad1, Baseline_x_diad1, Baseline, span=remove_diad_baseline(
    path=path, filename=filename, filetype=filetype, exclude_range1=exclude_range1, exclude_range2=exclude_range2, N_poly=N_poly_bck_diad1,
@@ -1366,33 +1386,43 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
 
 
 
+
+
+    # Then, we feed this baseline-corrected data into the combined gaussian-voigt peak fitting function
     result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad1_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_diad1(path=path, filename=filename,
                     xdat=x_diad1, ydat=y_corr_diad1, amplitude=amplitude,
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=peak_pos_gauss, span=span, plot_figure=False)
 
+    # get a best fit to the baseline using a linspace from the peak fitting
+    ybase_xlin=Pf_baseline(x_lin)
 
-    # Get diad data to plot
+    # We extract the full spectra to plot at the end, and convert to a dataframe
     Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
-
     Spectra=np.array(Spectra_df)
+
 
 
     # Make nice figure
 
     figure_mosaic="""
     AB
-    DC
+    CD
     EE
     """
+
     fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
 
     # Plot best fit on the LHS, and individual fits on the RHS at the top
-
     axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1, label='best fit')
     axes['A'].plot(xdat, ydat,  '.k', label='data')
     axes['A'].legend()
+    axes['A'].set_ylabel('Intensity')
+    axes['A'].set_xlabel('Wavenumber')
+    axes['A'].set_xlim(ax1_xlim)
+    axes['A'].set_title('a) Overall Best Fit')
 
+   # individual fits
     axes['B'].plot(xdat, ydat, '.k')
 
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
@@ -1403,60 +1433,70 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
     #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
     axes['B'].legend()
+
     fitspan=max(y_best_fit)-min(y_best_fit)
     axes['B'].set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
 
-    axes['A'].set_ylabel('Intensity')
-    axes['A'].set_xlabel('Wavenumber')
     axes['B'].set_ylabel('Intensity')
     axes['B'].set_xlabel('Wavenumber')
 
-    axes['A'].set_xlim(ax1_xlim)
-    axes['B'].set_xlim(ax2_xlim)
-    axes['A'].set_title('a) Overall Best Fit')
-    axes['B'].set_title('b) Fit Components')
 
-    # Residual on plot C
-    axes['C'].set_title('d) Residual')
-    axes['C'].plot([df_out['Diad1_Cent'], df_out['Diad1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], '-b')
+    axes['B'].set_xlim(ax2_xlim)
+
+    # Dashed lines so matches part D
+    axes['B'].plot([df_out['Diad1_Cent'], df_out['Diad1_Cent']], [np.min(ydat), np.max(ydat)], ':b')
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
         if len(peak_pos_voigt)>=2:
-            axes['C'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], '-r')
+            axes['B'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(ydat), np.max(ydat)], ':r')
 
-    axes['C'].plot(xdat_inrange, residual_diad1_coords, 'ok', mfc='c' )
-    axes['C'].plot(xdat_inrange, residual_diad1_coords, '-c' )
-    axes['C'].set_ylabel('Residual')
-    axes['C'].set_xlabel('Wavenumber')
-    axes['C'].set_xlim(ax1_xlim)
-    axes['C'].set_xlim(ax2_xlim)
+    axes['B'].set_title('b) Fit Components')
 
-    #Background fit on plot D
-    axes['D'].set_title('c) Background fit')
-    axes['D'].plot(Diad_short[:, 0], Diad_short[:, 1], '.c', label='Data')
+    # Background fit
+    axes['C'].set_title('c) Background fit')
+    axes['C'].plot(Diad_short[:, 0], Diad_short[:, 1], '.c', label='Data')
+    axes['C'].plot(Baseline[:, 0], Baseline[:, 1], '.b', label='bck')
+    axes['C'].plot(Diad_short[:, 0], Py_base_diad1, '-k', label='Poly bck fit')
 
-    axes['D'].set_ylim([
+    axes['C'].set_ylim([
     np.min(Baseline[:, 1])-10*np.std(Baseline[:, 1]),
     np.max(Baseline[:, 1])+10*np.std(Baseline[:, 1])
     ] )
-    axes['D'].set_ylabel('Intensity')
-    axes['D'].set_xlabel('Wavenumber')
+    axes['C'].set_ylabel('Intensity')
+    axes['C'].set_xlabel('Wavenumber')
 
-    ybase_xlin=Pf_baseline(x_lin)
+
     if peak_pos_gauss is not None:
 
-        axes['D'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
+        axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
 
-    axes['D'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2)
-    axes['D'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
+    axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
+    axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
     if len(peak_pos_voigt)>1:
-        axes['D'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
+        axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
 
 
 
 
-    axes['D'].plot(Baseline[:, 0], Baseline[:, 1], '.b', label='bck')
-    axes['D'].plot(Diad_short[:, 0], Py_base_diad1, '-k', label='bck fit')
-    axes['D'].legend()
+    axes['C'].legend()
+
+
+    # Residual on plot D
+    axes['D'].set_title('d) Residual')
+    axes['D'].plot([df_out['Diad1_Cent'], df_out['Diad1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], ':b')
+    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
+        if len(peak_pos_voigt)>=2:
+            axes['D'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], ':r')
+
+    axes['D'].plot(xdat_inrange, residual_diad1_coords, 'ok', mfc='c' )
+    axes['D'].plot(xdat_inrange, residual_diad1_coords, '-c' )
+    axes['D'].set_ylabel('Residual')
+    axes['D'].set_xlabel('Wavenumber')
+    axes['D'].set_xlim(ax1_xlim)
+    axes['D'].set_xlim(ax2_xlim)
+
+
+
+
 
     # Overal spectra
     axes['E'].set_title(filename)
@@ -1472,14 +1512,16 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200):
         os.makedirs(path+'/'+ 'Peak_fit_images', exist_ok=False)
 
     fig.tight_layout()
-    print(path)
+
     file=filename.rsplit('.txt', 1)[0]
     fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=dpi)
 
 
 
-
-    return df_out, result, y_best_fit, x_lin
+    if  return_other_params is False:
+        return df_out
+    else:
+        return df_out, result, y_best_fit, x_lin
 
 
 def combine_diad_outputs(*, filename=None, prefix=True, Diad1_fit=None, Diad2_fit=None, Carb_fit=None):
@@ -1551,72 +1593,170 @@ def combine_diad_outputs(*, filename=None, prefix=True, Diad1_fit=None, Diad2_fi
         return df
 
 
-def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII'):
+def plot_spectra(*,path=None, filename=None, filetype='Witec_ASCII'):
+    """ Plots entire spectra, identifies some key phases
+
+
+    Parameters
+    -----------
+
+
+    path: str
+        Path to folder containing file
+
+    filename: str
+        filename with extension
+
+    filetype: str
+        One of the supported filetypes:
+            headless_txt
+            headless_csv
+            HORIBA_txt
+            Renishaw_txt
+
+
+    Returns
+    -----------
+    figure showing spectra with major peak positions overlain
+
+
+    """
 
     Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
 
     Spectra=np.array(Spectra_df)
 
 
-    fig, (ax1) = plt.subplots(1, 1, figsize=(7,4))
+    fig, (ax1) = plt.subplots(1, 1, figsize=(5,4))
 
     miny=np.min(Spectra[:, 1])
     maxy=np.max(Spectra[:, 1])
-    ax1.plot([1090, 1090], [miny, maxy], ':k', label='Magnesite')
-    ax1.plot([1131, 1131], [miny, maxy], '-',  alpha=0.5,color='grey', label='Anhydrite/Mg-Sulfate')
+    ax1.plot([1090, 1090], [miny, maxy+(maxy-miny)/10], '-.',color='salmon', label='Magnesite')
+    ax1.plot([1131, 1131], [miny, maxy+(maxy-miny)/10], '-.k',  alpha=0.5, label='Anhydrite/Mg-Sulfate')
     #ax1.plot([1136, 1136], [miny, maxy], '-', color='grey', label='Mg-Sulfate')
-    ax1.plot([1151, 1151], [miny, maxy], ':c', label='SO2')
-    ax1.plot([1286, 1286], [miny, maxy], '-g',  alpha=0.5,label='Diad1')
-    ax1.plot([1389, 1389], [miny, maxy], '-m', alpha=0.5, label='Diad2')
+    ax1.plot([1151, 1151], [miny, maxy+(maxy-miny)/10], '-.c', label='SO2')
+    ax1.plot([1286, 1286], [miny, maxy+(maxy-miny)/10], '-k',  alpha=0.5,label='Diad1')
+    ax1.plot([1389, 1389], [miny, maxy+(maxy-miny)/10], '-', color='darkgrey', alpha=0.5, label='Diad2')
     ax1.legend()
-    ax1.plot(Spectra[:, 0], Spectra[:, 1], '-r')
-    ax1.set_xlabel('Wavenumber (cm-1)')
+    ax1.plot(Spectra[:, 0], Spectra[:, 1], '-r', label='Spectra')
+    ax1.set_xlabel('Wavenumber (cm$^{-1)}$')
     ax1.set_ylabel('Intensity')
+    ax1.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+                      ncol=2, mode="expand", borderaxespad=0.)
+    ax1.set_ylim([miny, maxy+(maxy-miny)/10])
+    #ax1.legend(bbox_to_anchor=(0, 1.05), loc='center', borderaxespad=0)
+
 
 def fit_carbonate_peak(*,path=None, filename=None, filetype='Witec_ASCII',
 lower_range=[1030, 1050], upper_range=[1140, 1200], amplitude=1000,
 exclude_range=None,
 N_poly=2, outlier_sigma=12, cent=1090, plot_figure=True, dpi=100,
 height = 20, threshold = 1, distance = 5, prominence=1, width=3,
-N_peaks=2, fit_carbonate=True):
+N_peaks=2, fit_carbonate=True, return_other_params=False):
+
+    """ This function fits a carbonate peak with a gaussian, and returns a plot
+
+    fit_carbonate: bool
+        If True, proceeds to use this function, if False, doesnt do anything else
+
+    path: str
+        Path to file
+
+    filename: str
+        filename with file extension
+
+    filetype: str
+        Filetype from one of the following options:
+            Witec_ASCII
+            headless_txt
+            headless_csv
+            HORIBA_txt
+            Renishaw_txt
+
+    lower_range: list
+        Lower range to fit background over (default [1030, 1050])
+
+    upper_range: list
+        Upper range to fit background over (default [1140, 1200])
+
+    N_poly: int
+        Degree of polynomial to fit to background
+
+    exclude_range: None or list
+        Can select a range to exclude from fitting (e.g. a cosmic ray)
+
+    cent: int or float
+        Approximate peak center
+
+    amplitude: int or float
+        Approximate amplitude (helps the fitting algorithm converge)
+
+    N_peaks: int
+        number of peaks to try to find from scipy find peaks
+
+    plot_figure: bool
+        If true, plots figure and saves it in a subfolder in the same directory as the filepath specified
+
+    dpi: int
+        dpi to save figure at
+
+    height, threshold, distance, prominence, width: int
+        Values for Scipy find peaks that can be adjusted.
+
+    return_other_params: bool
+        if False (Default), returns just df of fit information
+        if True, also returns:
+            xx_carb: :linspace for plotting
+            y_carb: Best fit to background-subtracted data
+            result0: fit results from lmfit
+
+    """
 
     if fit_carbonate is True:
 
         # read file
-        if filetype == 'headless_txt':
+        if filetype == 'headless_txt' or filetype == 'headless_csv':
             Spectra_df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
 
-        if filetype=='Witec_ASCII':
+        elif filetype=='Witec_ASCII':
             Spectra_df=read_witec_to_df(path=path, filename=filename)
 
-        if filetype=='Renishaw_txt':
+        elif filetype=='Renishaw_txt':
             Spectra_df_long=pd.read_csv(path+'/'+filename, sep="\t" )
             Spectra_df=Spectra_df_long.iloc[:, 0:2]
 
-        if filetype=='HORIBA_txt':
+        elif filetype=='HORIBA_txt':
             Spectra_df=read_HORIBA_to_df(path=path, filename=filename)
 
+        else:
+            raise TypeError('Filetype not recognised')
+
         Spectra_in=np.array(Spectra_df)
+
+        # If exclude range, trim that here
         if exclude_range is not None:
              Spectra=Spectra_in[ (Spectra_in[:, 0]<exclude_range[0]) | (Spectra_in[:, 0]>exclude_range[1]) ]
         else:
             Spectra=Spectra_in
 
 
-        # Start at minimum value of spectra on the Cornell WITEC - alter for other machines
 
         lower_0baseline=lower_range[0]
         upper_0baseline=lower_range[1]
         lower_1baseline=upper_range[0]
         upper_1baseline=upper_range[1]
 
+        # Filter out spectra outside these baselines
         Spectra_short=Spectra[ (Spectra[:,0]>lower_0baseline) & (Spectra[:,0]<upper_1baseline) ]
+
+        # To make a nice plot, give 50 wavenumber units on either side as a buffer
         Spectra_plot=Spectra[ (Spectra[:,0]>lower_0baseline-50) & (Spectra[:,0]<upper_1baseline+50) ]
 
-        # Find other peaks
+        # Find peaks using Scipy find peaks
         y=Spectra_plot[:, 1]
         x=Spectra_plot[:, 0]
-        peaks = find_peaks(y,height = height, threshold = threshold, distance = distance, prominence=prominence, width=width)
+        peaks = find_peaks(y,height = height, threshold = threshold,
+        distance = distance, prominence=prominence, width=width)
 
         height = peaks[1]['peak_heights'] #list of the heights of the peaks
         peak_pos = x[peaks[0]] #list of the peaks positions
@@ -1624,9 +1764,12 @@ N_peaks=2, fit_carbonate=True):
                             'height': height})
 
         df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
+
+        # Trim number of peaks based on user-defined N peaks
         df_peak_sort_short=df_peak_sort[0:N_peaks]
-        print('Find Peaks also found major peaks at:')
+        print('Found peaks at:')
         print(df_peak_sort_short)
+        print('Only returning up to N_peaks')
 
         # Get actual baseline
         Baseline_with_outl=Spectra_short[
@@ -1634,19 +1777,29 @@ N_peaks=2, fit_carbonate=True):
             |
         ((Spectra_short[:, 0]<upper_1baseline) &(Spectra_short[:, 0]>lower_1baseline))]
 
+        # Calculates the LH baseline
+        LH_baseline=Spectra_short[
+        ((Spectra_short[:, 0]<upper_0baseline) &(Spectra_short[:, 0]>lower_0baseline))]
 
-        # Calculates the median for the baseline and the standard deviation
-        Median_Baseline=np.mean(Baseline_with_outl[:, 1])
-        #print(Median_Baseline)
-        Std_Baseline=np.std(Baseline_with_outl[:, 1])
-        #print(Std_Baseline)
+        Mean_LH_baseline=np.nanmean(LH_baseline[:, 1])
+        Std_LH_baseline=np.nanstd(LH_baseline[:, 1])
 
-        # Removes any points in the baseline outside of 2 sigma (helps remove cosmic rays etc).
-        Baseline=Baseline_with_outl[(Baseline_with_outl[:, 1]<Median_Baseline+outlier_sigma*Std_Baseline)
-                                    &
-                                    (Baseline_with_outl[:, 1]>Median_Baseline-outlier_sigma*Std_Baseline)
-                                ]
-        #print(Std_Baseline)
+        # Calculates the RH baseline
+        RH_baseline=Spectra_short[((Spectra_short[:, 0]<upper_1baseline)
+        &(Spectra_short[:, 0]>lower_1baseline))]
+        Mean_RH_baseline=np.nanmean(RH_baseline[:, 1])
+        Std_RH_baseline=np.nanstd(RH_baseline[:, 1])
+
+        # Removes points outside baseline
+
+        LH_baseline_filt=LH_baseline[(LH_baseline[:, 1]<Mean_LH_baseline+outlier_sigma*Std_LH_baseline)
+        &(LH_baseline[:, 1]>Mean_LH_baseline-outlier_sigma*Std_LH_baseline) ]
+
+        RH_baseline_filt=RH_baseline[(RH_baseline[:, 1]<Mean_RH_baseline+outlier_sigma*Std_RH_baseline)
+        &(RH_baseline[:, 1]>Mean_RH_baseline-outlier_sigma*Std_RH_baseline) ]
+
+        Baseline=np.concatenate((LH_baseline_filt, RH_baseline_filt), axis=0)
+
 
 
 
@@ -1675,33 +1828,55 @@ N_peaks=2, fit_carbonate=True):
         Center_p0=result0.best_values.get('center')
         area_p0=result0.best_values.get('amplitude')
 
-        #print(result0.fit_report(min_correl=0.5))
 
 
+        # Make a nice linspace for plotting with smooth curves.
         xx_carb=np.linspace(min(x), max(x), 2000)
-
         y_carb=result0.eval(x=xx_carb)
 
         # Plotting what its doing
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
-        ax1.plot(df_peak_sort_short['pos'], df_peak_sort_short['height'], '*k')
-        ax1.plot([1090, 1090], [min(Spectra_short[:, 1]), max(Spectra_short[:, 1])], ':r')
+        # Plot the peak positions and heights
+
+
+        ax1.plot([1090, 1090], [min(Spectra_short[:, 1]), max(Spectra_short[:, 1])], ':r', label='Magnesite')
+
         ax1.set_title('Background fit')
-        ax1.plot(Spectra_plot[:, 0], Spectra_plot[:, 1], '-r')
-        ax1.plot(Baseline[:, 0], Baseline[:, 1], 'ok', mfc='b')
+        ax1.plot(Spectra_plot[:, 0], Spectra_plot[:, 1], '-r', label='Spectra')
+        ax1.plot(RH_baseline_filt[:, 0], RH_baseline_filt[:, 1], '-b',
+        lw=3,  label='bck points')
+        ax1.plot(LH_baseline_filt[:, 0], LH_baseline_filt[:, 1], '-b',
+        lw=3, label='_bck points')
 
-        ax1.set_ylim([min(Spectra_short[:, 1]), max(Spectra_short[:, 1])])
 
-        ax2.set_title('Back sub peak fit')
+        ax2.set_title('Bkg-subtracted, carbonate peak fit')
 
-        ax2.plot(xx_carb, y_carb, '-k')
+        ax2.plot(xx_carb, y_carb, '-k', label='Peak fit')
 
-        ax2.plot(x, y_corr, 'ok', mfc='red')
+        ax2.plot(x, y_corr, 'ok', mfc='red', label='Bck-sub data')
         ax2.set_ylim([min(y_carb)-0.5*(max(y_carb)-min(y_carb)),
                     max(y_carb)+0.1*max(y_carb),
         ])
 
         ax1.plot(Spectra_short[:, 0], Py_base, '-k')
+
+        ax1.plot(df_peak_sort_short['pos'], df_peak_sort_short['height'], '*k', mfc='yellow', label='SciPy Peaks')
+
+        ax1.set_ylabel('Intensity')
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax2.set_ylabel('Bck-corrected Intensity')
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+
+        ax1.legend()
+        ax2.legend()
+
+        ax1.set_ylim([
+        np.min(Spectra_plot[:, 1])-50,
+        np.max(Spectra_plot[:, 1])+50
+        ])
+
+
+
         if area_p0 is None:
             area_p0=np.nan
             if area_p0 is not None:
@@ -1731,7 +1906,10 @@ N_peaks=2, fit_carbonate=True):
         xx_carb=None
         y_carb=None
         result0=None
-    return df, xx_carb, y_carb, result0
+    if return_other_params is True:
+        return df, xx_carb, y_carb, result0
+    else:
+        return df
 
 
 

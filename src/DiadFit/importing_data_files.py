@@ -13,7 +13,7 @@ from os.path import isfile, join
 encode="ISO-8859-1"
 
 ## Functions for getting file names
-def get_Ne_files(path, ID_str='Ne', file_fmt='txt', exclude_str=None, sort=True):
+def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True):
     """ This function takes a user path, and extracts all files which contain the ID_str
 
     Parameters
@@ -27,7 +27,7 @@ def get_Ne_files(path, ID_str='Ne', file_fmt='txt', exclude_str=None, sort=True)
         Finds all files containing this string (e.g. Ne, NE)
     exclude_str: str
         Excludes files with this string in the name
-    file_fmt: str
+    file_ext: str
         Gets all files of this format only (e.g. txt)
 
 
@@ -37,14 +37,14 @@ def get_Ne_files(path, ID_str='Ne', file_fmt='txt', exclude_str=None, sort=True)
 
     """
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
-    Ne_files=[item for item in Allfiles if ID_str in item and file_fmt in item and exclude_str not in item]
+    Ne_files=[item for item in Allfiles if ID_str in item and file_ext in item and exclude_str not in item]
 
     if sort is True:
         Ne_files=sorted(Ne_files)
     return Ne_files
 
 
-def get_diad_files(path, sort=True, file_fmt='txt', exclude_str='Ne', exclude_type='.png'):
+def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_type='.png'):
     """ This function takes a user path, and extracts all files which dont contain the excluded string and type
 
     Parameters
@@ -54,7 +54,7 @@ def get_diad_files(path, sort=True, file_fmt='txt', exclude_str='Ne', exclude_ty
         Folder user wishes to read data from
     sort: bool
         If true, sorts files alphabetically
-    file_fmt: str
+    file_ext: str
         File format. Default txt, could also enter csv etc.
     exclude_str: str
         Excludes files with this string in their name. E.g. if exclude_str='Ne' it will exclude Ne lines
@@ -66,9 +66,14 @@ def get_diad_files(path, sort=True, file_fmt='txt', exclude_str='Ne', exclude_ty
     Returns file names as a list.
 
     """
-    exclude=exclude_type
+
+
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
-    Diad_files=[item for item in Allfiles if exclude_str not in item and file_fmt in item and exclude not in item]
+    print('exclude type')
+    print(exclude_type)
+
+    Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_type not in item]
+
     if sort is True:
 
         Diad_files2=sorted(Diad_files)
@@ -98,25 +103,43 @@ def get_all_txt_files(path):
 
 
 ## Functions to just simply get data to plot up
-def get_data(*, path=None, filename, filetype='Witec_ASCII'):
+def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII'):
     """
     Extracts data as a np.array from user file of differen types
     """
-    if filetype == 'headless_txt':
-        df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
+    if Diad_files is None:
+        if filetype == 'headless_txt':
+            df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
 
-    if filetype=='Witec_ASCII':
-        df=read_witec_to_df(path=path, filename=filename)
+        if filetype=='Witec_ASCII':
+            df=read_witec_to_df(path=path, filename=filename)
 
-    if filetype=='Renishaw_txt':
-        df_long=pd.read_csv(path+'/'+filename, sep="\t" )
-        df=df_long.iloc[:, 0:2]
+        if filetype=='Renishaw_txt':
+            df_long=pd.read_csv(path+'/'+filename, sep="\t" )
+            df=df_long.iloc[:, 0:2]
 
-    if filetype=='HORIBA_txt':
-        df=read_HORIBA_to_df(path=path, filename=filename)
+        if filetype=='HORIBA_txt':
+            df=read_HORIBA_to_df(path=path, filename=filename)
 
-    if filetype=='headless_csv':
-        df=pd.read_csv(path+str('/')+filename, header=None)
+        if filetype=='headless_csv':
+            df=pd.read_csv(path+str('/')+filename, header=None)
+
+    if Diad_files is not None:
+        if filetype == 'headless_txt':
+            df=pd.read_csv(Diad_files, sep="\t", header=None )
+
+        if filetype=='Witec_ASCII':
+            df=read_witec_to_df(Diad_files)
+
+        if filetype=='Renishaw_txt':
+            df_long=pd.read_csv(Diad_files, sep="\t" )
+            df=df_long.iloc[:, 0:2]
+
+        if filetype=='HORIBA_txt':
+            df=read_HORIBA_to_df(Diad_files)
+
+        if filetype=='headless_csv':
+            df=pd.read_csv(Diad_files, header=None)
 
     df_in=np.array(df)
 
@@ -515,10 +538,10 @@ def stitch_in_loop(*, Allfiles=None, path=None, prefix=True):
 
 
 
-    Time_Df=pd.DataFrame(data={'name': filename_str,
+    Time_Df=pd.DataFrame(data={'filename': filename_str,
                                'date': date_str,
-                               'power': power,
-                               'Int_time': Int_time,
+                               'power (mW)': power,
+                               'Int_time (s)': Int_time,
                                'accumulations': accumulations,
                                'Mag (X)': objec,
                                'duration': duration_str,

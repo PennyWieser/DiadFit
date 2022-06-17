@@ -9,6 +9,7 @@ import os
 import re
 from os import listdir
 from os.path import isfile, join
+from DiadFit.importing_data_files import *
 
 encode="ISO-8859-1"
 
@@ -594,7 +595,7 @@ lower_bck_pk1=[-50, -25], upper_bck1_pk1=[8, 15], upper_bck2_pk1=[30, 50],
 Ne_center_2=1147, N_poly_2_baseline=1, x_span_2=[-5, 5],
 x_span_pk1_override=None, x_span_pk2_override=None,
 lower_bck_pk2=[-44.2, -22], upper_bck1_pk2=[15, 50], upper_bck2_pk2=[50, 51],
-amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_range=1000):
+amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baseline=100, y_range_baseline=1000, x_range_peak=None):
 
 
 
@@ -627,13 +628,17 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
     Loop: bool
         If True, only returns df.
 
-    x_range: flt, int
+    x_range_baseline: flt, int
         How much x range outside selected baseline the baseline selection plot shows.
-    y_range: flt, int
+
+    y_range_baseline: flt, int
         How much above the baseline position is shown on the y axis.
 
+    x_range_peak: flt, int, or None
+        How much to either side of the peak to show on the final peak fitting plot
+
     x_span_pk2_override, x_span_pk1_override: list
-        determins how mayn point to either side of peak you want to fit, if different from background positions
+        determins how many point to either side of peak you want to fit, if different from background positions
 
     Things for Diad 1 (~1117):
 
@@ -686,6 +691,8 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
     y_corr_1447, Py_base_1447, x_1447, Ne_short_1447, Py_base_1447, Baseline_ysub_1447, Baseline_x_1447=remove_Ne_baseline_1447(Ne, Ne_center_2=Ne_center_2, N_poly_1447_baseline=N_poly_2_baseline,
     lower_bck=lower_bck_pk2, upper_bck1=upper_bck1_pk2, upper_bck2=upper_bck2_pk2)
 
+
+    # Have the option to override the xspan here from default. Else, trims
     if x_span_pk1_override is None:
 
         x_span_pk1=[lower_bck_pk1[1], upper_bck1_pk1[0]]
@@ -741,8 +748,8 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
         ax0.set_ylabel('Intensity')
         mean_baseline=np.mean(Py_base_1447)
         std_baseline=np.std(Py_base_1447)
-        ax0.set_ylim([min(Ne_short_1447[:,1])-10, min(Ne_short_1447[:,1])+y_range])
-        ax0.set_xlim([min(Ne_short_1447[:,0])-20, max(Ne_short_1447[:,0])+y_range])
+        ax0.set_ylim([min(Ne_short_1447[:,1])-10, min(Ne_short_1447[:,1])+y_range_baseline])
+        ax0.set_xlim([min(Ne_short_1447[:,0])-20, max(Ne_short_1447[:,0])+y_range_baseline])
         #ax0.set_ylim([mean_baseline-50, mean_baseline+50])
 
         ax1.plot(Ne_short_1117[:,0], Py_base_1117, '-k')
@@ -750,7 +757,7 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
         ax1.plot(Baseline_x_1117, Baseline_ysub_1117, '.b', ms=6, label='Selected background')
 
         std_baseline=np.std(Py_base_1117)
-        ax1.set_ylim([min(Ne_short_1117[:,1])-10, min(Ne_short_1117[:,1])+y_range])
+        ax1.set_ylim([min(Ne_short_1117[:,1])-10, min(Ne_short_1117[:,1])+y_range_baseline])
 
         ax1.set_title('Peak1: 1117 background fitting')
         ax1.set_xlabel('Wavenumber')
@@ -761,20 +768,23 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
         ax1.legend()
         ax0.plot(Ne[:,0], Ne[:,1], '-', color='grey', zorder=0)
         ax1.plot(Ne[:,0], Ne[:,1], '-', color='grey', zorder=0)
-        ax0.set_xlim([min(Ne_short_1447[:,0])-x_range, max(Ne_short_1447[:,0])+x_range])
-        ax1.set_xlim([min(Ne_short_1117[:,0])-x_range, max(Ne_short_1117[:,0])+x_range])
+        ax0.set_xlim([min(Ne_short_1447[:,0])-x_range_baseline, max(Ne_short_1447[:,0])+x_range_baseline])
+        ax1.set_xlim([min(Ne_short_1117[:,0])-x_range_baseline, max(Ne_short_1117[:,0])+x_range_baseline])
 
-        ax2.plot(Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, 'xb', label='data')
-        ax2.plot(Ne_1447_reg_x, Ne_1447_reg_y, '+k', label='data')
+        ax2.plot(Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, 'xb', label='all data')
+        ax2.plot(Ne_1447_reg_x, Ne_1447_reg_y, 'ok', label='data fitted')
         ax2.plot(xx_1447, result_1447, 'r-', label='interpolated fit')
         ax2.set_title('1447 peak fitting')
         ax2.set_xlabel('Wavenumber')
         ax2.set_ylabel('Intensity')
-        ax2.set_xlim([cent_1447-x_span_pk2_dist/2, cent_1447++x_span_pk2_dist/2])
+        if x_range_peak is None:
+            ax2.set_xlim([cent_1447-x_span_pk2_dist/2, cent_1447+x_span_pk2_dist/2])
+        else:
+            ax2.set_xlim([cent_1447-x_range_peak, cent_1447+x_range_peak])
 
 
-        ax3.plot(Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, 'xb', label='data')
-        ax3.plot(Ne_1117_reg_x, Ne_1117_reg_y, '+k', label='data')
+        ax3.plot(Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, 'xb', label='all data')
+        ax3.plot(Ne_1117_reg_x, Ne_1117_reg_y, 'ok', label='data fitted')
 
         ax3.set_title('1117 peak fitting')
         ax3.set_xlabel('Wavenumber')
@@ -784,7 +794,10 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range=100, y_
             ax3.plot(xx_1117, comps.get('p2_'), '-c', label='p2')
         ax3.plot(xx_1117, result_1117, 'g-', label='best fit')
         ax3.legend()
-        ax3.set_xlim([cent_1117-x_span_pk1_dist/2,cent_1117+x_span_pk1_dist/2 ])
+        if x_range_peak is None:
+            ax3.set_xlim([cent_1117-x_span_pk1_dist/2, cent_1117+x_span_pk1_dist/2])
+        else:
+            ax3.set_xlim([cent_1117-x_range_peak, cent_1117+x_range_peak ])
 
         # Residuals for charlotte
         ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, '-r', label='residual')

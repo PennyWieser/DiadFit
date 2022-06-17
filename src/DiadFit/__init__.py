@@ -22,5 +22,7 @@ from DiadFit.diads import *
 from DiadFit.densimeters import *
 
 
+# Skewness
+from DiadFit.skewness import *
 # version
 from ._version import __version__
