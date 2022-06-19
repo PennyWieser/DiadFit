@@ -24,5 +24,10 @@ from DiadFit.densimeters import *
 
 # Skewness
 from DiadFit.skewness import *
+
+# H2O fitting
+from DiadFit.H2O_fitting import *
 # version
 from ._version import __version__
+
+
