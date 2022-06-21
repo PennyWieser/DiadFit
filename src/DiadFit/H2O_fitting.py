@@ -133,8 +133,8 @@ def smooth_and_trim_around_olivine(x_range=[800,900], x_max=900, Ol_spectra=None
     ax2.plot(trough_x, trough_y, 'dk', mfc='cyan', ms=10, label='Trough')
     ax1.legend()
     ax2.legend()
-    ax1.set_xlabel('Wavenumber')
-    ax2.set_xlabel('Wavenumber')
+    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+    ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
     ax1.set_ylabel('Intensity')
 
     return x_new, y_cub_MI, y_cub_Ol, peak_pos_Ol, peak_height_Ol, trough_x, trough_y
@@ -609,15 +609,16 @@ fit_sil='poly'):
     if plot_figure is True:
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
-        ax1.plot(Sil_plot[:, 0], Sil_plot[:, 1], '-c')
+        ax1.plot(Sil_plot[:, 0], Sil_plot[:, 1], '-c', label='Spectra')
         if  exclude is True:
             ax1.plot(Discard[:, 0], Discard[:, 1], '*k', label='Discarded points')
-            ax1.legend()
-        ax1.set_title('Background fit')
-        ax1.plot(Sil_short[:, 0], Sil_short[:, 1], '-r', label='selected part')
 
-        ax1.plot(Baseline_sil[:, 0], Baseline_sil[:, 1], '.b')
-        ax1.plot(Sil_short[:, 0], Baseline_ysub_sil, '-k')
+        ax1.set_title('Background fit')
+        ax1.plot(Sil_short[:, 0], Sil_short[:, 1], '-r', label='Selected part')
+
+        ax1.plot(Baseline_sil[:, 0], Baseline_sil[:, 1], '.b', label='selected bck pts.')
+        ax1.plot(Sil_short[:, 0], Baseline_ysub_sil, '-k', label='fitted bck')
+        ax1.legend()
         xdat_sil=(Sil_short[:, 0])
         ydat_sil=y_corr_sil
 
@@ -816,7 +817,7 @@ N_poly_water=2, plot_figure=True, fit_water='poly'):
 
         ax1.set_ylabel('Intensity')
         ax2.set_ylabel('Intensity')
-        ax2.set_xlabel('Wavenumber')
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
 
 
 
@@ -824,7 +825,7 @@ N_poly_water=2, plot_figure=True, fit_water='poly'):
         ax2.plot(xdat_water, y_corr_water, '-r')
         height_p=np.max(Water_short[:, 1])-np.min(Water_short[:, 1])
 
-        ax1.set_xlabel('Wavenumber')
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
 
 
     from numpy import trapz

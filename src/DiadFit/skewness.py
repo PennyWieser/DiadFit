@@ -224,7 +224,7 @@ upper_baseline_diad1=[1300, 1350], save_fig=True, dpi=300, skewness='abs'):
 
         ax4.annotate('Skewness='+str(np.round(AS[0], 2)),
                      xy=(x_nearest_RHS+2, y_int_cut+y_int_cut+(Peak_Height-y_int_cut)/10), xycoords="data",
-                      fontsize=10)
+                      fontsize=12)
 
         ax2.legend()
         ax1.legend()
@@ -481,7 +481,7 @@ def assess_diad2_skewness(*,  int_cut_off=0.3, skewness='dir',path=None, filenam
         fig.savefig(path3+'/'+'Diad2_skewness_{}.png'.format(file), dpi=dpi)
 
 
-    df_out=pd.DataFrame(data={'filename_diad2':filename,
+    df_out=pd.DataFrame(data={
                               'Skewness_diad2': AS,
                               'LHS_tie_diad2': x_nearest_LHS,
                               'RHS_tie_diad2': x_nearest_RHS})
@@ -566,9 +566,14 @@ N_poly_bck_diad2=1,  exclude_range1_diad2=None, exclude_range2_diad2=None, lower
                             upper_baseline_diad2=upper_baseline_diad2,
                             save_fig=save_fig,
                             dpi=dpi)
+        print(type(data_diad1))
 
-        df_diad1 = df_diad1.concat(data_diad1)
-        df_diad2 = df_diad2.concat(data_diad2)
+        df_diad1 = pd.concat([df_diad1, data_diad1], axis=1)
+        df_diad2 =  pd.concat([df_diad2, data_diad2], axis=1)
+        df_combo=pd.concat([df_diad1, df_diad2], axis=1)
+
+        return df_combo
+        #df_diad2.concat(data_diad2)
 
 
 

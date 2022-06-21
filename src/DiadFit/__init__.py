@@ -27,6 +27,9 @@ from DiadFit.skewness import *
 
 # H2O fitting
 from DiadFit.H2O_fitting import *
+
+# Monte Carlo Error propagation
+from DiadFit.error_propagation import *
 # version
 from ._version import __version__
 
