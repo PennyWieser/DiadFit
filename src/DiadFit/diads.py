@@ -137,11 +137,7 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
     # Find peaks within the 2nd diad window
     df_pks_diad2=df[(df['pos']>1350) & (df['pos']<1430) ]
 
-    # if discard_diad1 is not None:
-    #     df_pks_diad1=df_pks_diad1[~(df_pks_diad1['pos'].between(discard_diad1-0.1, discard_diad1+0.1))]
-    #
-    # if discard_diad2 is not None:
-    #     df_pks_diad2=df_pks_diad2[~(df_pks_diad2['pos'].between(discard_diad2-0.1, discard_diad2+0.1))]
+
 
     df_sort_diad1=df_pks_diad1.sort_values('height', axis=0, ascending=False)
     df_sort_diad1_trim=df_sort_diad1[0:n_peaks_diad1]
@@ -161,7 +157,7 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
         if n_peaks_diad2==3:
             raise TypeError('Couldnt find diad2, and you specified 3 peaks, try adjusting the Scipy peak parameters')
 
-    if any(df_sort_diad1_trim['pos'].between(1283, 1290)):
+    if any(df_sort_diad1_trim['pos'].between(1280, 1290)):
         diad_1_peaks=tuple(df_sort_diad1_trim['pos'].values)
     else:
         print('Couldnt find diad1, set peak guess to 1286.1')
@@ -428,7 +424,10 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                                 xdat=None, ydat=None,
                                 peak_pos_voigt=(1263, 1283),
                                 peak_pos_gauss=None,
-                                amplitude=100, span=None,
+                                gauss_sigma=1,
+                                gauss_amp=3000,
+                                amplitude=100,
+                                span=None,
                                 plot_figure=True, dpi=200):
 
     """ This function fits diad 1 at ~1283, and the hot band if present
@@ -531,8 +530,15 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
     if peak_pos_gauss is not None:
 
         model = GaussianModel(prefix='bkg_')
-        params = model.make_params(center=peak_pos_gauss)
-        params.add('amplitude', value=50, min=0)
+        params = model.make_params()
+        params['bkg_'+'amplitude'].set(gauss_amp, min=gauss_amp/10, max=gauss_amp*10)
+        params['bkg_'+'sigma'].set(gauss_sigma, min=gauss_sigma/10, max=gauss_sigma*10)
+        params['bkg_'+'center'].set(peak_pos_gauss, min=peak_pos_gauss-30, max=peak_pos_gauss+30)
+
+
+
+
+
 
         rough_peak_positions = peak_pos_voigt
         # If you want a Gaussian background
@@ -579,6 +585,14 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                             'Diad1_Area': Peak1_Int
     }, index=[0])
 
+
+    if peak_pos_gauss is not None:
+        Gauss_cent=result.best_values.get('bkg_center')
+        Gauss_amp=result.best_values.get('bkg_amplitude')
+        Gauss_sigma=result.best_values.get('bkg_sigma')
+        print('Gauss_cent='+str(Gauss_cent))
+        print('Gauss_amp='+str(Gauss_amp))
+        print('Gauss_sigma='+str(Gauss_sigma))
 
 
 
@@ -751,7 +765,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
 
         if len(peak_pos_voigt)==1:
-            initial_guess=peak_pos_voigt
+            initial_guess=peak_pos_voigt[0]
         if len(peak_pos_voigt)==2:
             initial_guess=np.min(peak_pos_voigt)
         if len(peak_pos_voigt)==3:
@@ -859,14 +873,13 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     if peak_pos_gauss is not None:
 
         model = GaussianModel(prefix='bkg_')
-        params = model.make_params(center=peak_pos_gauss, sigma=gauss_sigma)
-        #params.add('amplitude', value=50, min=0)
+        params = model.make_params()
+        params['bkg_'+'amplitude'].set(gauss_amp, min=gauss_amp/10, max=gauss_amp*10)
+        params['bkg_'+'sigma'].set(gauss_sigma, min=gauss_sigma/10, max=gauss_sigma*10)
+        params['bkg_'+'center'].set(peak_pos_gauss, min=peak_pos_gauss-30, max=peak_pos_gauss+30)
 
-        # model = GaussianModel(prefix='bkg_')
-        # params = model.make_params()#center=peak_pos_gauss, max=peak_pos_gauss+50, min=peak_pos_gauss-50)
-        # params.add('bkg_'+ 'center', value=peak_pos_gauss, min=peak_pos_gauss-50, max=peak_pos_gauss+50)
-        # #params.add('bkg_'+ 'amplitude', value=gauss_amp, min=0, max=gauss_amp*20)
-        # params.add('bkg_'+'sigma', value=gauss_fwhm, min=gauss_fwhm/5, max=gauss_fwhm*5)
+
+
 
         rough_peak_positions = peak_pos_voigt
         # If you want a Gaussian background
@@ -909,11 +922,13 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
         model_F=model
 
 
+
     # Regardless of fit, evaluate model
     init = model_F.eval(params, x=xdat)
     result = model_F.fit(ydat, params, x=xdat)
     comps = result.eval_components()
-        #print(result.fit_report(min_correl=0.5))
+
+    #print(result.fit_report(min_correl=0.5))
     # Check if function gives error bars
     Error_bars=result.errorbars
     if Error_bars is False:
@@ -921,6 +936,17 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
     # Get first peak center
     Peak1_Cent=result.best_values.get('lz1_center')
+    Peak1_Int=result.best_values.get('lz1_amplitude')
+
+    if peak_pos_gauss is not None:
+        Gauss_cent=result.best_values.get('bkg_center')
+        Gauss_amp=result.best_values.get('bkg_amplitude')
+        Gauss_sigma=result.best_values.get('bkg_sigma')
+        print('Gauss_cent='+str(Gauss_cent))
+        print('Gauss_amp='+str(Gauss_amp))
+        print('Gauss_sigma='+str(Gauss_sigma))
+
+
     Peak1_Int=result.best_values.get('lz1_amplitude')
     # print('fwhm gauss')
     # print(result.best_values)
@@ -1113,7 +1139,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 def fit_diad_2_w_bck(*, path=None, filename=None, filetype='headless_txt',
 exclude_range1=None, exclude_range2=None, amplitude=100,
 N_poly_bck_diad2=2, lower_baseline_diad2=[1320, 1350], upper_baseline_diad2=[1440, 1500],
-peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_fwhm_min=None, gauss_amp=100, plot_figure=True, dpi=200, return_other_params=False):
+peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=1,  gauss_amp=3000, plot_figure=True, dpi=200, return_other_params=False):
 
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
@@ -1281,6 +1307,8 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
 
     # Residual on plot D
     axes['D'].set_title('d) Residual')
+
+
     axes['D'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-b')
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
         if len(peak_pos_voigt)>=2:
@@ -1288,12 +1316,14 @@ peak_pos_voigt=(1369, 1387, 1408),peak_pos_gauss=(1380), gauss_sigma=10, gauss_f
         if len(peak_pos_voigt)==3:
             axes['D'].plot([df_out['C13_Cent'], df_out['C13_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], '-', color='yellow')
 
+
     axes['D'].plot(xdat_inrange, residual_diad2_coords, 'ok', mfc='c' )
     axes['D'].plot(xdat_inrange, residual_diad2_coords, '-c' )
     axes['D'].set_ylabel('Residual')
     axes['D'].set_xlabel('Wavenumber')
     axes['D'].set_xlim(ax1_xlim)
     axes['D'].set_xlim(ax2_xlim)
+    #axes['D'].set_ylim([np.min(residual_diad2_coords), 100*np.max(residual_diad2_coords)])
 
     axes['D'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], ':b')
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
@@ -1339,7 +1369,7 @@ def fit_diad_1_w_bck(*, path=None, filename=None, filetype='headless_txt',
 exclude_range1=None, exclude_range2=None,
 N_poly_bck_diad1=2, lower_baseline_diad1=[1170, 1220],
 upper_baseline_diad1=[1330, 1350], peak_pos_voigt=(1263, 1283),
-peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200, return_other_params=False):
+peak_pos_gauss=(1270), amplitude=100, gauss_sigma=1,  gauss_amp=3000, plot_figure=True, dpi=200, return_other_params=False):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -1413,7 +1443,9 @@ peak_pos_gauss=(1270), amplitude=100, plot_figure=True, dpi=200, return_other_pa
     result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad1_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_diad1(path=path, filename=filename,
                     xdat=x_diad1, ydat=y_corr_diad1, amplitude=amplitude,
                     peak_pos_voigt=peak_pos_voigt,
-                    peak_pos_gauss=peak_pos_gauss, span=span, plot_figure=False)
+                    peak_pos_gauss=peak_pos_gauss,
+                    gauss_sigma=1,  gauss_amp=3000,
+                    span=span, plot_figure=False)
 
     # get a best fit to the baseline using a linspace from the peak fitting
     ybase_xlin=Pf_baseline(x_lin)
