@@ -13,6 +13,27 @@ from DiadFit.importing_data_files import *
 
 encode="ISO-8859-1"
 
+def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII'):
+
+    Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
+
+    Spectra=np.array(Spectra_df)
+
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(7,4))
+
+    miny=np.min(Spectra[:, 1])
+    maxy=np.max(Spectra[:, 1])
+    ax1.plot([1090, 1090], [miny, maxy], ':k', label='Magnesite')
+    ax1.plot([1131, 1131], [miny, maxy], '-',  alpha=0.5,color='grey', label='Anhydrite/Mg-Sulfate')
+    #ax1.plot([1136, 1136], [miny, maxy], '-', color='grey', label='Mg-Sulfate')
+    ax1.plot([1151, 1151], [miny, maxy], ':c', label='SO2')
+    ax1.plot([1286, 1286], [miny, maxy], '-g',  alpha=0.5,label='Diad1')
+    ax1.plot([1389, 1389], [miny, maxy], '-m', alpha=0.5, label='Diad2')
+    ax1.legend()
+    ax1.plot(Spectra[:, 0], Spectra[:, 1], '-r')
+    ax1.set_xlabel('Wavenumber (cm-1)')
+    ax1.set_ylabel('Intensity')
 
 def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_diad1=2, n_peaks_diad2=3,
         exclude_range1=None, exclude_range2=None,
