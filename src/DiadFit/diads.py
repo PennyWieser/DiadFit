@@ -149,13 +149,13 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
         diad_2_peaks=tuple(df_sort_diad2_trim['pos'].values)
     else:
         if n_peaks_diad2==1:
-            print('Couldnt find diad2, set peak guess to 1389.1')
+            print('WARNING: Couldnt find diad2, ive guesed a peak position of 1389.1 to move forwards')
             diad_2_peaks=np.array([1389.1])
         if n_peaks_diad2==2:
-            print('Couldnt find diad2, set peak guess to 1389.1, 1410')
+            print('WARNING: Couldnt find diad2, ive guesed a peak position of 1389.1 and 1410')
             diad_2_peaks=np.array([1389.1, 1410])
         if n_peaks_diad2==3:
-            raise TypeError('Couldnt find diad2, and you specified 3 peaks, try adjusting the Scipy peak parameters')
+            raise TypeError('WARNING: Couldnt find diad2, and you specified 3 peaks, try adjusting the Scipy peak parameters')
 
     if any(df_sort_diad1_trim['pos'].between(1280, 1290)):
         diad_1_peaks=tuple(df_sort_diad1_trim['pos'].values)

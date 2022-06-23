@@ -29,14 +29,25 @@ def convert_density_depth_Coolprop(T_K=None, CO2_dens_gcm3=None,
 
     if output=='df':
 
-    # Crustal density, using P=rho g H
         Depth_km=10**(-3)*P_Pa/((Crust_dens_gcm3*1000)*9.81)
-        df=pd.DataFrame(data={'Pressure (kbar)': P_kbar,
-                        'Pressure (MPa)': P_kbar*100,
-                        'Depth (km)': Depth_km,
-                        'input_Crust_dens_gcm3': Crust_dens_gcm3,
-                        'input_T_K': T_K,
-                        'input_CO2_dens_gcm3': CO2_dens_gcm3})
+        if type(P_kbar) is float:
+        # Crustal density, using P=rho g H
+            df=pd.DataFrame(data={'Pressure (kbar)': P_kbar,
+                                'Pressure (MPa)': P_kbar*100,
+                                'Depth (km)': Depth_km,
+                                'input_Crust_dens_gcm3': Crust_dens_gcm3,
+                                'input_T_K': T_K,
+                                'input_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+
+        else:
+
+
+            df=pd.DataFrame(data={'Pressure (kbar)': P_kbar,
+                                'Pressure (MPa)': P_kbar*100,
+                                'Depth (km)': Depth_km,
+                                'input_Crust_dens_gcm3': Crust_dens_gcm3,
+                                'input_T_K': T_K,
+                                'input_CO2_dens_gcm3': CO2_dens_gcm3})
 
 
         return df
@@ -46,7 +57,8 @@ def convert_density_depth_Coolprop(T_K=None, CO2_dens_gcm3=None,
 def calculate_temperature_density_MC(df=None, sample_i=1, crust_dens_gcm3=2.7, N_dup=1000,
 error_T_K=30, error_type_T_K='Abs', error_dist_T_K='normal',
 error_CO2_dens=0.01, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
-error_crust_dens=0.1, error_type_crust_dens='Abs', error_dist_crust_dens='normal'):
+error_crust_dens=0.1, error_type_crust_dens='Abs', error_dist_crust_dens='normal',
+plot_figure=True):
 
 
     """ Makes a dataframe of propagated errors for temperature, CO2 density and crustal density
@@ -151,57 +163,162 @@ error_crust_dens=0.1, error_type_crust_dens='Abs', error_dist_crust_dens='normal
                               'error_dist_crust_dens': error_dist_crust_dens,
                              })
 
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(13,5))
-    ax1.hist(T_K_with_noise, color='red',  ec='k')
-    ax2.hist(CO2_dens_with_noise, color='black', ec='k')
-    ax3.hist(crust_dens_with_noise, color='salmon', ec='k')
+    if plot_figure is True:
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(13,5))
+        ax1.hist(T_K_with_noise, color='red',  ec='k')
+        ax2.hist(CO2_dens_with_noise, color='black', ec='k')
+        ax3.hist(crust_dens_with_noise, color='salmon', ec='k')
 
-    if error_dist_T_K=='normal' and error_type_T_K == 'Abs':
-        ax1.set_title('Normally-distributed, 1σ =' +str(error_T_K))
-    if error_dist_T_K=='normal' and error_type_T_K == 'Perc':
-        ax1.set_title('Normally-distributed, 1σ =' +str(error_T_K) + '%')
-
-
-
-    if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Abs':
-        ax2.set_title('Normally-distributed, 1σ =' +str(error_CO2_dens))
-    if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Perc':
-        ax2.set_title('Normally-distributed, 1σ =' +str(error_CO2_dens) + '%')
-
-
-    if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Abs':
-        ax3.set_title('Normally-distributed, 1σ =' +str(error_crust_dens))
-    if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Perc':
-        ax3.set_title('Normally-distributed, 1σ =' +str(error_crust_dens) + '%')
-
-    if error_dist_T_K=='uniform' and error_type_T_K == 'Abs':
-        ax1.set_title('+-' +str(error_T_K))
-    if error_dist_T_K=='uniform' and error_type_T_K == 'Perc':
-        ax1.set_title('+-' +str(error_T_K) + '%')
+        if error_dist_T_K=='normal' and error_type_T_K == 'Abs':
+            ax1.set_title('Normally-distributed, 1σ =' +str(error_T_K))
+        if error_dist_T_K=='normal' and error_type_T_K == 'Perc':
+            ax1.set_title('Normally-distributed, 1σ =' +str(error_T_K) + '%')
 
 
 
+        if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Abs':
+            ax2.set_title('Normally-distributed, 1σ =' +str(error_CO2_dens))
+        if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Perc':
+            ax2.set_title('Normally-distributed, 1σ =' +str(error_CO2_dens) + '%')
 
 
-    if error_dist_CO2_dens=='uniform' and error_type_CO2_dens == 'Abs':
-        ax2.set_title('uniformly-distributed, +-' +str(error_CO2_dens))
-    if error_dist_CO2_dens=='uniform' and error_type_CO2_dens == 'Perc':
-        ax2.set_title('+-' +str(error_CO2_dens) + '%')
+        if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Abs':
+            ax3.set_title('Normally-distributed, 1σ =' +str(error_crust_dens))
+        if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Perc':
+            ax3.set_title('Normally-distributed, 1σ =' +str(error_crust_dens) + '%')
 
-
-    if error_dist_crust_dens=='uniform' and error_type_crust_dens == 'Abs':
-        ax3.set_title('uniformly-distributed, +- ' +str(error_crust_dens))
-    if error_dist_crust_dens=='uniform' and error_type_crust_dens == 'Perc':
-        ax3.set_title('uniformly-distributed, +- ' +str(error_crust_dens) + '%')
+        if error_dist_T_K=='uniform' and error_type_T_K == 'Abs':
+            ax1.set_title('+-' +str(error_T_K))
+        if error_dist_T_K=='uniform' and error_type_T_K == 'Perc':
+            ax1.set_title('+-' +str(error_T_K) + '%')
 
 
 
 
 
-    ax1.set_xlabel('Temperature simulation (K)')
-    ax2.set_xlabel('Density simulation (g/cm3)')
-    ax3.set_xlabel('Crustal density simulation (g/cm3)')
-    ax1.set_ylabel('# of synthetic samples')
+        if error_dist_CO2_dens=='uniform' and error_type_CO2_dens == 'Abs':
+            ax2.set_title('uniformly-distributed, +-' +str(error_CO2_dens))
+        if error_dist_CO2_dens=='uniform' and error_type_CO2_dens == 'Perc':
+            ax2.set_title('+-' +str(error_CO2_dens) + '%')
+
+
+        if error_dist_crust_dens=='uniform' and error_type_crust_dens == 'Abs':
+            ax3.set_title('uniformly-distributed, +- ' +str(error_crust_dens))
+        if error_dist_crust_dens=='uniform' and error_type_crust_dens == 'Perc':
+            ax3.set_title('uniformly-distributed, +- ' +str(error_crust_dens) + '%')
+
+
+
+
+
+        ax1.set_xlabel('Temperature simulation (K)')
+        ax2.set_xlabel('Density simulation (g/cm3)')
+        ax3.set_xlabel('Crustal density simulation (g/cm3)')
+        ax1.set_ylabel('# of synthetic samples')
 
 
     return df_out
+
+
+crust_dens_gcm3=2.7
+
+def loop_all_FI_MC(df=None, crust_dens_gcm3=2.7, N_dup=1000,
+                error_T_K=30, error_CO2_dens=0.005, error_crust_dens=0.1,
+                error_type_T_K='Abs', error_dist_T_K='normal',
+                error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
+                error_type_crust_dens='Abs',
+                error_dist_crust_dens='uniform',
+                plot_figure=False):
+
+    # Set up mean and standard deviation
+    SingleCalc_D_km = np.empty(len(df), dtype=float)
+    SingleCalc_Press_kbar = np.empty(len(df), dtype=float)
+
+    mean_Press_kbar = np.empty(len(df), dtype=float)
+    med_Press_kbar = np.empty(len(df), dtype=float)
+    std_Press_kbar = np.empty(len(df), dtype=float)
+
+    mean_D_km = np.empty(len(df), dtype=float)
+    med_D_km = np.empty(len(df), dtype=float)
+    std_D_km = np.empty(len(df), dtype=float)
+    Sample=np.empty(len(df),  dtype=np.dtype('U100') )
+
+
+
+
+
+    for i in range(0, len(df)):
+        print('working on number' + str(i))
+
+        # Working out the errors for each loop
+
+        if type(error_T_K) is pd.Series:
+            error_T_K=error_T_K.iloc[i]
+        else:
+            error_T_K=error_T_K
+
+        if type(error_CO2_dens) is pd.Series:
+            error_CO2_dens=error_CO2_dens.iloc[i]
+        else:
+            error_CO2_dens=error_CO2_dens
+
+        if type(error_crust_dens) is pd.Series:
+            error_crust_dens=error_crust_dens.iloc[i]
+        else:
+            error_crust_dens=error_crust_dens
+
+
+        # Make synthetic things
+
+        df_synthetic=calculate_temperature_density_MC(df=df, sample_i=i,
+        crust_dens_gcm3=crust_dens_gcm3, N_dup=N_dup,
+    error_T_K=error_T_K, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
+    error_CO2_dens=error_CO2_dens, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
+    error_crust_dens=error_crust_dens, error_type_crust_dens= error_type_crust_dens,
+    error_dist_crust_dens=error_dist_crust_dens, plot_figure=plot_figure)
+
+        # Convert to densities for MC
+
+        MC_T=convert_density_depth_Coolprop(T_K=df_synthetic['T_K_with_noise'],
+                                        CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                       Crust_dens_gcm3=df_synthetic['crust_dens_with_noise'],
+                                         output='df')
+
+
+
+        # Singular density calculation
+
+        Densities=convert_density_depth_Coolprop(T_K=df['T_K'].iloc[i],
+                                       Crust_dens_gcm3=crust_dens_gcm3,
+                    CO2_dens_gcm3=df['Density_g_cm3'].iloc[i], output='df')
+
+
+        Sample[i]=df.iloc[i].Sample
+        SingleCalc_D_km[i]=Densities['Depth (km)']
+        SingleCalc_Press_kbar[i]=Densities['Pressure (kbar)']
+
+
+        mean_Press_kbar[i]=np.nanmean(MC_T['Pressure (kbar)'])
+        med_Press_kbar[i]=np.nanmedian(MC_T['Pressure (kbar)'])
+        std_Press_kbar[i]=np.nanstd(MC_T['Pressure (kbar)'])
+
+        mean_D_km[i]=np.nanmean(MC_T['Depth (km)'])
+        med_D_km[i]=np.nanmedian(MC_T['Depth (km)'])
+        std_D_km[i]=np.nanstd(MC_T['Depth (km)'])
+
+    df_step=pd.DataFrame(data={'Filename': Sample,
+                         'SingleFI_D_km': SingleCalc_D_km,
+                        'std_dev_MC_D_km': std_D_km,
+                         'SingleFI_P_kbar': SingleCalc_Press_kbar,
+                            'std_dev_MC_P_kbar': std_Press_kbar,
+                             'Mean_MC_P_kbar': mean_Press_kbar,
+                         'Med_MC_P_kbar': med_Press_kbar,
+
+                          'Mean_MC_D_km': mean_D_km,
+                         'Med_MC_D_km': med_D_km,
+                         'error_T_K': error_T_K,
+                         'error_CO2_dens': error_CO2_dens,
+                         'error_crust_dens': error_crust_dens
+
+                         })
+    return df_step
