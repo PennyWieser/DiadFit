@@ -14,6 +14,109 @@ from DiadFit.importing_data_files import *
 encode="ISO-8859-1"
 
 ## Plotting Ne lines, returns peak position
+def find_closest(df, line1_shift):
+    dist = (df['Raman_shift (cm-1)'] - line1_shift).abs()
+    return df.loc[dist.idxmin()]
+
+
+
+def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447):
+    """
+    Calculates ideal splitting in air between lines closest to user-specified line shift
+    """
+
+    df_Ne=calculate_Ne_line_positions(wavelength=532.05)
+
+    closest1=find_closest(df_Ne, line1_shift).loc['Raman_shift (cm-1)']
+    closest2=find_closest(df_Ne, line2_shift).loc['Raman_shift (cm-1)']
+
+    diff=abs(closest1-closest2)
+
+    df=pd.DataFrame(data={'Ne_Split': diff,
+    'Line_1': closest1,
+    'Line_2': closest2,
+    'Entered Pos Line 1': line1_shift,
+    'Entered Pos Line 2': line2_shift}, index=[0])
+
+
+    return df
+def calculate_Ne_line_positions(wavelength=532.05):
+    """
+    Calculates Ne line positions using the theoretical lines from NIST for the user inputted wavelenth
+    """
+
+    Ne_emission_line_air=np.array([556.2442,
+    556.2766,
+    556.3053,
+    557.6039,
+    558.5905,
+    558.9347,
+    559.1150,
+    565.2566,
+    565.6026,
+    565.6659,
+    566.2200,
+    566.2549,
+    568.4647,
+    568.9816,
+    571.5341,
+    571.8880,
+    571.9225,
+    571.9530,
+    574.2437,
+    574.8299,
+    574.8645,
+    576.0589,
+    576.4053,
+    576.4419,
+    577.0307,
+    580.4090,
+    580.4450,
+    581.1407,
+    581.6622,
+    582.0156,
+    582.8906])
+
+    Intensity=np.array([1500.00,
+    5000.00,
+    750.00,
+    350.00,
+    50.00,
+    500.00,
+    80.00,
+    750.00,
+    750.00,
+    5000.00,
+    40.00,
+    750.00,
+    250.00,
+    1500.00,
+    350.00,
+    1500.00,
+    5000.00,
+    750.00,
+    80.00,
+    5000.00,
+    700.00,
+    700.00,
+    30.00,
+    7000.00,
+    500.00,
+    750.00,
+    5000.00,
+    3000.00,
+    500.00,
+    5000.00,
+    750.00])
+
+
+
+    Raman_shift=(10**7/wavelength)-(10**7/Ne_emission_line_air)
+
+    df_Ne=pd.DataFrame(data={'Raman_shift (cm-1)': Raman_shift,
+                            'Intensity': Intensity,
+                            'Ne emission line in air': Ne_emission_line_air})
+    return df_Ne
 
 def plot_Ne_lines(*, path=None, filename, filetype='Witec_ASCII', n_peaks=6,
 peak1_cent=1118, peak2_cent=1447, exclude_range_1=None,
@@ -595,7 +698,7 @@ lower_bck_pk1=[-50, -25], upper_bck1_pk1=[8, 15], upper_bck2_pk1=[30, 50],
 Ne_center_2=1147, N_poly_2_baseline=1, x_span_2=[-5, 5],
 x_span_pk1_override=None, x_span_pk2_override=None,
 lower_bck_pk2=[-44.2, -22], upper_bck1_pk2=[15, 50], upper_bck2_pk2=[50, 51],
-amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baseline=100, y_range_baseline=1000, x_range_peak=None):
+amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baseline=100, y_range_baseline=1000, x_range_peak=None, DeltaNe_ideal=330.477634):
 
 
 
@@ -639,6 +742,11 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
 
     x_span_pk2_override, x_span_pk1_override: list
         determins how many point to either side of peak you want to fit, if different from background positions
+
+    DeltaNe_ideal: float
+        Theoretical distance between the two peaks you have selected. Default is 330.477634 for
+        the 1117 and 1447 diad for the Cornell Raman. You can calculate this using the calculate_Ne_line_positions
+
 
     Things for Diad 1 (~1117):
 
@@ -718,7 +826,7 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
 
     # Calculate difference between peak centers, and Delta Ne
     DeltaNe=cent_1447-cent_1117
-    DeltaNe_ideal=330.477634
+
     Ne_Corr=DeltaNe_ideal/DeltaNe
 
     # Calculate maximum splitting (+1 sigma)
