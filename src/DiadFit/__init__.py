@@ -30,7 +30,11 @@ from DiadFit.H2O_fitting import *
 
 # Monte Carlo Error propagation
 from DiadFit.error_propagation import *
+
+from DiadFit.density_depth_crustal_profiles import *
+
 # version
 from ._version import __version__
+
 
 

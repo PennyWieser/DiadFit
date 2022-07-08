@@ -222,7 +222,7 @@ plot_figure=True):
 
 crust_dens_gcm3=2.7
 
-def loop_all_FI_MC(df=None, crust_dens_gcm3=2.7, N_dup=1000,
+def loop_all_FI_MC(df=None, sample_ID=None, crust_dens_gcm3=2.7, N_dup=1000,
                 error_T_K=30, error_CO2_dens=0.005, error_crust_dens=0.1,
                 error_type_T_K='Abs', error_dist_T_K='normal',
                 error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
@@ -248,7 +248,8 @@ def loop_all_FI_MC(df=None, crust_dens_gcm3=2.7, N_dup=1000,
 
 
     for i in range(0, len(df)):
-        print('working on number' + str(i))
+
+
 
         # Working out the errors for each loop
 
@@ -292,8 +293,11 @@ def loop_all_FI_MC(df=None, crust_dens_gcm3=2.7, N_dup=1000,
                                        Crust_dens_gcm3=crust_dens_gcm3,
                     CO2_dens_gcm3=df['Density_g_cm3'].iloc[i], output='df')
 
-
-        Sample[i]=df.iloc[i].Sample
+        # Check of
+        if sample_ID is None:
+            Sample[i]=i
+        else:
+            Sample[i]=df[sample_ID].iloc[i]
         SingleCalc_D_km[i]=Densities['Depth (km)']
         SingleCalc_Press_kbar[i]=Densities['Pressure (kbar)']
 
