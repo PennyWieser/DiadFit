@@ -20,12 +20,12 @@ def find_closest(df, line1_shift):
 
 
 
-def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447):
+def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447, cut_off_intensity=2000):
     """
     Calculates ideal splitting in air between lines closest to user-specified line shift
     """
 
-    df_Ne=calculate_Ne_line_positions(wavelength=532.05)
+    df_Ne=calculate_Ne_line_positions(wavelength=wavelength, cut_off_intensity=cut_off_intensity)
 
     closest1=find_closest(df_Ne, line1_shift).loc['Raman_shift (cm-1)']
     closest2=find_closest(df_Ne, line2_shift).loc['Raman_shift (cm-1)']
@@ -40,42 +40,48 @@ def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447
 
 
     return df
-def calculate_Ne_line_positions(wavelength=532.05):
+
+def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     """
     Calculates Ne line positions using the theoretical lines from NIST for the user inputted wavelenth
     """
 
-    Ne_emission_line_air=np.array([556.2442,
-    556.2766,
-    556.3053,
-    557.6039,
-    558.5905,
-    558.9347,
-    559.1150,
-    565.2566,
-    565.6026,
-    565.6659,
-    566.2200,
-    566.2549,
-    568.4647,
-    568.9816,
-    571.5341,
-    571.8880,
-    571.9225,
-    571.9530,
-    574.2437,
-    574.8299,
-    574.8645,
-    576.0589,
-    576.4053,
-    576.4419,
-    577.0307,
-    580.4090,
-    580.4450,
-    581.1407,
-    581.6622,
-    582.0156,
-    582.8906])
+    Ne_emission_line_air=np.array([
+556.244160,
+556.276620,
+556.305310,
+557.603940,
+558.590500,
+558.934720,
+559.115000,
+565.256640,
+565.602580,
+565.665880,
+566.220000,
+566.254890,
+568.464700,
+568.981630,
+571.534090,
+571.887980,
+571.922480,
+571.953000,
+574.243700,
+574.829850,
+574.864460,
+576.058850,
+576.405250,
+576.441880,
+577.030670,
+580.409000,
+580.444960,
+581.140660,
+581.662190,
+582.015580,
+582.890630
+
+
+
+    ])
 
     Intensity=np.array([1500.00,
     5000.00,
@@ -116,7 +122,9 @@ def calculate_Ne_line_positions(wavelength=532.05):
     df_Ne=pd.DataFrame(data={'Raman_shift (cm-1)': Raman_shift,
                             'Intensity': Intensity,
                             'Ne emission line in air': Ne_emission_line_air})
-    return df_Ne
+
+    df_Ne_r=df_Ne.loc[df_Ne['Intensity']>cut_off_intensity]
+    return df_Ne_r
 
 def plot_Ne_lines(*, path=None, filename, filetype='Witec_ASCII', n_peaks=6,
 peak1_cent=1118, peak2_cent=1447, exclude_range_1=None,
@@ -202,8 +210,8 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
 
 
     peaks = find_peaks(y,height = height, threshold = threshold, distance = distance, prominence=prominence, width=width)
-    print('Found peaks at wavenumber=')
-    print(x[peaks[0]])
+    # print('Found peaks at wavenumber=')
+    # print(x[peaks[0]])
 
     n_peaks=6
     height = peaks[1]['peak_heights'] #list of the heights of the peaks
@@ -211,9 +219,14 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
     df=pd.DataFrame(data={'pos': peak_pos,
                         'height': height})
 
+
     # Find bigest peaks,
     df_sort_Ne=df.sort_values('height', axis=0, ascending=False)
     df_sort_Ne_trim=df_sort_Ne[0:n_peaks]
+
+    print('Biggest 6 peaks:')
+    display(df_sort_Ne_trim)
+
     df_1117=df_sort_Ne.loc[df['pos'].between(peak1_cent-5, peak1_cent+5)]
     df_1447=df_sort_Ne.loc[df['pos'].between(peak2_cent-5, peak2_cent+5)]
 

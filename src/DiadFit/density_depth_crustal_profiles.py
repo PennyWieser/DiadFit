@@ -232,70 +232,10 @@ def loop_pressure_depth_3step(P_kbar=None,  d1=5, d2=14,
             d1=d1, d2=d2,rho1=rho1, rho2=rho2, rho3=rho3)
     return depth_km_loop
 
-## Actual functions doing the conversions
-
-def convert_co2_density_depth_Coolprop(T_K=None,
-    CO2_dens_gcm3=None,
-    crust_dens_kgm3=None, output='kbar',
-    g=9.81,
-    d1=None, d2=None, rho1=None, rho2=None, rho3=None):
-
-
-
-
-    try:
-        import CoolProp.CoolProp as cp
-    except ImportError:
-        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
-
-
-    if type(T_K) is pd.Series:
-        T_K=T_K.values
-    if type(CO2_dens_gcm3) is pd.Series:
-        CO2_dens_gcm3=CO2_dens_gcm3
-
-    density_SI_units=CO2_dens_gcm3*1000
-    if type(density_SI_units) is pd.Series:
-        density_SI_units=density_SI_units.values
-
-
-    P_Pa=cp.PropsSI('P', 'D', density_SI_units, 'T', T_K, 'CO2')
-    P_kbar=P_Pa*10**(-8)
-    if output=='kbar':
-        return P_kbar
-    if output=='MPa':
-        return P_kbar*100
-
-    if output=='df':
-
-
-        Depth_km=convert_pressure_to_depth(P_kbar=P_kbar, crust_dens_kgm3=crust_dens_kgm3,
-        g=g, d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
-        if type(P_kbar) is float:
-        # Crustal density, using P=rho g H
-            df=pd.DataFrame(data={'Pressure (kbar)': P_kbar,
-                                'Pressure (MPa)': P_kbar*100,
-                                'Depth (km)': Depth_km,
-                                'input_crust_dens_kgm3': crust_dens_kgm3,
-                                'input_T_K': T_K,
-                                'input_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
-
-        else:
-
-
-            df=pd.DataFrame(data={'Pressure (kbar)': P_kbar,
-                                'Pressure (MPa)': P_kbar*100,
-                                'Depth (km)': Depth_km,
-                                'input_crust_dens_kgm3': crust_dens_kgm3,
-                                'input_T_K': T_K,
-                                'input_CO2_dens_gcm3': CO2_dens_gcm3})
-
-
-        return df
 
 
 def convert_pressure_to_depth(P_kbar=None, crust_dens_kgm3=None, g=9.81,
-d1=None, d2=None,rho1=None, rho2=None, rho3=None):
+d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
     """ Converts pressure in kbar to depth in km using a variety of crustal density profiles
 
 
@@ -428,3 +368,67 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None):
         D_series=D_series*(9.81/g)
 
     return D_series
+
+
+
+
+## Actual functions doing the conversions
+
+def convert_co2_density_depth_Coolprop(T_K=None,
+    CO2_dens_gcm3=None,
+    crust_dens_kgm3=None, output='kbar',
+    g=9.81,
+    d1=None, d2=None, rho1=None, rho2=None, rho3=None):
+
+
+
+
+    try:
+        import CoolProp.CoolProp as cp
+    except ImportError:
+        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
+
+
+    if type(T_K) is pd.Series:
+        T_K=T_K.values
+    if type(CO2_dens_gcm3) is pd.Series:
+        CO2_dens_gcm3=CO2_dens_gcm3
+
+    density_SI_units=CO2_dens_gcm3*1000
+    if type(density_SI_units) is pd.Series:
+        density_SI_units=density_SI_units.values
+
+
+    P_Pa=cp.PropsSI('P', 'D', density_SI_units, 'T', T_K, 'CO2')
+    P_kbar=P_Pa*10**(-8)
+    if output=='kbar':
+        return P_kbar
+    if output=='MPa':
+        return P_kbar*100
+
+    if output=='df':
+
+
+        Depth_km=convert_pressure_to_depth(P_kbar=P_kbar, crust_dens_kgm3=crust_dens_kgm3,
+        g=g, d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
+        if type(P_kbar) is float:
+        # Crustal density, using P=rho g H
+            df=pd.DataFrame(data={'Pressure (kbar)': P_kbar,
+                                'Pressure (MPa)': P_kbar*100,
+                                'Depth (km)': Depth_km,
+                                'input_crust_dens_kgm3': crust_dens_kgm3,
+                                'input_T_K': T_K,
+                                'input_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+
+        else:
+
+
+            df=pd.DataFrame(data={'Pressure (kbar)': P_kbar,
+                                'Pressure (MPa)': P_kbar*100,
+                                'Depth (km)': Depth_km,
+                                'input_crust_dens_kgm3': crust_dens_kgm3,
+                                'input_T_K': T_K,
+                                'input_CO2_dens_gcm3': CO2_dens_gcm3})
+
+
+        return df

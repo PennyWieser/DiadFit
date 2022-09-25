@@ -123,6 +123,8 @@ def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII
 
         if filetype=='headless_csv':
             df=pd.read_csv(path+str('/')+filename, header=None)
+        if filetype=='head_csv':
+            df=pd.read_csv(path+str('/')+filename)
 
     if Diad_files is not None:
         if filetype == 'headless_txt':
@@ -140,6 +142,8 @@ def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII
 
         if filetype=='headless_csv':
             df=pd.read_csv(Diad_files, header=None)
+        if filetype=='head_csv':
+            df=pd.read_csv(Diad_files)
 
     df_in=np.array(df)
 

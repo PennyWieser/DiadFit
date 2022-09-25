@@ -35,7 +35,10 @@ def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII'):
     ax1.set_xlabel('Wavenumber (cm-1)')
     ax1.set_ylabel('Intensity')
 
-def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_diad1=2, n_peaks_diad2=3,
+def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII',
+        n_peaks_diad1=2, n_peaks_diad2=3,
+        approx_diad2_pos=[1385, 1391],
+        approx_diad1_pos=[1280, 1290],
         exclude_range1=None, exclude_range2=None,
         height = 10, threshold = 0.6, distance = 1, prominence=10, width=2,
         plot_figure=True):
@@ -70,6 +73,9 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
         1: Just the diad
         2: Diad and Hot Band
         3: Diad, Hot band and C13
+
+    approx_diad1_pos, approx_diad2_pos:
+        list, e.g., [1290, 1300], code looks for peaks in this range. needs tweaking on different instuments.
 
     exclude_range1: None or list length 2
         Excludes a region, e.g. a cosmic ray
@@ -145,23 +151,23 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
     df_sort_diad2=df_pks_diad2.sort_values('height', axis=0, ascending=False)
     df_sort_diad2_trim=df_sort_diad2[0:n_peaks_diad2]
 
-    if any(df_sort_diad2_trim['pos'].between(1385, 1391)):
+    if any(df_sort_diad2_trim['pos'].between(approx_diad2_pos[0], approx_diad2_pos[1])):
         diad_2_peaks=tuple(df_sort_diad2_trim['pos'].values)
     else:
         if n_peaks_diad2==1:
-            print('WARNING: Couldnt find diad2, ive guesed a peak position of 1389.1 to move forwards')
-            diad_2_peaks=np.array([1389.1])
+            print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(approx_diad2_pos), 2)) +  'to move forwards')
+            diad_2_peaks=np.array([np.average(approx_diad2_pos)])
         if n_peaks_diad2==2:
             print('WARNING: Couldnt find diad2, ive guesed a peak position of 1389.1 and 1410')
-            diad_2_peaks=np.array([1389.1, 1410])
+            diad_2_peaks=np.array([np.average(approx_diad2_pos)])
         if n_peaks_diad2==3:
             raise TypeError('WARNING: Couldnt find diad2, and you specified 3 peaks, try adjusting the Scipy peak parameters')
 
-    if any(df_sort_diad1_trim['pos'].between(1280, 1290)):
+    if any(df_sort_diad1_trim['pos'].between(approx_diad1_pos[0], approx_diad1_pos[1])):
         diad_1_peaks=tuple(df_sort_diad1_trim['pos'].values)
     else:
-        print('Couldnt find diad1, set peak guess to 1286.1')
-        diad_1_peaks=np.array([1286.1])
+        print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(approx_diad1_pos), 2)) +  'to move forwards')
+        diad_1_peaks=np.array([np.average(approx_diad1_pos)])
 
 
 
@@ -176,17 +182,17 @@ def identify_diad_peaks(*, path=None, filename, filetype='Witec_ASCII', n_peaks_
             ax1.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
             ax2.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
 
-        ax0.plot([1286, 1286],
+        ax0.plot([np.average(approx_diad1_pos), np.average(approx_diad1_pos)],
         [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='Approx. D1 pos')
-        ax0.plot([1389, 1389],
+        ax0.plot([np.average(approx_diad2_pos), np.average(approx_diad2_pos)],
         [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D2 pos')
-        ax1.plot([1286, 1286],
+        ax1.plot([np.average(approx_diad1_pos), np.average(approx_diad1_pos)],
         [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D1 pos')
-        ax1.plot([1389, 1389],
+        ax1.plot([np.average(approx_diad2_pos), np.average(approx_diad2_pos)],
         [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D2 pos')
-        ax2.plot([1286, 1286],
+        ax2.plot([np.average(approx_diad1_pos), np.average(approx_diad1_pos)],
         [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D1 pos')
-        ax2.plot([1389, 1389],
+        ax2.plot([np.average(approx_diad2_pos), np.average(approx_diad2_pos)],
         [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D2 pos')
 
         ax0.legend()
@@ -1577,7 +1583,9 @@ peak_pos_gauss=(1270), amplitude=100, gauss_sigma=1,  gauss_amp=3000, plot_figur
         return df_out, result, y_best_fit, x_lin
 
 
-def combine_diad_outputs(*, filename=None, prefix=True, Diad1_fit=None, Diad2_fit=None, Carb_fit=None):
+def combine_diad_outputs(*, filename=None, prefix=True,
+Diad1_fit=None, Diad2_fit=None, Carb_fit=None, to_csv=True,
+to_clipboard=True, path=None):
 
     if prefix is True:
         filename=filename.split(' ')[1:][0]
@@ -1608,9 +1616,10 @@ def combine_diad_outputs(*, filename=None, prefix=True, Diad1_fit=None, Diad2_fi
         combo_f.insert(0, 'filename', file)
 
         if Carb_fit is None:
-            combo_f.to_clipboard(excel=True, header=False, index=False)
+            if to_clipboard is True:
+                combo_f.to_clipboard(excel=True, header=False, index=False)
 
-            return combo_f
+
 
         if Carb_fit is not None:
             width=np.shape(combo_f)[1]
@@ -1618,8 +1627,8 @@ def combine_diad_outputs(*, filename=None, prefix=True, Diad1_fit=None, Diad2_fi
             combo_f.insert(width+1, 'Carb_Area',Carb_fit['Carb_Area'])
             area_ratio=Carb_fit['Carb_Area']/(combo_f['Diad1_Area']+combo_f['Diad2_Area'])
             combo_f.insert(width+2, 'Carb_Area/Diad_Area',  area_ratio)
-
-            combo_f.to_clipboard(excel=True, header=False, index=False)
+            if to_clipboard is True:
+                combo_f.to_clipboard(excel=True, header=False, index=False)
 
 
             return combo_f
@@ -1643,7 +1652,19 @@ def combine_diad_outputs(*, filename=None, prefix=True, Diad1_fit=None, Diad2_fi
                                                         'Carb_Area/Diad_Area':np.nan
                                                         })
         df.to_clipboard(excel=True, header=False, index=False)
-        return df
+        combo_f=df
+
+    if to_csv is True:
+        if path is None:
+            raise Exception('You need to specify path= for wherever you want this saved')
+        path_fits=path+'/'+'Peak_Fits'
+        if os.path.exists(path_fits):
+            out='path exists'
+        else:
+            dir2=os.makedirs(path+'/'+ 'Peak_Fits', exist_ok=False)
+        #filepath=Path(path+'/'+ 'Peak_Fits'+'/'+filename)
+        combo_f.to_csv(path+'/'+'Peak_Fits'+'/'+'fits_'+filename)
+    return combo_f
 
 
 def plot_spectra(*,path=None, filename=None, filetype='Witec_ASCII'):
