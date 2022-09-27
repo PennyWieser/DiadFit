@@ -10,6 +10,12 @@ import re
 from os import listdir
 from os.path import isfile, join
 from DiadFit.importing_data_files import *
+from typing import Tuple, Optional
+from dataclasses import dataclass
+import matplotlib.patches as patches
+
+
+
 
 encode="ISO-8859-1"
 
@@ -291,8 +297,8 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
 
 
 ## Ne baselines
-def remove_Ne_baseline_1117(Ne, N_poly_1117_baseline=1, Ne_center_1=1117.1,
-lower_bck=[-50, -25], upper_bck1=[8, 15], upper_bck2=[30, 50] ):
+def remove_Ne_baseline_1117(Ne, N_poly_1117_baseline=None, Ne_center_1=None,
+lower_bck=None, upper_bck1=None, upper_bck2=None, sigma_baseline=None):
     """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
     around the 1117 peak
 
@@ -333,35 +339,36 @@ lower_bck=[-50, -25], upper_bck1=[8, 15], upper_bck2=[30, 50] ):
 
     # Get actual baseline
     Baseline_with_outl=Ne_short[
-    ((Ne_short[:, 0]<upper_0baseline_1117) &(Ne_short[:, 0]>lower_0baseline_1117))
+    ((Ne_short[:, 0]<=upper_0baseline_1117) &(Ne_short[:, 0]>=lower_0baseline_1117))
     |
-    ((Ne_short[:, 0]<upper_1baseline_1117) &(Ne_short[:, 0]>lower_1baseline_1117))
+    ((Ne_short[:, 0]<=upper_1baseline_1117) &(Ne_short[:, 0]>=lower_1baseline_1117))
     |
-    ((Ne_short[:, 0]<upper_2baseline_1117) &(Ne_short[:, 0]>lower_2baseline_1117))]
+    ((Ne_short[:, 0]<=upper_2baseline_1117) &(Ne_short[:, 0]>=lower_2baseline_1117))]
 
     # Calculates the median for the baseline and the standard deviation
     Median_Baseline=np.median(Baseline_with_outl[:, 1])
     Std_Baseline=np.std(Baseline_with_outl[:, 1])
 
     # Removes any points in the baseline outside of 2 sigma (helps remove cosmic rays etc).
-    Baseline=Baseline_with_outl[(Baseline_with_outl[:, 1]<Median_Baseline+2*Std_Baseline)
+    Baseline=Baseline_with_outl[(Baseline_with_outl[:, 1]<Median_Baseline+sigma_baseline*Std_Baseline)
                                 &
-                                (Baseline_with_outl[:, 1]>Median_Baseline-2*Std_Baseline)
+                                (Baseline_with_outl[:, 1]>Median_Baseline-sigma_baseline*Std_Baseline)
                                ]
 
     # Fits a polynomial to the baseline of degree
     Pf_baseline = np.poly1d(np.polyfit(Baseline[:, 0], Baseline[:, 1], N_poly_1117_baseline))
     Py_base =Pf_baseline(Ne_short[:, 0])
-    Baseline_ysub=Pf_baseline(Baseline[:, 0])
-    Baseline_x=Baseline[:, 0]
+    Baseline_ysub=Pf_baseline(Baseline_with_outl[:, 0])
+    Baseline_y=Baseline[:, 1]
+    Baseline_x= Baseline[:, 0]#Baseline[:, 0]
     y_corr= Ne_short[:, 1]-  Py_base
     x=Ne_short[:, 0]
 
 
-    return y_corr, Py_base, x,  Ne_short, Py_base, Baseline_ysub, Baseline_x
+    return y_corr, Py_base, x,  Ne_short, Py_base, Baseline_y, Baseline_x
 
-def remove_Ne_baseline_1447(Ne, N_poly_1447_baseline=1, Ne_center_2=1447.1,
-lower_bck=[-44.2, -22], upper_bck1=[15, 50], upper_bck2=[50, 51]):
+def remove_Ne_baseline_1447(Ne, N_poly_1447_baseline=None, Ne_center_2=None, sigma_baseline=None,
+lower_bck=None, upper_bck1=None, upper_bck2=None):
 
     """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
     around the 1447 peak
@@ -416,9 +423,9 @@ lower_bck=[-44.2, -22], upper_bck1=[15, 50], upper_bck2=[50, 51]):
     Std_Baseline=np.std(Baseline_with_outl[:, 1])
 
     # Removes any points in the baseline outside of 2 sigma (helps remove cosmic rays etc).
-    Baseline=Baseline_with_outl[(Baseline_with_outl[:, 1]<Median_Baseline+2*Std_Baseline)
+    Baseline=Baseline_with_outl[(Baseline_with_outl[:, 1]<Median_Baseline+sigma_baseline*Std_Baseline)
                                 &
-                                (Baseline_with_outl[:, 1]>Median_Baseline-2*Std_Baseline)
+                                (Baseline_with_outl[:, 1]>Median_Baseline-sigma_baseline*Std_Baseline)
                                ]
 
     # Fits a polynomial to the baseline of degree
@@ -426,11 +433,12 @@ lower_bck=[-44.2, -22], upper_bck1=[15, 50], upper_bck2=[50, 51]):
     Py_base =Pf_baseline(Ne_short[:, 0])
     Baseline_ysub=Pf_baseline(Baseline[:, 0])
     Baseline_x=Baseline[:, 0]
+    Baseline_y=Baseline[:, 1]
     y_corr= Ne_short[:, 1]-  Py_base
     x=Ne_short[:, 0]
 
 
-    return y_corr, Py_base, x,  Ne_short, Py_base, Baseline_ysub, Baseline_x
+    return y_corr, Py_base, x,  Ne_short, Py_base, Baseline_y, Baseline_x
 
 
 
@@ -702,16 +710,49 @@ def fit_1447(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=
 
     return Center_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx
 
+## Setting default Ne fitting parameters
+@dataclass
+class Ne_peak_config:
+    # Things for the background positioning and fit
+    N_poly_pk1_baseline: float = 1 #Degree of polynomial to fit to the baseline
+    N_poly_pk2_baseline: float = 1 #Degree of polynomial to fit to the baseline
+    sigma_baseline=3 # Discard things outside of this sigma on the baseline
+    lower_bck_pk1: Tuple[float, float] = (-50, -25) # Background position Pk1
+    upper_bck1_pk1: Tuple[float, float] = (8, 15)  # Background position Pk1
+    upper_bck2_pk1: Tuple[float, float] = (30, 50)     # Background position Pk1
+    lower_bck_pk2: Tuple[float, float] = (-44.2, -22)  # Background position Pk2
+    upper_bck1_pk2: Tuple[float, float] = (15, 50) # Background position Pk2
+    upper_bck2_pk2: Tuple[float, float] = (50, 51)     # Background position Pk1
+
+    # Things for plotting the baseline
+    x_range_baseline: float=20 #  How many units outside your selected background it shows on the baseline plot
+    y_range_baseline: float= 200    # Where the y axis is cut off above the minimum baseline measurement
+
+    # Things for fitting the primary peak
+    amplitude: float = 100
+
+    # Things for plotting the primary peak
+    x_range_peak: float=15 # How many units to each side are shown when plotting the peak fits
+
+    # Things for plotting the residual
+    x_range_residual: float=7 # Shows how many x units to left and right is shown on residual plot
+
+    # Things for fitting a secondary peak on 1117
+    LH_offset_mini: Tuple[float, float] = (1.5, 3)
+
+    # Optional, by default, fits to the points inside the baseline. Can also specify as values to make a smaller peak fit.
+    x_span_pk1: Optional [Tuple[float, float]] = None # Tuple[float, float] = (-10, 8)
+    x_span_pk2: Optional [Tuple[float, float]] = None # Tuple[float, float] = (-5, 5)
 
 
-def fit_Ne_lines(*, Ne=None, filename=None, path=None, prefix=True,
-Ne_center_1=1117.1, N_poly_1_baseline=1, x_span_1=[-10, 8],
-LH_offset_mini=[1.5, 3], peaks_1=2,
-lower_bck_pk1=[-50, -25], upper_bck1_pk1=[8, 15], upper_bck2_pk1=[30, 50],
-Ne_center_2=1147, N_poly_2_baseline=1, x_span_2=[-5, 5],
-x_span_pk1_override=None, x_span_pk2_override=None,
-lower_bck_pk2=[-44.2, -22], upper_bck1_pk2=[15, 50], upper_bck2_pk2=[50, 51],
-amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baseline=100, y_range_baseline=1000, x_range_peak=None, DeltaNe_ideal=330.477634):
+
+def fit_Ne_lines(*,  config: Ne_peak_config=Ne_peak_config(),
+Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
+    Ne=None, filename=None, path=None, prefix=True,
+    plot_figure=True, print_report=False, loop=False,
+    DeltaNe_ideal=330.477634):
+
+
 
 
 
@@ -753,8 +794,6 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
     x_range_peak: flt, int, or None
         How much to either side of the peak to show on the final peak fitting plot
 
-    x_span_pk2_override, x_span_pk1_override: list
-        determins how many point to either side of peak you want to fit, if different from background positions
 
     DeltaNe_ideal: float
         Theoretical distance between the two peaks you have selected. Default is 330.477634 for
@@ -763,7 +802,7 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
 
     Things for Diad 1 (~1117):
 
-        N_poly_1_baseline: int
+        N_poly_pk1_baseline: int
             Degree of polynomial used to fit the background
 
         Ne_center_1: float
@@ -773,7 +812,7 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
             Positions used for background relative to peak.[-50, -20] takes a
             background -50 and -20 from the peak center
 
-        x_span_1: list length 2. Default [-10, 8]
+        x_span_pk1: list length 2. Default [-10, 8]
             Span either side of peak center used for fitting,
             e.g. by default, fits to 10 wavenumbers below peak, 8 above.
 
@@ -788,7 +827,7 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
 
 
     Things for Diad 2 (~1447):
-        N_poly_2_baseline: int
+        N_poly_pk2_baseline: int
             Degree of polynomial used to fit the background
 
         Ne_center_2: float
@@ -798,43 +837,43 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
             Positions used for background relative to peak.[-50, -20] takes a
             background -50 and -20 from the peak center
 
-        x_span_2: list length 2. Default [-10, 8]
+        x_span_pk2: list length 2. Default [-10, 8]
             Span either side of peak center used for fitting,
             e.g. by default, fits to 10 wavenumbers below peak, 8 above.
     """
 
 
     #Remove the baselines
-    y_corr_1117, Py_base_1117, x_1117, Ne_short_1117, Py_base_1117, Baseline_ysub_1117, Baseline_x_1117=remove_Ne_baseline_1117(Ne, Ne_center_1=Ne_center_1,
-    N_poly_1117_baseline=N_poly_1_baseline,
-    lower_bck=lower_bck_pk1, upper_bck1=upper_bck1_pk1, upper_bck2=upper_bck2_pk1)
+    y_corr_1117, Py_base_1117, x_1117, Ne_short_1117, Py_base_1117, Baseline_ysub_1117, Baseline_x_1117=remove_Ne_baseline_1117(Ne,
+    N_poly_1117_baseline=config.N_poly_pk1_baseline, Ne_center_1=Ne_center_1, sigma_baseline=config.sigma_baseline,
+    lower_bck=config.lower_bck_pk1, upper_bck1=config.upper_bck1_pk1, upper_bck2=config.upper_bck2_pk1)
 
-    y_corr_1447, Py_base_1447, x_1447, Ne_short_1447, Py_base_1447, Baseline_ysub_1447, Baseline_x_1447=remove_Ne_baseline_1447(Ne, Ne_center_2=Ne_center_2, N_poly_1447_baseline=N_poly_2_baseline,
-    lower_bck=lower_bck_pk2, upper_bck1=upper_bck1_pk2, upper_bck2=upper_bck2_pk2)
+    y_corr_1447, Py_base_1447, x_1447, Ne_short_1447, Py_base_1447, Baseline_ysub_1447, Baseline_x_1447=remove_Ne_baseline_1447(Ne, Ne_center_2=Ne_center_2, N_poly_1447_baseline=config.N_poly_pk2_baseline, sigma_baseline=config.sigma_baseline,
+    lower_bck=config.lower_bck_pk2, upper_bck1=config.upper_bck1_pk2, upper_bck2=config.upper_bck2_pk2)
 
 
     # Have the option to override the xspan here from default. Else, trims
-    if x_span_pk1_override is None:
+    if config.x_span_pk1 is None:
 
-        x_span_pk1=[lower_bck_pk1[1], upper_bck1_pk1[0]]
-        x_span_pk1_dist=abs(lower_bck_pk1[1]-upper_bck1_pk1[0])
+        x_span_pk1=[config.lower_bck_pk1[1], config.upper_bck1_pk1[0]]
+        x_span_pk1_dist=abs(config.lower_bck_pk1[1]-config.upper_bck1_pk1[0])
     else:
-        x_span_pk1=x_span_pk1_override
-        x_span_pk1_dist=abs(x_span_pk1[1]-x_span_pk1[0])
+        x_span_pk1=config.x_span_pk1
+        x_span_pk1_dist=abs(config.x_span_pk1[1]-config.x_span_pk1[0])
 
-    if x_span_pk2_override is None:
-        x_span_pk2=[lower_bck_pk2[1], upper_bck1_pk2[0]]
-        x_span_pk2_dist=abs(lower_bck_pk2[1]-upper_bck1_pk2[0])
+    if config.x_span_pk2 is None:
+        x_span_pk2=[config.lower_bck_pk2[1], config.upper_bck1_pk2[0]]
+        x_span_pk2_dist=abs(config.lower_bck_pk2[1]-config.upper_bck1_pk2[0])
     else:
-        x_span_pk2=x_span_pk2_override
-        x_span_pk2_dist=abs(x_span_pk2[1]-x_span_pk2[0])
+        x_span_pk2=config.x_span_pk2
+        x_span_pk2_dist=abs(config.x_span_pk2[1]-config.x_span_pk2[0])
 
     # Fit the 1117 peak
-    cent_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps = fit_1117(x_1117, y_corr_1117, x_span=x_span_pk1, Ne_center=Ne_center_1, LH_offset_mini=LH_offset_mini, peaks_1117=peaks_1, amplitude=amplitude, print_report=print_report)
+    cent_1117, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, Ne_1117_reg_x, Ne_1117_reg_y, xx_1117, result_1117, error_1117, result_1117_origx, comps = fit_1117(x_1117, y_corr_1117, x_span=x_span_pk1, Ne_center=Ne_center_1, LH_offset_mini=config.LH_offset_mini, peaks_1117=peaks_1, amplitude=config.amplitude, print_report=print_report)
 
 
     # Fit the 1447 peak
-    cent_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx = fit_1447(x_1447, y_corr_1447, x_span=x_span_pk2,  Ne_center=Ne_center_2, amplitude=amplitude, print_report=print_report)
+    cent_1447, Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, Ne_1447_reg_x, Ne_1447_reg_y, xx_1447, result_1447, error_1447, result_1447_origx = fit_1447(x_1447, y_corr_1447, x_span=x_span_pk2,  Ne_center=Ne_center_2, amplitude=config.amplitude, print_report=print_report)
 
 
     # Calculate difference between peak centers, and Delta Ne
@@ -857,51 +896,108 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
         fig, ((ax3, ax2), (ax5, ax4), (ax1, ax0)) = plt.subplots(3,2, figsize = (12,15)) # adjust dimensions of figure here
         fig.suptitle(filename, fontsize=16)
 
-        ax0.plot(Ne_short_1447[:,0], Py_base_1447, '-k')
+        # Setting y limits of axis
+        ymin_ax1=min(Ne_short_1117[:,1])-10
+        ymax_ax1=min(Ne_short_1117[:,1])+config.y_range_baseline
+        ymin_ax0=min(Ne_short_1447[:,1])-10
+        ymax_ax0=min(Ne_short_1447[:,1])+config.y_range_baseline
+        ax1.set_ylim([ymin_ax1, ymax_ax1])
+        ax0.set_ylim([ymin_ax1, ymax_ax1])
+
+        # Setting x limits of axis
+
+        ax1_xmin=min(Ne_short_1117[:,0])-config.x_range_baseline
+        ax1_xmax=max(Ne_short_1117[:,0])+config.x_range_baseline
+        ax0_xmin=min(Ne_short_1447[:,0])-config.x_range_baseline
+        ax0_xmax=max(Ne_short_1447[:,0])+config.x_range_baseline
+        ax0.set_xlim([ax0_xmin, ax0_xmax])
+        ax1.set_xlim([ax1_xmin, ax1_xmax])
+
+        # Adding background positions as colored bars on pk1
+        ax1cop=ax1.twiny()
+        #ax1cop.set_zorder(ax1.get_zorder())
+        ax1cop_xmax=ax1_xmax-Ne_center_1
+        ax1cop_xmin=ax1_xmin-Ne_center_1
+        ax1cop.set_xlim([ax1cop_xmin, ax1cop_xmax])
+        rect_pk1_b1=patches.Rectangle((config.lower_bck_pk1[0],ymin_ax1),config.lower_bck_pk1[1]-config.lower_bck_pk1[0],ymax_ax1-ymin_ax1,
+                              linewidth=1,edgecolor='none',facecolor='cyan', label='bck_pk1', alpha=0.3, zorder=0)
+        ax1cop.add_patch(rect_pk1_b1)
+        rect_pk1_b2=patches.Rectangle((config.upper_bck1_pk1[0],ymin_ax1),config.upper_bck1_pk1[1]-config.upper_bck1_pk1[0],ymax_ax1-ymin_ax1,
+                              linewidth=1,edgecolor='none',facecolor='cyan', label='bck_pk2', alpha=0.3, zorder=0)
+        ax1cop.add_patch(rect_pk1_b2)
+        rect_pk1_b3=patches.Rectangle((config.upper_bck2_pk1[0],ymin_ax1),config.upper_bck2_pk1[1]-config.upper_bck2_pk1[0],ymax_ax1-ymin_ax1,
+                              linewidth=1,edgecolor='none',facecolor='cyan', label='bck_pk3', alpha=0.3, zorder=0)
+        ax1cop.add_patch(rect_pk1_b3)
+
+        # Adding background positions as colored bars on pk2
+        ax0cop=ax0.twiny()
+        ax0cop_xmax=ax0_xmax-Ne_center_2
+        ax0cop_xmin=ax0_xmin-Ne_center_2
+        ax0cop.set_xlim([ax0cop_xmin, ax0cop_xmax])
+        rect_pk2_b1=patches.Rectangle((config.lower_bck_pk2[0],ymin_ax0),config.lower_bck_pk2[1]-config.lower_bck_pk2[0],ymax_ax0-ymin_ax0,
+                              linewidth=1,edgecolor='none',facecolor='cyan', label='bck_pk2', alpha=0.3)
+        ax0cop.add_patch(rect_pk2_b1)
+        rect_pk2_b2=patches.Rectangle((config.upper_bck1_pk2[0],ymin_ax0),config.upper_bck1_pk2[1]-config.upper_bck1_pk2[0],ymax_ax0-ymin_ax0,
+                              linewidth=1,edgecolor='none',facecolor='cyan', label='bck_pk2', alpha=0.3)
+        ax0cop.add_patch(rect_pk2_b2)
+        rect_pk2_b3=patches.Rectangle((config.upper_bck2_pk2[0],ymin_ax0),config.upper_bck2_pk2[1]-config.upper_bck2_pk2[0],ymax_ax0-ymin_ax0,
+                              linewidth=1,edgecolor='none',facecolor='cyan', label='bck_pk3', alpha=0.3)
+        ax0cop.add_patch(rect_pk2_b3)
+
+        # Plotting trimmed data and background
+        ax0.plot(Ne_short_1447[:,0], Py_base_1447, '-k', label='Fit. Bck')
         ax0.plot(Ne_short_1447[:,0], Ne_short_1447[:,1], '-r')
 
+        ax1.plot(Ne_short_1117[:,0], Py_base_1117, '-k', label='Fit. Bck')
+        ax1.plot(Ne_short_1117[:,0], Ne_short_1117[:,1], '-r')
+
+        # Plotting data actually used in the background, after sigma exclusion
+        ax1.plot(Baseline_x_1117, Baseline_ysub_1117, '.b', ms=6, label='Bck')
+        ax0.plot(Baseline_x_1447, Baseline_ysub_1447, '.b', ms=5, label='Bck')
 
 
-        ax0.plot(Baseline_x_1447, Baseline_ysub_1447, '.b', ms=5, label='Selected background')
-
-        ax0.set_title('Peak2: 1447 background fitting')
-        ax0.set_xlabel('Wavenumber')
-        ax0.set_ylabel('Intensity')
         mean_baseline=np.mean(Py_base_1447)
         std_baseline=np.std(Py_base_1447)
-        ax0.set_ylim([min(Ne_short_1447[:,1])-10, min(Ne_short_1447[:,1])+y_range_baseline])
-        ax0.set_xlim([min(Ne_short_1447[:,0])-20, max(Ne_short_1447[:,0])+y_range_baseline])
-        #ax0.set_ylim([mean_baseline-50, mean_baseline+50])
-
-        ax1.plot(Ne_short_1117[:,0], Py_base_1117, '-k')
-        ax1.plot(Ne_short_1117[:,0], Ne_short_1117[:,1], '-r')
-        ax1.plot(Baseline_x_1117, Baseline_ysub_1117, '.b', ms=6, label='Selected background')
 
         std_baseline=np.std(Py_base_1117)
-        ax1.set_ylim([min(Ne_short_1117[:,1])-10, min(Ne_short_1117[:,1])+y_range_baseline])
+
+
+        ax1.plot([Ne_center_1, Ne_center_1], [ymin_ax1, ymax_ax1], ':k', label='Peak')
+        ax0.plot([Ne_center_2, Ne_center_2], [ymin_ax1, ymax_ax1], ':k', label='Peak')
 
         ax1.set_title('Peak1: 1117 background fitting')
         ax1.set_xlabel('Wavenumber')
         ax1.set_ylabel('Intensity')
+        ax0.set_title('Peak2: 1447 background fitting')
+        ax0.set_xlabel('Wavenumber')
+        ax0.set_ylabel('Intensity')
+        ax1cop.set_xlabel('Offset from Pk estimate')
+        ax0cop.set_xlabel('Offset from Pk estimate')
 
-        #Testing
-        ax0.legend()
-        ax1.legend()
+        #Showing all data, not just stuff fit
+
+
         ax0.plot(Ne[:,0], Ne[:,1], '-', color='grey', zorder=0)
         ax1.plot(Ne[:,0], Ne[:,1], '-', color='grey', zorder=0)
-        ax0.set_xlim([min(Ne_short_1447[:,0])-x_range_baseline, max(Ne_short_1447[:,0])+x_range_baseline])
-        ax1.set_xlim([min(Ne_short_1117[:,0])-x_range_baseline, max(Ne_short_1117[:,0])+x_range_baseline])
 
+
+
+        # ax1.legend()
+        # ax0.legend()
+        ax0.legend(loc='lower right', bbox_to_anchor= (-0.08, 0.8), ncol=1,
+            borderaxespad=0, frameon=True, facecolor='white')
+
+        # Actual peak fits.
         ax2.plot(Ne_1447_reg_x_plot, Ne_1447_reg_y_plot, 'xb', label='all data')
         ax2.plot(Ne_1447_reg_x, Ne_1447_reg_y, 'ok', label='data fitted')
         ax2.plot(xx_1447, result_1447, 'r-', label='interpolated fit')
         ax2.set_title('1447 peak fitting')
         ax2.set_xlabel('Wavenumber')
         ax2.set_ylabel('Intensity')
-        if x_range_peak is None:
+        if config.x_range_peak is None:
             ax2.set_xlim([cent_1447-x_span_pk2_dist/2, cent_1447+x_span_pk2_dist/2])
         else:
-            ax2.set_xlim([cent_1447-x_range_peak, cent_1447+x_range_peak])
+            ax2.set_xlim([cent_1447-config.x_range_peak, cent_1447+config.x_range_peak])
 
 
         ax3.plot(Ne_1117_reg_x_plot, Ne_1117_reg_y_plot, 'xb', label='all data')
@@ -915,12 +1011,12 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
             ax3.plot(xx_1117, comps.get('p2_'), '-c', label='p2')
         ax3.plot(xx_1117, result_1117, 'g-', label='best fit')
         ax3.legend()
-        if x_range_peak is None:
+        if config.x_range_peak is None:
             ax3.set_xlim([cent_1117-x_span_pk1_dist/2, cent_1117+x_span_pk1_dist/2])
         else:
-            ax3.set_xlim([cent_1117-x_range_peak, cent_1117+x_range_peak ])
+            ax3.set_xlim([cent_1117-config.x_range_peak, cent_1117+config.x_range_peak ])
 
-        # Residuals for charlotte
+        # Residuals for peak fits.
         ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, '-r', label='residual')
         ax5.plot(Ne_1117_reg_x, Ne_1117_reg_y-result_1117_origx, '-r',  label='residual')
         ax4.plot(Ne_1447_reg_x, Ne_1447_reg_y-result_1447_origx, 'ok', mfc='r', label='residual')
@@ -929,7 +1025,16 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
         ax4.set_xlabel('Wavenumber')
         ax5.set_ylabel('Residual (Intensity units)')
         ax5.set_xlabel('Wavenumber')
-
+        Residual_1447=Ne_1447_reg_y-result_1447_origx
+        Residual_1117=Ne_1117_reg_y-result_1117_origx
+        Local_Residual_1447=Residual_1447[(Ne_1447_reg_x>cent_1447-config.x_range_residual)&(Ne_1447_reg_x<cent_1447+config.x_range_residual)]
+        Local_Residual_1117=Residual_1117[(Ne_1117_reg_x>cent_1117-config.x_range_residual)&(Ne_1117_reg_x<cent_1117+config.x_range_residual)]
+        ax5.set_xlim([cent_1117-config.x_range_residual, cent_1117+config.x_range_residual])
+        ax4.set_xlim([cent_1447-config.x_range_residual, cent_1447+config.x_range_residual])
+        ax5.plot([cent_1117, cent_1117 ], [np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10], ':k')
+        ax4.plot([cent_1447, cent_1447 ], [np.min(Local_Residual_1447)-10, np.max(Local_Residual_1447)+10], ':k')
+        ax5.set_ylim([np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10])
+        ax4.set_ylim([np.min(Local_Residual_1447)-10, np.max(Local_Residual_1447)+10])
         fig.tight_layout()
 
         # Save figure
@@ -967,31 +1072,41 @@ amplitude=100, plot_figure=True, print_report=False, loop=False, x_range_baselin
         return df
 
 
-def each_Ne_Line(path=None,filename=None,  filetype=None,  nearest_1117=None,nearest_1447=None, amplitude=None, prefix=None, LH_offset_mini=None, plot_figure=False):
-    """
-    This function does all the steps for each Ne line, e.g. background fitting,
-    """
 
-    Ne=get_data(path=path, filename=filename, filetype=filetype)
-
-    # How many degrees in polynomials
-    N_poly_1447_baseline=1
-    N_poly_1117_baseline=2
-    #If you have weak Ne lines and no secondary peak, set to 1
-    peaks_1117=2
-    # If weak, set to 10
-    amplitude=amplitude
-
-    df, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot=fit_Ne_lines(Ne=Ne,
-    filename=filename, path=path,
-    Ne_center_1=nearest_1117, Ne_center_2=nearest_1447,
-    peaks_1117=peaks_1117,
-    x_span_1447=20, x_span_1117_up=8, x_span_1117_low=10,
-    LH_offset_mini=LH_offset_mini,  prefix=prefix, amplitude=amplitude, plot_figure=plot_figure)
-
-
-
-    return df
+#
+#
+#
+# def each_Ne_Line(*,  config, path=None,filename=None,
+# Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
+#     Ne=None, filename=None, path=None, prefix=True,
+#     plot_figure=True, print_report=False, loop=False,
+#     DeltaNe_ideal=330.477634
+# ):
+#     """
+#     This function does all the steps for each Ne line, e.g. background fitting,
+#     """
+#
+#     Ne=get_data(path=path, filename=filename, filetype=filetype)
+#
+#     # How many degrees in polynomials
+#     N_poly_1447_baseline=1
+#     N_poly_1117_baseline=2
+#     #If you have weak Ne lines and no secondary peak, set to 1
+#     peaks_1117=2
+#     # If weak, set to 10
+#     amplitude=amplitude
+#
+#
+#
+#     df, Ne_1117_reg_x_plot, Ne_1117_reg_y_plot=fit_Ne_lines(
+#     config=Ne_Config, peaks_1=2,
+#     Ne=Ne, filename=filename, path=mypath, prefix=prefix,
+#     Ne_center_1=nearest_1117, Ne_center_2=nearest_1447,
+#     DeltaNe_ideal=ideal_split['Ne_Split'], prefix=prefix, amplitude=amplitude,
+#     plot_figure=plot_figure)
+#
+#
+#     return df
 
 
 
