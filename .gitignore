@@ -10,3 +10,4 @@ ipynb_checkpoints
 /build/
 *.orig
 *.ini
+*.png

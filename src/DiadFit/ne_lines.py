@@ -132,8 +132,8 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     df_Ne_r=df_Ne.loc[df_Ne['Intensity']>cut_off_intensity]
     return df_Ne_r
 
-def plot_Ne_lines(*, path=None, filename, filetype='Witec_ASCII', n_peaks=6,
-peak1_cent=1118, peak2_cent=1447, exclude_range_1=None,
+def plot_Ne_lines(*, path=None, filename=None, filetype=None, n_peaks=6,
+peak1_cent=1118, peak2_cent=1447, exclude_range_1=None, Ne_array=None,
 exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width=1,):
 
     """
@@ -181,9 +181,10 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
 
     """
 
-
-    Ne_in=get_data(path=path, filename=filename, filetype=filetype)
-
+    if filename is not None and path is not None and filetype is not None:
+        Ne_in=get_data(path=path, filename=filename, filetype=filetype)
+    if Ne_array is not None:
+        Ne_in=Ne_array
 
 
 
@@ -1027,6 +1028,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
         ax5.set_xlabel('Wavenumber')
         Residual_1447=Ne_1447_reg_y-result_1447_origx
         Residual_1117=Ne_1117_reg_y-result_1117_origx
+
         Local_Residual_1447=Residual_1447[(Ne_1447_reg_x>cent_1447-config.x_range_residual)&(Ne_1447_reg_x<cent_1447+config.x_range_residual)]
         Local_Residual_1117=Residual_1117[(Ne_1117_reg_x>cent_1117-config.x_range_residual)&(Ne_1117_reg_x<cent_1117+config.x_range_residual)]
         ax5.set_xlim([cent_1117-config.x_range_residual, cent_1117+config.x_range_residual])
