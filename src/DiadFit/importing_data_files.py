@@ -395,7 +395,7 @@ def checks_if_general(*, path, filename):
 
 ## Functions for extracting the metadata from WITEC files
 
-def extract_acq_params(*, path, filename):
+def extract_acq_params(*, path, filename, trupower=False):
     """ This function checks what type of file you have, and if its a spectra file,
     uses the functions above to extract various bits of metadata
     """
@@ -429,8 +429,11 @@ def extract_acq_params(*, path, filename):
 
     # If a real spectra file
     if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
-        power_str=extract_laser_power_witec(path=path, filename=filename)
-        power=float(power_str.split()[3])
+        if trupower is True:
+            power_str=extract_laser_power_witec(path=path, filename=filename)
+            power=float(power_str.split()[3])
+        else:
+            power=np.nan
 
         accums_str=extract_accumulations(path=path, filename=filename)
         accums=float(accums_str.split()[3])
@@ -499,7 +502,7 @@ def calculates_time(*, path, filename):
 
     return line3_sec_int, line2
 
-def stitch_in_loop(*, Allfiles=None, path=None, prefix=True):
+def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=False):
     """ Stitches together WITEC metadata for all files in a loop
     """
     # string values
@@ -524,7 +527,7 @@ def stitch_in_loop(*, Allfiles=None, path=None, prefix=True):
         time_num, t_str=calculates_time(path=path, filename=filename1)
 
         powr, accums, integ, Obj, Dur, dat=extract_acq_params(path=path,
-                                                       filename=filename1)
+                                                       filename=filename1, trupower=trupower)
 
 
         Int_time[i]=integ
