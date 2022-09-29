@@ -563,3 +563,52 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
     print('Done')
 
     return Time_Df_2
+
+## Getting nice names from any file types
+
+def extracting_filenames_generic(*, names, prefix=False,
+    str_prefix=None, suffix=False,
+    str_suffix=None,
+   file_type=None):
+    """
+    Takes filenames from metadata, and makes something consistent with spectra
+
+    Parameters
+    -----------
+    names: Pandas.Series of sample names from 'filename' column of metadata output
+
+    prefix: bool
+        if True, has a number before the file name
+
+    str_prefix: str
+        The string separating the prefix from the file name
+
+    suffix: bool
+        if True, has a number or name after the filename
+
+    str_suffix: str
+        The string separating the filename from the suffix
+
+    file_type: str
+        The file extension, e.g., '.csv'
+
+    """
+
+
+    file_m=np.empty(len(names), dtype=object)
+    for i in range(0, len(names)):
+
+        if prefix is True:
+            str_nof_name=names.iloc[i].split(str_prefix, maxsplit=1)[1:]
+        else:
+            str_nof_name=names.iloc[i]
+        if suffix is True:
+            file_m[i]=str_nof_name[0].split(str_suffix, maxsplit=1)[0]
+        if suffix is False:
+            file_m[i]=str_nof_name[0]
+        if file_type in file_m[i]:
+            file_m[i]=file_m[i].replace(file_type, '')
+
+
+    return file_m
+

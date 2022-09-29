@@ -474,7 +474,8 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                                 peak_pos_gauss=None,
                                 gauss_sigma=1,
                                 gauss_amp=3000,
-                                amplitude=100,
+                                diad_amplitude=100,
+                                HB_amplitude=20,
                                 span=None,
                                 plot_figure=True, dpi=200):
 
@@ -523,7 +524,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
             model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
             pars1 = model_F.make_params()
-            pars1['lz1_'+ 'amplitude'].set(amplitude)
+            pars1['lz1_'+ 'amplitude'].set(diad_amplitude)
             pars1['lz1_'+ 'center'].set(peak_pos_voigt)
             params=pars1
             # Sometimes length 1 can be with a comma
@@ -532,7 +533,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
             if len(peak_pos_voigt)==1:
                 model_F = VoigtModel(prefix='lz1_') #+ ConstantModel(prefix='c1')
                 pars1 = model_F.make_params()
-                pars1['lz1_'+ 'amplitude'].set(amplitude)
+                pars1['lz1_'+ 'amplitude'].set(diad_amplitude)
                 pars1['lz1_'+ 'center'].set(peak_pos_voigt[0])
                 params=pars1
 
@@ -541,7 +542,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                 # Code from 1447
                 model_prel = VoigtModel(prefix='lzp_') #+ ConstantModel(prefix='c1')
                 pars2 = model_prel.make_params()
-                pars2['lzp_'+ 'amplitude'].set(amplitude, min=0)
+                pars2['lzp_'+ 'amplitude'].set(diad_amplitude, min=0)
                 pars2['lzp_'+ 'center'].set(peak_pos_voigt[0])
 
 
@@ -564,7 +565,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                 peak = VoigtModel(prefix='lz2_')#+ ConstantModel(prefix='c2')
                 pars = peak.make_params()
                 pars[prefix + 'center'].set(min(peak_pos_voigt), min=min(peak_pos_voigt)-2, max=min(peak_pos_voigt)+2)
-                pars[prefix + 'amplitude'].set(amplitude/5, min=0, max=Peakp_Area/5)
+                pars[prefix + 'amplitude'].set(HB_amplitude, min=0, max=Peakp_Area/5)
 
 
                 model_F=model1+peak
@@ -591,7 +592,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         rough_peak_positions = peak_pos_voigt
         # If you want a Gaussian background
         if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
-                peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, amplitude=amplitude)
+                peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, diad_amplitude=amplitude)
                 model = peak+model
                 params.update(pars)
         else:
@@ -608,11 +609,11 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
             if len(peak_pos_voigt)>1:
                 for i, cen in enumerate(rough_peak_positions):
 
-                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen, amplitude=amplitude)
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen, amplitude=diad_amplitude)
                     model = peak+model
                     params.update(pars)
                 if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
-                    peak, pars = add_peak(prefix='lz1_', center=cen, amplitude=amplitude)
+                    peak, pars = add_peak(prefix='lz1_', center=cen, amplitude=diad_amplitude)
                     model = peak+model
                     params.update(pars)
 
@@ -752,7 +753,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
 
 
 def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, peak_pos_voigt=(1389, 1410),
-                    amplitude=100, peak_pos_gauss=(1400), gauss_sigma=None, gauss_amp=100, span=None, plot_figure=True, dpi=200):
+                    diad_amplitude=100, HB_amplitude=20, peak_pos_gauss=(1400), gauss_sigma=None, gauss_amp=100, span=None, plot_figure=True, dpi=200):
 
 
     """ This function fits diad 2, at ~1389 and the hot band and C13 peak
@@ -844,7 +845,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
         if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
             model_F = VoigtModel(prefix='lz1_')#+ ConstantModel(prefix='c1')
             pars1 = model_F.make_params()
-            pars1['lz1_'+ 'amplitude'].set(amplitude, min=0)
+            pars1['lz1_'+ 'amplitude'].set(diad_amplitude, min=0)
             pars1['lz1_'+ 'center'].set(peak_pos_voigt)
             params=pars1
 
@@ -852,7 +853,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
             if len(peak_pos_voigt)==1:
                 model_F = VoigtModel(prefix='lz1_')#+ ConstantModel(prefix='c1')
                 pars1 = model_F.make_params()
-                pars1['lz1_'+ 'amplitude'].set(amplitude, min=0)
+                pars1['lz1_'+ 'amplitude'].set(diad_amplitude, min=0)
                 pars1['lz1_'+ 'center'].set(peak_pos_voigt[0])
                 params=pars1
 
@@ -886,7 +887,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
                 peak = VoigtModel(prefix='lz2_')#+ ConstantModel(prefix='c2')
                 pars = peak.make_params()
                 pars[prefix + 'center'].set(max(peak_pos_voigt), min=max(peak_pos_voigt)-2, max=max(peak_pos_voigt)+2)
-                pars[prefix + 'amplitude'].set(amplitude/5, min=Peakp_Area/100, max=Peakp_Area/5)
+                pars[prefix + 'amplitude'].set(HB_amplitude, min=Peakp_Area/100, max=Peakp_Area/5)
                 pars[prefix+ 'fwhm'].set(Peakp_HW, min=Peakp_HW/10, max=Peakp_HW*2)
 
                 model_F=model1+peak
@@ -1201,8 +1202,8 @@ class diad1_fit_config:
     upper_bck_diad1: Tuple[float, float]=(1300, 1350)
 
     # Peak amplitude
-    amplitude: float = 100
-
+    diad_amplitude: float = 100
+    HB_amplitude: float = 20
     # How much to show on x anx y axis of figure showing background
     x_range_baseline: float=75
     y_range_baseline: float=100
@@ -1231,8 +1232,8 @@ class diad2_fit_config:
     upper_bck_diad2: Tuple[float, float]=(1440, 1470)
 
     # Peak amplitude
-    amplitude: float = 100
-
+    diad_amplitude: float = 100
+    HB_amplitude:  float = 20
     # How much to show on x anx y axis of figure showing background with all peaks imposed
     x_range_baseline: float=75
     y_range_baseline: float=100
@@ -1577,7 +1578,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     # Then, we feed this baseline-corrected data into the combined gaussian-voigt peak fitting function
     result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad2_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_diad2(path=path, filename=filename,
-                    xdat=x_diad2, ydat=y_corr_diad2, amplitude=config1.amplitude,
+                    xdat=x_diad2, ydat=y_corr_diad2, diad_amplitude=config1.diad_amplitude,
+                    HB_amplitude=config1.HB_amplitude,
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=config1.peak_pos_gauss,
                     gauss_sigma=config1.gauss_sigma,  gauss_amp=config1.gauss_amp,
@@ -1864,7 +1866,8 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
     # Then, we feed this baseline-corrected data into the combined gaussian-voigt peak fitting function
     result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad1_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_diad1(path=path, filename=filename,
-                    xdat=x_diad1, ydat=y_corr_diad1, amplitude=config1.amplitude,
+                    xdat=x_diad1, ydat=y_corr_diad1, diad_amplitude=config1.diad_amplitude,
+                    HB_amplitude=config1.HB_amplitude,
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=config1.peak_pos_gauss,
                     gauss_sigma=config1.gauss_sigma,  gauss_amp=config1.gauss_amp,
@@ -2146,13 +2149,13 @@ to_clipboard=True, path=None):
     if to_csv is True:
         if path is None:
             raise Exception('You need to specify path= for wherever you want this saved')
-        path_fits=path+'/'+'Peak_Fits'
+        path_fits=path+'/'+'Diad_Fits'
         if os.path.exists(path_fits):
             out='path exists'
         else:
-            dir2=os.makedirs(path+'/'+ 'Peak_Fits', exist_ok=False)
+            dir2=os.makedirs(path+'/'+ 'Diad_Fits', exist_ok=False)
         #filepath=Path(path+'/'+ 'Peak_Fits'+'/'+filename)
-        combo_f.to_csv(path+'/'+'Peak_Fits'+'/'+'fits_'+filename)
+        combo_f.to_csv(path+'/'+'Diad_Fits'+'/'+'fits_'+filename)
     return combo_f
 
 

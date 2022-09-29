@@ -1053,7 +1053,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
     if prefix is True:
 
         filename=filename.split(' ')[1:][0]
-    df=pd.DataFrame(data={'File_Name': filename,
+    df=pd.DataFrame(data={'filename': filename,
                           'pk2_peak_cent':cent_pk2,
                           'error_pk2': error_pk2,
                           'pk1_peak_cent':cent_pk1,
@@ -1115,7 +1115,56 @@ def plot_Ne_corrections(df=None, x_axis=None, marker='o', mec='k',
     ax3.ticklabel_format(useOffset=False)
     ax4.ticklabel_format(useOffset=False)
     fig.tight_layout()
+    return fig
 
+## Regressing Ne lines against time
+from scipy.interpolate import interp1d
+def reg_Ne_lines_time(df, fit='poly', N_poly=None, spline_fit=None):
+    """
+    Parameters
+    -----------
+    df: pd.DataFrame
+        dataframe of stitched Ne fits and metadata information from WITEC,
+        must have columns 'sec since midnight' and 'Ne_Corr'
+
+    fit: float 'poly', or 'spline'
+        If 'poly':
+            N_poly: int, degree of polynomial to fit (1 if linear)
+        if 'spline':
+            spline_fit: The string has to be one of:
+        ‘linear’, ‘nearest’, ‘nearest-up’, ‘zero’, ‘slinear’,
+        ‘quadratic’, ‘cubic’, ‘previous’. Look up documentation for interpld
+
+    Returns
+    -----------
+    figure of fit and data used to make it
+    Pf: fit model, can be used to evaluate unknown data (only within x range of df for spline fits).
+
+
+
+
+    """
+    Px=np.linspace(np.min(df['sec since midnight']), np.max(df['sec since midnight']),
+                         101)
+    if fit=='poly':
+        Pf = np.poly1d(np.polyfit(df['sec since midnight'], df['Ne_Corr'],
+                              N_poly))
+
+    if fit == 'spline':
+            Pf = interp1d(df['sec since midnight'], df['Ne_Corr'], kind=spline_fit)
+
+    Py=Pf(Px)
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(5, 4))
+    ax1.plot(df['sec since midnight'], df['Ne_Corr'], 'ok')
+    ax1.plot(Px, Py, '-r')
+    ax1.set_xlabel('Seconds since midnight')
+    ax1.set_ylabel('Ne Correction Factor')
+
+    ax1.ticklabel_format(useOffset=False)
+
+
+    return Pf
 
 
 
