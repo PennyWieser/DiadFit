@@ -1076,7 +1076,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
 
 
 ## Plot to help inspect which Ne lines to discard
-def plot_Ne_corrections(df=None, x_axis=None, marker='o', mec='k',
+def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='k',
                        mfc='r'):
     if x_axis is not None:
         x=x_axis
@@ -1085,12 +1085,12 @@ def plot_Ne_corrections(df=None, x_axis=None, marker='o', mec='k',
     fig, ((ax5, ax6), (ax1, ax2), (ax3, ax4), ) = plt.subplots(3, 2, figsize=(10, 12))
     ax1.plot(x, df['Ne_Corr'], marker,  mec='k', mfc='grey')
     ax1.set_ylabel('Ne Correction factor')
-    ax1.set_xlabel('User entered x coordinate')
+    ax1.set_xlabel(x_label)
 
     ax5.plot(x, df['pk1_peak_cent'], marker,  mec='k', mfc='b')
     ax6.plot(x, df['pk2_peak_cent'], marker,  mec='k', mfc='r')
-    ax5.set_xlabel('User entered x coordinate')
-    ax6.set_xlabel('User entered x coordinate')
+    ax5.set_xlabel(x_label)
+    ax6.set_xlabel(x_label)
     ax5.set_ylabel('Peak 1 center')
     ax6.set_ylabel('Peak 2 center')
 
