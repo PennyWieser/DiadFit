@@ -1129,16 +1129,18 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
 def loop_Ne_lines(*, files, path, filetype,
                   config, peaks_1, Ne, Ne_center_1,
                   Ne_center_2, DeltaNe_ideal, prefix=None,
-                  plot_figure=True, save_clipboard=True):
+                  plot_figure=True, save_clipboard=True, single_acq=True):
 
     df = pd.DataFrame([])
     for i in tqdm(range(0, len(files))):
-
-
-
-        filename=files[i]
-        Ne=get_data(path=path, filename=filename, filetype=filetype)
+        if single_acq is True:
+            Ne=np.column_stack((files[:, 0], files[:, i+1]))
+            filename=i
+        if single_acq is False:
+            filename=files[i]
+            Ne=get_data(path=path, filename=filename, filetype=filetype)
         #print('working on ' + str(files[i]))
+
 
 
         data=fit_Ne_lines(
@@ -1146,7 +1148,7 @@ def loop_Ne_lines(*, files, path, filetype,
         Ne=Ne, filename=filename, path=path, prefix=prefix,
         Ne_center_1=Ne_center_1, Ne_center_2=Ne_center_2,
         DeltaNe_ideal=DeltaNe_ideal, plot_figure=plot_figure,
-        save_clipboard=True)
+        save_clipboard=save_clipboard)
 
 
         df = pd.concat([df, data], axis=0)
