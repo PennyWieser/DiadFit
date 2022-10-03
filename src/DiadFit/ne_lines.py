@@ -1132,7 +1132,7 @@ def loop_Ne_lines(*, files, path, filetype,
                   plot_figure=True, save_clipboard=True, single_acq=True):
 
     df = pd.DataFrame([])
-    for i in tqdm(range(0, len(files))):
+    for i in tqdm(range(0, np.shape(files)[1]-2)):
         if single_acq is True:
             Ne=np.column_stack((files[:, 0], files[:, i+1]))
             filename=i
