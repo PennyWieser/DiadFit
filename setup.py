@@ -35,7 +35,7 @@ setup(
             'matplotlib',
             'scikit-learn',
             'scipy',
-            'lmfit'
+            'lmfit',
             'tqdm',
             ],
 
