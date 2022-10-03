@@ -36,6 +36,7 @@ setup(
             'scikit-learn',
             'scipy',
             'lmfit'
+            'tqdm',
             ],
 
     classifiers=[
