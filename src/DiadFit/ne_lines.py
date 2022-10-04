@@ -1073,7 +1073,9 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
                          'Ne_Corr_min':Ne_Corr_min,
                          'Ne_Corr_max': Ne_Corr_max,
                          'residual_pk2':residual_pk2,
-                         'residual_pk1': residual_pk1}, index=[0])
+                         'residual_pk1': residual_pk1,
+                         'residual_pk1+pk2':residual_pk1+residual_pk2,
+                         }, index=[0])
     if save_clipboard is True:
         df.to_clipboard(excel=True, header=False, index=False)
 
@@ -1137,7 +1139,7 @@ def loop_Ne_lines(*, files, path, filetype,
     if single_acq is True:
         for i in tqdm(range(0, np.shape(files)[1]-2)):
             Ne=np.column_stack((files[:, 0], files[:, i+1]))
-            filename=i
+            filename=str(i)
 
             data=fit_Ne_lines(
             config=config, peaks_1=peaks_1,

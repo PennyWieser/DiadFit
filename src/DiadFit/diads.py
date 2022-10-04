@@ -44,8 +44,8 @@ class diad_id_config:
     exclude_range1: Optional [Tuple[float, float]] = None
     exclude_range2: Optional [Tuple[float, float]] = None
     # Approximate diad position
-    approx_diad2_pos: Tuple[float, float]=(1379, 1385)
-    approx_diad1_pos: Tuple[float, float]=(1275, 1280)
+    approx_diad2_pos: Tuple[float, float]=(1379, 1395)
+    approx_diad1_pos: Tuple[float, float]=(1275, 1295)
 
     # Thresholds for Scipy find peaks
     height: float = 400
@@ -59,7 +59,7 @@ class diad_id_config:
 
 
 def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, filename, filetype='Witec_ASCII',
-    n_peaks_diad1=None, n_peaks_diad2=None):
+    n_peaks_diad1=None, n_peaks_diad2=None, block_print=True, plot_figure=True ):
     """
     This function loads your file, and excludes up to 2 user-defined ranges.
     It then uses scipy find peaks to get a first guess of peak positions to feed into later functions
@@ -175,26 +175,30 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
         diad_2_peaks=tuple(df_sort_diad2_trim['pos'].values)
     else:
         if n_peaks_diad2==1:
-            print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad2_pos), 2)) +  'to move forwards')
+            if block_print is False:
+                print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad2_pos), 2)) +  'to move forwards')
             diad_2_peaks=np.array([np.average(config.approx_diad2_pos)])
         if n_peaks_diad2==2:
-            print('WARNING: Couldnt find diad2, ive guesed a peak position of 1389.1 and 1410')
+            if block_print is False:
+                print('WARNING: Couldnt find diad2, ive guesed a peak position of 1389.1 and 1410')
             diad_2_peaks=np.array([np.average(config.approx_diad2_pos)])
         if n_peaks_diad2==3:
+
             raise TypeError('WARNING: Couldnt find diad2, and you specified 3 peaks, try adjusting the Scipy peak parameters')
 
     if any(df_sort_diad1_trim['pos'].between(config.approx_diad1_pos[0], config.approx_diad1_pos[1])):
         diad_1_peaks=tuple(df_sort_diad1_trim['pos'].values)
     else:
-        print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad1_pos), 2)) +  'to move forwards')
+        if block_print is False:
+            print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad1_pos), 2)) +  'to move forwards')
         diad_1_peaks=np.array([np.average(config.approx_diad1_pos)])
 
 
+    if block_print is False:
+        print('Initial estimates: Diad1+HB=' +str(np.round(diad_1_peaks, 1)) + ', Diad2+HB=' + str(np.round(diad_2_peaks, 1)))
 
-    print('Initial estimates: Diad1+HB=' +str(np.round(diad_1_peaks, 1)) + ', Diad2+HB=' + str(np.round(diad_2_peaks, 1)))
 
-
-    if config.plot_figure is True:
+    if plot_figure is True:
         fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
         ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
         if Discard_str is not False:
@@ -393,7 +397,8 @@ def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype=
 
      # Plotting what its doing
     if plot_figure is True:
-        print('Plotting baselines here for easier inspection and tweaking')
+        if block_print is False:
+            print('Plotting baselines here for easier inspection and tweaking')
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
         ax1.set_title('Background fit')
@@ -639,9 +644,10 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         Gauss_cent=result.best_values.get('bkg_center')
         Gauss_amp=result.best_values.get('bkg_amplitude')
         Gauss_sigma=result.best_values.get('bkg_sigma')
-        print('Gauss_cent='+str(Gauss_cent))
-        print('Gauss_amp='+str(Gauss_amp))
-        print('Gauss_sigma='+str(Gauss_sigma))
+        if block_print is False:
+            print('Gauss_cent='+str(Gauss_cent))
+            print('Gauss_amp='+str(Gauss_amp))
+            print('Gauss_sigma='+str(Gauss_sigma))
 
 
 
@@ -657,7 +663,8 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
     # Checing for error bars
     Error_bars=result.errorbars
     if Error_bars is False:
-        print('Error bars not determined by function')
+        if block_print is False:
+            print('Error bars not determined by function')
 
 
 
@@ -737,8 +744,8 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         else:
             os.makedirs(path+'/'+ 'Peak_fit_images', exist_ok=False)
 
-
-        print(path)
+        if block_print is False:
+            print(path)
         file=filename.rsplit('.txt', 1)[0]
         fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=dpi)
 
@@ -753,7 +760,8 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
 
 
 def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, peak_pos_voigt=(1389, 1410),
-                    diad_amplitude=100, HB_amplitude=20, peak_pos_gauss=(1400), gauss_sigma=None, gauss_amp=100, span=None, plot_figure=True, dpi=200):
+                    diad_amplitude=100, HB_amplitude=20, peak_pos_gauss=(1400), gauss_sigma=None, gauss_amp=100, span=None, plot_figure=True, dpi=200,
+                    block_print=True):
 
 
     """ This function fits diad 2, at ~1389 and the hot band and C13 peak
@@ -834,8 +842,9 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     Amplitude_ini=result_ini.params.get('amplitude')
     sigma_ini=result_ini.params.get('sigma')
     fwhm_ini=result_ini.params.get('fwhm')
-    print(Center_ini)
-    print(sigma_ini)
+    if block_print is False:
+        print(Center_ini)
+        print(sigma_ini)
 
 
 
@@ -895,7 +904,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
                 params=pars1
 
             if len(peak_pos_voigt)==3:
-                print('Trying to iteratively fit 3 peaks')
+                if block_print is False:
+                    print('Trying to iteratively fit 3 peaks')
                 low_peak=np.min(peak_pos_voigt)
                 med_peak=np.median(peak_pos_voigt)
                 high_peak=np.max(peak_pos_voigt)
@@ -945,9 +955,11 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
                 params.update(pars)
 
             if len(peak_pos_voigt)==2:
-                print('Fitting 2 voigt peaks iteratively ')
+                if block_print is False:
+                    print('Fitting 2 voigt peaks iteratively ')
                 for i, cen in enumerate(peak_pos_voigt):
-                    print('working on voigt peak' + str(i))
+                    if block_print is False:
+                        print('working on voigt peak' + str(i))
                     #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
                     peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
                     min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*5)
@@ -957,9 +969,11 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
                     params.update(pars)
 
             if len(peak_pos_voigt)==3:
-                print('Fitting 2 peaks iteratively, then adding C13')
+                if block_print is False:
+                    print('Fitting 2 peaks iteratively, then adding C13')
                 for i, cen in enumerate(peak_pos_voigt):
-                    print('working on voigt peak' + str(i))
+                    if block_print is False:
+                        print('working on voigt peak' + str(i))
                     #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
                     peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
                     min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*2)
@@ -981,7 +995,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     # Check if function gives error bars
     Error_bars=result.errorbars
     if Error_bars is False:
-        print('Error bars not determined by function')
+        if block_print is False:
+            print('Error bars not determined by function')
 
     # Get first peak center
     Peak1_Cent=result.best_values.get('lz1_center')
@@ -991,9 +1006,10 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
         Gauss_cent=result.best_values.get('bkg_center')
         Gauss_amp=result.best_values.get('bkg_amplitude')
         Gauss_sigma=result.best_values.get('bkg_sigma')
-        print('Gauss_cent='+str(Gauss_cent))
-        print('Gauss_amp='+str(Gauss_amp))
-        print('Gauss_sigma='+str(Gauss_sigma))
+        if block_print is False:
+            print('Gauss_cent='+str(Gauss_cent))
+            print('Gauss_amp='+str(Gauss_amp))
+            print('Gauss_sigma='+str(Gauss_sigma))
 
 
     Peak1_Int=result.best_values.get('lz1_amplitude')
@@ -1066,7 +1082,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
         if Peak3_Cent is not None:
             Peaks=np.array([Peak1_Cent, Peak2_Cent, Peak3_Cent])
-            print(Peaks)
+            if block_print is False:
+                print(Peaks)
             # C13 is lower peak
             C13_Cent=np.min(Peaks)
             # Diad is medium peak
@@ -1096,8 +1113,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
             if C13_Cent==Peak3_Cent:
                 C13_Int=Peak3_Int
 
-
-        print('made df')
+        if block_print is False:
+            print('made df')
         df_out=pd.DataFrame(data={'Diad2_Cent': Diad2_Cent,
                                 'Diad2_Area': Diad2_Int
         }, index=[0])
@@ -1504,7 +1521,7 @@ class diad2_fit_config:
 #     return_other_params: bool =False
 
 def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: diad_id_config=diad_id_config(),
-    path=None, filename=None, peak_pos_voigt=None,filetype=None):
+    path=None, filename=None, peak_pos_voigt=None,filetype=None, block_print=True):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -1583,7 +1600,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=config1.peak_pos_gauss,
                     gauss_sigma=config1.gauss_sigma,  gauss_amp=config1.gauss_amp,
-                    span=span_diad2, plot_figure=False)
+                    span=span_diad2, plot_figure=False, block_print=True)
 
     # get a best fit to the baseline using a linspace from the peak fitting
     ybase_xlin=Pf_baseline_diad2(x_lin)
@@ -1602,8 +1619,10 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     CD
     EE
     """
-    print('Making summary figure of different fits for saving')
+    if block_print is False:
+        print('Making summary figure of different fits for saving')
     fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
+    fig.suptitle('Diad 2, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
 
     # Background plot for real
 
@@ -1682,7 +1701,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     axes['B'].set_xlim(ax2_xlim)
 
     # Dashed lines so matches part D
-    print(df_out.columns)
+    if block_print is False:
+        print(df_out.columns)
     axes['B'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(ydat), np.max(ydat)], ':b')
 
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
@@ -1770,6 +1790,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     axes['E'].set_xlabel('Wavenumber')
 
 
+
+
     path3=path+'/'+'Peak_fit_images'
     if os.path.exists(path3):
         out='path exists'
@@ -1792,7 +1814,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
 def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: diad_id_config=diad_id_config(),
-    path=None, filename=None, peak_pos_voigt=None,filetype=None):
+    path=None, filename=None, peak_pos_voigt=None,filetype=None, block_print=True):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -1890,8 +1912,10 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     CD
     EE
     """
-    print('Making summary figure of different fits for saving')
+    if block_print is False:
+        print('Making summary figure of different fits for saving')
     fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
+    fig.suptitle('Diad 1, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
 
     # Background plot for real
 
@@ -2256,7 +2280,7 @@ class carb_peak_config:
 
 def fit_carbonate_peak(*, config: carb_peak_config=carb_peak_config(),
 path=None, filename=None, filetype=None,
-fit_carbonate=None):
+fit_carbonate=None, block_print=True):
 
     """ This function fits a carbonate peak with a gaussian, and returns a plot
 
@@ -2356,9 +2380,10 @@ fit_carbonate=None):
 
         # Trim number of peaks based on user-defined N peaks
         df_peak_sort_short=df_peak_sort[0:config.N_peaks]
-        print('Found peaks at:')
-        print(df_peak_sort_short)
-        print('Only returning up to N_peaks')
+        if block_print is False:
+            print('Found peaks at:')
+            print(df_peak_sort_short)
+            print('Only returning up to N_peaks')
 
         # Get actual baseline
         Baseline_with_outl=Spectra_short[
