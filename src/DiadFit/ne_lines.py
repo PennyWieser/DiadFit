@@ -67,6 +67,7 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
 566.220000,
 566.254890,
 568.464700,
+568.9781510191291,
 568.981630,
 571.534090,
 571.887980,
@@ -103,6 +104,7 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     40.00,
     750.00,
     250.00,
+    1000.44444444444444,
     1500.00,
     350.00,
     1500.00,
@@ -1132,26 +1134,39 @@ def loop_Ne_lines(*, files, path, filetype,
                   plot_figure=True, save_clipboard=True, single_acq=True):
 
     df = pd.DataFrame([])
-    for i in tqdm(range(0, np.shape(files)[1]-2)):
-        if single_acq is True:
+    if single_acq is True:
+        for i in tqdm(range(0, np.shape(files)[1]-2)):
             Ne=np.column_stack((files[:, 0], files[:, i+1]))
             filename=i
-        if single_acq is False:
+
+            data=fit_Ne_lines(
+            config=config, peaks_1=peaks_1,
+            Ne=Ne, filename=filename, path=path, prefix=prefix,
+            Ne_center_1=Ne_center_1, Ne_center_2=Ne_center_2,
+            DeltaNe_ideal=DeltaNe_ideal, plot_figure=plot_figure,
+            save_clipboard=save_clipboard)
+            df = pd.concat([df, data], axis=0)
+
+
+    if single_acq is False:
+        for i in tqdm(range(0, len(files))):
             filename=files[i]
             Ne=get_data(path=path, filename=filename, filetype=filetype)
+            data=fit_Ne_lines(
+            config=config, peaks_1=peaks_1,
+            Ne=Ne, filename=filename, path=path, prefix=prefix,
+            Ne_center_1=Ne_center_1, Ne_center_2=Ne_center_2,
+            DeltaNe_ideal=DeltaNe_ideal, plot_figure=plot_figure,
+            save_clipboard=save_clipboard)
+            df = pd.concat([df, data], axis=0)
         #print('working on ' + str(files[i]))
 
 
 
-        data=fit_Ne_lines(
-        config=config, peaks_1=peaks_1,
-        Ne=Ne, filename=filename, path=path, prefix=prefix,
-        Ne_center_1=Ne_center_1, Ne_center_2=Ne_center_2,
-        DeltaNe_ideal=DeltaNe_ideal, plot_figure=plot_figure,
-        save_clipboard=save_clipboard)
 
 
-        df = pd.concat([df, data], axis=0)
+
+
     df2=df.reset_index(drop=True)
 
     return df2

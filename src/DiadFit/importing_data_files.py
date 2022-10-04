@@ -44,7 +44,7 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
     return Ne_files
 
 
-def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_type='.png'):
+def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_str_2='ne', exclude_type='.png'):
     """ This function takes a user path, and extracts all files which dont contain the excluded string and type
 
     Parameters
@@ -72,7 +72,7 @@ def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_ty
     print('exclude type')
     print(exclude_type)
 
-    Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_type not in item]
+    Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_type not in item]
 
     if sort is True:
 
@@ -317,6 +317,19 @@ def extract_Integration_Time(*, path, filename):
             break
     return line
 
+def extract_Spectral_Center(*, path, filename):
+    """ Extracts Spectral Center
+    """
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('Spectral'):
+            line=l
+            break
+    return line
+
 def extract_objective(*, path, filename):
     """ Extracts objective magnification
     """
@@ -399,7 +412,7 @@ def extract_acq_params(*, path, filename, trupower=False):
     """ This function checks what type of file you have, and if its a spectra file,
     uses the functions above to extract various bits of metadata
     """
-
+    # Prints what it is, e.g. general if general, video if video
     line_general=checks_if_general(path=path, filename=filename)
     line_video_check=checks_if_video(path=path, filename=filename)
     line_scan=checks_if_imagescan(path=path, filename=filename)
@@ -412,6 +425,7 @@ def extract_acq_params(*, path, filename, trupower=False):
         Obj=np.nan
         Dur=np.nan
         dat=np.nan
+        spec=np.nan
     if line_scan == "Scan":
         power=np.nan
         accums=np.nan
@@ -419,6 +433,7 @@ def extract_acq_params(*, path, filename, trupower=False):
         Obj=np.nan
         Dur=np.nan
         dat=np.nan
+        spec=np.nan
     if line_general == 'General':
         power=np.nan
         accums=np.nan
@@ -426,9 +441,10 @@ def extract_acq_params(*, path, filename, trupower=False):
         Obj=np.nan
         Dur=np.nan
         dat=np.nan
+        spec=np.nan
 
     # If a real spectra file
-    if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
+    if line_video_check == 'not Video'  and line_scan == "not Scan": #Removed general for berkeley. as witec removed "spectrum from top of file"
         if trupower is True:
             power_str=extract_laser_power_witec(path=path, filename=filename)
             power=float(power_str.split()[3])
@@ -450,7 +466,10 @@ def extract_acq_params(*, path, filename, trupower=False):
         dat_str=extract_date(path=path, filename=filename)
         dat=dat_str.split(':')[1].split(',',1)[1].lstrip( )
 
-    return power, accums, integ, Obj, Dur, dat
+        spec=extract_Spectral_Center(path=path, filename=filename)
+        spec=float(spec.split()[1:][3])
+
+    return power, accums, integ, Obj, Dur, dat, spec
 
 
 
@@ -474,7 +493,7 @@ def calculates_time(*, path, filename):
         line3_sec_int=np.nan
         line2=np.nan
     # If a real spectra file
-    if line_video_check == 'not Video' and line_general == 'not General' and line_scan == "not Scan":
+    if line_video_check == 'not Video' and line_scan == "not Scan": # Had to remove general for berkeley
         line=extract_time_stamp_witec(path=path, filename=filename)
 
 
@@ -516,6 +535,7 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
     time=np.empty(len(Allfiles), dtype=float)
     power=np.empty(len(Allfiles), dtype=float)
     accumulations=np.empty(len(Allfiles), dtype=float)
+    spectral_cent=np.empty(len(Allfiles), dtype=float)
 
     for i in range(0, len(Allfiles)):
         filename1=Allfiles[i] #.rsplit('.',1)[0]
@@ -526,14 +546,16 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
         print('working on file' + str(filename1))
         time_num, t_str=calculates_time(path=path, filename=filename1)
 
-        powr, accums, integ, Obj, Dur, dat=extract_acq_params(path=path,
+        powr, accums, integ, Obj, Dur, dat, spec=extract_acq_params(path=path,
                                                        filename=filename1, trupower=trupower)
+
 
 
         Int_time[i]=integ
         objec[i]=Obj
         power[i]=powr
         accumulations[i]=accums
+        spectral_cent[i]=spec
 
 
         time[i]=time_num
@@ -553,8 +575,10 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
                                'Mag (X)': objec,
                                'duration': duration_str,
                    '24hr_time': time_str,
-    'sec since midnight': time
+    'sec since midnight': time,
+    'Spectral Center': spectral_cent
                               })
+
     Time_Df_2=Time_Df[Time_Df['sec since midnight'].notna()]
     Time_Df_2['index']=Time_Df_2.index
 
@@ -597,15 +621,19 @@ def extracting_filenames_generic(*, names, prefix=False,
 
     file_m=np.empty(len(names), dtype=object)
     for i in range(0, len(names)):
+        if prefix is False and suffix is False:
+            file_m[i]=names.iloc[i]
 
-        if prefix is True:
-            str_nof_name=names.iloc[i].split(str_prefix, maxsplit=1)[1:]
         else:
-            str_nof_name=names.iloc[i]
-        if suffix is True:
-            file_m[i]=str_nof_name[0].split(str_suffix, maxsplit=1)[0]
-        if suffix is False:
-            file_m[i]=str_nof_name[0]
+            if prefix is True:
+                str_nof_name=names.iloc[i].split(str_prefix, maxsplit=1)[1:]
+            if prefix is False:
+                str_nof_name=names.iloc[i]
+            if suffix is True:
+                file_m[i]=str_nof_name[0].split(str_suffix, maxsplit=1)[0]
+            if suffix is False:
+                file_m[i]=str_nof_name
+
         if file_type in file_m[i]:
             file_m[i]=file_m[i].replace(file_type, '')
 

@@ -1040,8 +1040,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
             ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+30]
 
     if Peak2_Cent is None:
-        df_out=pd.DataFrame(data={'diad2_Cent': Peak1_Cent,
-                                'diad2_Area': Peak1_Int
+        df_out=pd.DataFrame(data={'Diad2_Cent': Peak1_Cent,
+                                'Diad2_Area': Peak1_Int
         }, index=[0])
 
     if Peak2_Cent is not None:
