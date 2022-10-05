@@ -1060,6 +1060,8 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
 
         fig.savefig(figure_str, dpi=200)
 
+        plt.close(fig)
+
     if prefix is True:
 
         filename=filename.split(' ')[1:][0]
