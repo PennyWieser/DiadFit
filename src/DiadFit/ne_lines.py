@@ -630,6 +630,10 @@ LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
                 Center_pk1=Center_p2
                 error_pk1=Center_p2_errorval
 
+    Area_pk1=result.best_values.get('p1_amplitude')
+    sigma_pk1=result.best_values.get('p1_sigma')
+    gamma_pk1=result.best_values.get('p1_gamma')
+
 
     # Evaluate the peak at 100 values for pretty plotting
     xx_pk1=np.linspace(lower_pk1, upper_pk1, 2000)
@@ -642,7 +646,7 @@ LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
 
 
 
-    return Center_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps
+    return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps
 
 
 def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=0.28, print_report=False) :
@@ -705,6 +709,12 @@ def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=0
     # Get center value
     Center_pk2=result.best_values.get('center')
     Center_pk2_error=result.params.get('center')
+
+    #print(result.best_values)
+
+    Area_pk2=result.best_values.get('amplitude')
+    sigma_pk2=result.best_values.get('sigma')
+    gamma_pk2=result.best_values.get('gamma')
     # Have to strip away the rest of the string, as center + error
 
     Center_pk2_errorval=float(str(Center_pk2_error).split()[4].replace(",", ""))
@@ -719,7 +729,7 @@ def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=0
     if print_report is True:
          print(result.fit_report(min_correl=0.5))
 
-    return Center_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx
+    return Center_pk2,Area_pk2, sigma_pk2, gamma_pk2,  Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx
 
 ## Setting default Ne fitting parameters
 @dataclass
@@ -740,8 +750,8 @@ class Ne_peak_config:
     y_range_baseline: float= 200    # Where the y axis is cut off above the minimum baseline measurement
 
     # Things for fitting the primary peak
-    amplitude: float = 100
-
+    pk1_amplitude: float = 100
+    pk2_amplitude: float = 100
     # Things for plotting the primary peak
     x_range_peak: float=15 # How many units to each side are shown when plotting the peak fits
 
@@ -761,7 +771,8 @@ def fit_Ne_lines(*,  config: Ne_peak_config=Ne_peak_config(),
 Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
     Ne=None, filename=None, path=None, prefix=True,
     plot_figure=True, loop=True,
-    DeltaNe_ideal=330.477634, save_clipboard=True):
+    DeltaNe_ideal=330.477634, save_clipboard=True,
+    close_figure=False):
 
 
 
@@ -880,11 +891,11 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
         x_span_pk2_dist=abs(config.x_span_pk2[1]-config.x_span_pk2[0])
 
     # Fit the 1117 peak
-    cent_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=config.amplitude)
+    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=config.pk1_amplitude)
 
 
     # Fit the 1447 peak
-    cent_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx = fit_pk2(x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, amplitude=config.amplitude)
+    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx = fit_pk2(x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, amplitude=config.pk2_amplitude)
 
 
     # Calculate difference between peak centers, and Delta Ne
@@ -1002,7 +1013,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
         ax2.plot(Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, 'xb', label='all data')
         ax2.plot(Ne_pk2_reg_x, Ne_pk2_reg_y, 'ok', label='data fitted')
         ax2.plot(xx_pk2, result_pk2, 'r-', label='interpolated fit')
-        ax2.set_title('1447 peak fitting')
+        ax2.set_title('%.0f' %Ne_center_2+' peak fitting')
         ax2.set_xlabel('Wavenumber')
         ax2.set_ylabel('Intensity')
         if config.x_range_peak is None:
@@ -1014,7 +1025,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
         ax3.plot(Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, 'xb', label='all data')
         ax3.plot(Ne_pk1_reg_x, Ne_pk1_reg_y, 'ok', label='data fitted')
 
-        ax3.set_title('1117 peak fitting')
+        ax3.set_title('%.0f' %Ne_center_1+' peak fitting')
         ax3.set_xlabel('Wavenumber')
         ax3.set_ylabel('Intensity')
         ax3.plot(xx_pk1, comps.get('p1_'), '-r', label='p1')
@@ -1059,16 +1070,22 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
         figure_str=path+'/'+ 'Peak_fit_images'+ '/'+ filename+str('_Ne_Line_Fit')+str('.png')
 
         fig.savefig(figure_str, dpi=200)
-
-        plt.close(fig)
+        if close_figure is True:
+            plt.close(fig)
 
     if prefix is True:
 
         filename=filename.split(' ')[1:][0]
     df=pd.DataFrame(data={'filename': filename,
                           'pk2_peak_cent':cent_pk2,
+                          'pk2_amplitude': Area_pk2,
+                          'pk2_sigma': sigma_pk2,
+                          'pk2_gamma': gamma_pk2,
                           'error_pk2': error_pk2,
                           'pk1_peak_cent':cent_pk1,
+                          'pk1_amplitude': Area_pk1,
+                          'pk1_sigma': sigma_pk1,
+                          'pk1_gamma': gamma_pk1,
                           'error_pk1': error_pk1,
                          'deltaNe': DeltaNe,
                          'Ne_Corr': Ne_Corr,

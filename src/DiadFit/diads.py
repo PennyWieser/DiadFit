@@ -482,7 +482,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                                 diad_amplitude=100,
                                 HB_amplitude=20,
                                 span=None,
-                                plot_figure=True, dpi=200):
+                                plot_figure=True, block_print=False, dpi=200):
 
     """ This function fits diad 1 at ~1283, and the hot band if present
 
@@ -1893,7 +1893,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=config1.peak_pos_gauss,
                     gauss_sigma=config1.gauss_sigma,  gauss_amp=config1.gauss_amp,
-                    span=span_diad1, plot_figure=False)
+                    span=span_diad1, plot_figure=False, block_print=block_print)
 
     # get a best fit to the baseline using a linspace from the peak fitting
     ybase_xlin=Pf_baseline_diad1(x_lin)
@@ -2067,6 +2067,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     axes['D'].set_xlim([df_out['Diad1_Cent'][0]-config1.x_range_residual,
                 df_out['Diad1_Cent'][0]+config1.x_range_residual])
     #ax5.plot([cent_1117, cent_1117 ], [np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10], ':k')
+
+
+
     axes['D'].set_ylim([np.min(Local_Residual_diad1)-10, np.max(Local_Residual_diad1)+10])
 
 
