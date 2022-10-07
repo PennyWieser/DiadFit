@@ -159,6 +159,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     df=pd.DataFrame(data={'pos': peak_pos,
                         'height': height})
 
+
+
     df_pks_diad1=df[(df['pos']>1220) & (df['pos']<1320) ]
     # Find peaks within the 2nd diad window
     df_pks_diad2=df[(df['pos']>1350) & (df['pos']<1430) ]
@@ -188,6 +190,10 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
     if any(df_sort_diad1_trim['pos'].between(config.approx_diad1_pos[0], config.approx_diad1_pos[1])):
         diad_1_peaks=tuple(df_sort_diad1_trim['pos'].values)
+        if n_peaks_diad2==2:
+            if len(diad_1_peaks)==1:
+                print('Warning - couldnt find hotband, guessing its positoin as 20 below the peak')
+                diad_1_peaks=(diad_1_peaks[0], diad_1_peaks[0]-20)
     else:
         if block_print is False:
             print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad1_pos), 2)) +  'to move forwards')
@@ -200,6 +206,9 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
     if plot_figure is True:
         fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
+        ax0.plot(df['pos'], df['height'], '*k', mfc='cyan')
+        ax1.plot(df['pos'], df['height'], '*k', mfc='cyan')
+        ax2.plot(df['pos'], df['height'], '*k', mfc='cyan')
         ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
         if Discard_str is not False:
             ax0.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
@@ -602,8 +611,13 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                 params.update(pars)
         else:
             if len(peak_pos_voigt)==1:
+                if type(peak_pos_voigt) is tuple:
+                    print('im atuple')
+                    peak_pos_voigt2=peak_pos_voigt[0]
+                else:
+                    peak_pos_voigt2=peak_pos_voigt
 
-                peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, min_cent=peak_pos_voigt-5, max_cent=peak_pos_voigt+5)
+                peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt2, min_cent=peak_pos_voigt2-5, max_cent=peak_pos_voigt2+5)
                 model = peak+model
                 params.update(pars)
 
@@ -635,6 +649,10 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
     # Get first peak center
     Peak1_Cent=result.best_values.get('lz1_center')
     Peak1_Int=result.best_values.get('lz1_amplitude')
+    Peak1_sigma=result.best_values.get('lz1_sigma')
+    Peak1_gamma=result.best_values.get('lz1_gamma')
+    print(Peak1_sigma)
+    print(Peak1_gamma)
     df_out=pd.DataFrame(data={'Diad1_Cent': Peak1_Cent,
                             'Diad1_Area': Peak1_Int
     }, index=[0])
@@ -1600,7 +1618,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=config1.peak_pos_gauss,
                     gauss_sigma=config1.gauss_sigma,  gauss_amp=config1.gauss_amp,
-                    span=span_diad2, plot_figure=False, block_print=True)
+                    span=span_diad2, plot_figure=False, block_print=block_print)
 
     # get a best fit to the baseline using a linspace from the peak fitting
     ybase_xlin=Pf_baseline_diad2(x_lin)
