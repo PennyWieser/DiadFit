@@ -67,7 +67,6 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
 566.220000,
 566.254890,
 568.464700,
-568.9781510191291,
 568.981630,
 571.534090,
 571.887980,
@@ -104,7 +103,6 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     40.00,
     750.00,
     250.00,
-    1000.44444444444444,
     1500.00,
     350.00,
     1500.00,
@@ -1061,13 +1059,13 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
         fig.tight_layout()
 
         # Save figure
-        path3=path+'/'+'Peak_fit_images'
+        path3=path+'/'+'Ne_fit_images'
         if os.path.exists(path3):
             out='path exists'
         else:
-            os.makedirs(path+'/'+ 'Peak_fit_images', exist_ok=False)
+            os.makedirs(path+'/'+ 'Ne_fit_images', exist_ok=False)
 
-        figure_str=path+'/'+ 'Peak_fit_images'+ '/'+ filename+str('_Ne_Line_Fit')+str('.png')
+        figure_str=path+'/'+ 'Ne_fit_images'+ '/'+ filename+str('_Ne_Line_Fit')+str('.png')
 
         fig.savefig(figure_str, dpi=200)
         if close_figure is True:
@@ -1240,6 +1238,24 @@ def reg_Ne_lines_time(df, fit='poly', N_poly=None, spline_fit=None):
 
 
     return Pf
+
+
+def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):
+    Corr_factor_Filt=np.empty(len(Corr_factor), dtype=float)
+    median_loop=np.empty(len(Corr_factor), dtype=float)
+
+    for i in range(0, len(Corr_factor)):
+        if i<len(Corr_factor)/2: # For first half, do 5 after
+            median_loop[i]=np.nanmedian(Corr_factor[i:i+number_av])
+        if i>=len(Corr_factor)/2: # For first half, do 5 after
+            median_loop[i]=np.nanmedian(Corr_factor[i-number_av:i])
+        if Corr_factor[i]>(median_loop[i]+offset) or Corr_factor[i]<(median_loop[i]-offset) :
+            Corr_factor_Filt[i]=np.nan
+        else:
+            Corr_factor_Filt[i]=Corr_factor[i]
+    ds=pd.Series(Corr_factor_Filt)
+    return ds
+
 
 
 

@@ -9,6 +9,7 @@ import os
 import re
 from os import listdir
 from os.path import isfile, join
+from tqdm import tqdm
 
 encode="ISO-8859-1"
 
@@ -218,6 +219,9 @@ def read_witec_to_df(*,  path=None, filename):
         Specific file being read
 
     """
+    if path is None:
+        path=os.getcwd()
+
     path2=path+'/'+ 'Peak_fits_txt'
     if os.path.exists(path2):
         a='path exists'
@@ -413,6 +417,9 @@ def extract_acq_params(*, path, filename, trupower=False):
     uses the functions above to extract various bits of metadata
     """
     # Prints what it is, e.g. general if general, video if video
+    if path is None:
+        path=os.getcwd()
+
     line_general=checks_if_general(path=path, filename=filename)
     line_video_check=checks_if_video(path=path, filename=filename)
     line_scan=checks_if_imagescan(path=path, filename=filename)
@@ -477,6 +484,8 @@ def extract_acq_params(*, path, filename, trupower=False):
 def calculates_time(*, path, filename):
     """ calculates time for non video files for WITEC files"""
 
+
+
     # Need to throw out video and peak fit files "general"
     line_general=checks_if_general(path=path, filename=filename)
     line_video_check=checks_if_video(path=path, filename=filename)
@@ -524,6 +533,8 @@ def calculates_time(*, path, filename):
 def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=False):
     """ Stitches together WITEC metadata for all files in a loop
     """
+    if path is None:
+        path=os.getcwd()
     # string values
     time_str=[]
     filename_str=[]
@@ -537,13 +548,13 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
     accumulations=np.empty(len(Allfiles), dtype=float)
     spectral_cent=np.empty(len(Allfiles), dtype=float)
 
-    for i in range(0, len(Allfiles)):
+    for i in tqdm(range(0, len(Allfiles))):
         filename1=Allfiles[i] #.rsplit('.',1)[0]
         if prefix is True:
             filename=filename1.split(' ')[1:][0]
         else:
             filename=filename1
-        print('working on file' + str(filename1))
+        #print('working on file' + str(filename1))
         time_num, t_str=calculates_time(path=path, filename=filename1)
 
         powr, accums, integ, Obj, Dur, dat, spec=extract_acq_params(path=path,
@@ -632,7 +643,7 @@ def extracting_filenames_generic(*, names, prefix=False,
             if suffix is True:
                 file_m[i]=str_nof_name[0].split(str_suffix, maxsplit=1)[0]
             if suffix is False:
-                file_m[i]=str_nof_name
+                file_m[i]=str_nof_name[0]
 
         if file_type in file_m[i]:
             file_m[i]=file_m[i].replace(file_type, '')
