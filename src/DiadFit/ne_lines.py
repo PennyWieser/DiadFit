@@ -1148,7 +1148,7 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
 
 ## Looping Ne lines
 def loop_Ne_lines(*, files, path, filetype,
-                  config, peaks_1, Ne, Ne_center_1,
+                  config, peaks_1,  Ne_center_1,
                   Ne_center_2, DeltaNe_ideal, prefix=None,
                   plot_figure=True, save_clipboard=True, single_acq=True):
 

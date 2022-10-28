@@ -511,7 +511,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
     peak_pos_voigt: list
         Estimates of peak positions for peaks
 
-    peak_pos_gauss: None, int, or flota
+    peak_pos_gauss: None, int, or float
         If you want a gaussian as part of your fit, put an approximate center here
 
     amplitude: int, float
@@ -1235,6 +1235,9 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 ## Overall function for fitting diads in 1 single step
 @dataclass
 class diad1_fit_config:
+    """
+    Testing the documentation for these
+    """
     # Do you need a gaussian? Set position here if so
     peak_pos_gauss: Optional [float] =None
     gauss_sigma: float=1
@@ -2073,7 +2076,7 @@ class carb_peak_config:
 
 def fit_carbonate_peak(*, config: carb_peak_config=carb_peak_config(),
 path=None, filename=None, filetype=None,
-fit_carbonate=None, block_print=True):
+fit_carbonate=None, block_print=True, plot_figure=True):
 
     """ This function fits a carbonate peak with a gaussian, and returns a plot
 
@@ -2243,6 +2246,8 @@ fit_carbonate=None, block_print=True):
 
         # Plotting what its doing
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
+        fig.suptitle('Secondary Phase, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
+
         # Plot the peak positions and heights
 
 

@@ -590,11 +590,10 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
     'Spectral Center': spectral_cent
                               })
 
-    Time_Df_2=Time_Df[Time_Df['sec since midnight'].notna()]
-    Time_Df_2['index']=Time_Df_2.index
+    Time_Df_2=Time_Df[Time_Df['sec since midnight'].notna()].reset_index(drop=True)
+
 
     Time_Df_2=Time_Df_2.sort_values('sec since midnight', axis=0, ascending=True)
-    Time_Df_2.to_clipboard(excel=True)
     print('Done')
 
     return Time_Df_2
@@ -648,6 +647,12 @@ def extracting_filenames_generic(*, names, prefix=False,
         if file_type in file_m[i]:
             file_m[i]=file_m[i].replace(file_type, '')
 
+    if len(file_m)!=len(pd.Series(file_m).unique()):
+        file_m_s=pd.Series(file_m)
+        print('duplicates')
+        print(file_m_s[file_m_s.duplicated()])
+        print('OOPS. at least one of your file name is duplicated go back to your spectra, you named a file twice, this will confuse the stitching ')
+        raise Exception('Duplicate file')
 
     return file_m
 

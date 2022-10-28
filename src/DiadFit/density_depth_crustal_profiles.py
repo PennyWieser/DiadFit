@@ -430,5 +430,6 @@ def convert_co2_density_depth_Coolprop(T_K=None,
                                 'input_T_K': T_K,
                                 'input_CO2_dens_gcm3': CO2_dens_gcm3})
 
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
         return df
