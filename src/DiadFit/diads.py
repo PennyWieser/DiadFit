@@ -2069,7 +2069,7 @@ class carb_peak_config:
     plot_figure: bool = True
 
     # Return other parameteres e.g. intermediate outputs
-    return_other_params=False
+    return_other_params: bool = False
 
 
 
@@ -2297,7 +2297,7 @@ fit_carbonate=None, block_print=True, plot_figure=True):
 
 
 
-        if plot_figure is True:
+        if config.plot_figure is True:
             path3=path+'/'+'Carbonate_fit_images'
             if os.path.exists(path3):
                 out='path exists'
