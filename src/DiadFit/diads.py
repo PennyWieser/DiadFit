@@ -2244,6 +2244,7 @@ fit_carbonate=None, block_print=True, plot_figure=True):
         # Make a nice linspace for plotting with smooth curves.
         xx_carb=np.linspace(min(x), max(x), 2000)
         y_carb=result0.eval(x=xx_carb)
+        height=np.max(y_carb)
 
         # Plotting what its doing
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
@@ -2309,7 +2310,8 @@ fit_carbonate=None, block_print=True, plot_figure=True):
             fig.savefig(path3+'/'+'Carbonate_Fit_{}.png'.format(file), dpi=config.dpi)
 
         df=pd.DataFrame(data={'Carb_Cent': Center_p0,
-        'Carb_Area': area_p0}, index=[0])
+        'Carb_Area': area_p0,
+        'Carb_Height': height }, index=[0])
 
 
 
@@ -2377,9 +2379,288 @@ def proceed_to_fit_diads(filename, Carb_fit, diads_present=False):
             df.to_clipboard(excel=True, header=False, index=False)
         print('Saved carbonate peak in diad format to clipboard')
 
+## Fit generic peak
+
+@dataclass
+class generic_peak_config:
+    # Selecting the two background positions
+    lower_bck: Tuple[float, float]=(1060, 1065)
+    upper_bck: Tuple[float, float]=(1120, 1130)
+
+    # Background degree of polynomial
+    N_poly_carb_bck: float =1
+    # Seletcting the amplitude
+    amplitude: float =1000
+
+    # Selecting the peak center
+    cent_generic: float =1090
+
+    # outlier sigma to discard background at
+    outlier_sigma: float =12
+
+    # Number of peaks to look for in scipy find peaks
+    N_peaks: float=3
+
+    # Parameters for Scipy find peaks
+    distance: float=10
+    prominence: float=5
+    width: float=6
+    threshold: float=0.1
+    height=100
+
+    # Excluding a range for cosmic rays etc.
+    exclude_range: Optional [Tuple[float, float]]=None
+
+    # Plotting parameters
+    dpi:float = 100
+    plot_figure: bool = True
+
+    # Return other parameteres e.g. intermediate outputs
+    return_other_params: bool = False
 
 
 
+
+
+
+def fit_generic_peak(*, config: generic_peak_config=generic_peak_config(),
+path=None, filename=None, filetype=None,
+ block_print=True, plot_figure=True):
+
+    """ This function fits a generic peak with a gaussian, and returns a plot
+
+    path: str
+        Path to file
+
+    filename: str
+        filename with file extension
+
+    filetype: str
+        Filetype from one of the following options:
+            Witec_ASCII
+            headless_txt
+            headless_csv
+            HORIBA_txt
+            Renishaw_txt
+
+    lower_bck: list
+        Lower range to fit background over (default [1030, 1050])
+
+    upper_bck: list
+        Upper range to fit background over (default [1140, 1200])
+
+    N_poly: int
+        Degree of polynomial to fit to background
+
+    exclude_range: None or list
+        Can select a range to exclude from fitting (e.g. a cosmic ray)
+
+    cent: int or float
+        Approximate peak center
+
+    amplitude: int or float
+        Approximate amplitude (helps the fitting algorithm converge)
+
+    N_peaks: int
+        number of peaks to try to find from scipy find peaks
+
+    plot_figure: bool
+        If true, plots figure and saves it in a subfolder in the same directory as the filepath specified
+
+    dpi: int
+        dpi to save figure at
+
+    height, threshold, distance, prominence, width: int
+        Values for Scipy find peaks that can be adjusted.
+
+    return_other_params: bool
+        if False (Default), returns just df of fit information
+        if True, also returns:
+            xx_carb: :linspace for plotting
+            y_carb: Best fit to background-subtracted data
+            result0: fit results from lmfit
+
+    """
+
+
+    Spectra_in=get_data(path=path, filename=filename, filetype=filetype)
+
+
+
+    # If exclude range, trim that here
+    if config.exclude_range is not None:
+            Spectra=Spectra_in[ (Spectra_in[:, 0]<config.exclude_range[0]) | (Spectra_in[:, 0]>config.exclude_range[1]) ]
+    else:
+        Spectra=Spectra_in
+
+
+
+    lower_0baseline=config.lower_bck[0]
+    upper_0baseline=config.lower_bck[1]
+    lower_1baseline=config.upper_bck[0]
+    upper_1baseline=config.upper_bck[1]
+
+    # Filter out spectra outside these baselines
+    Spectra_short=Spectra[ (Spectra[:,0]>lower_0baseline) & (Spectra[:,0]<upper_1baseline) ]
+
+    # To make a nice plot, give 50 wavenumber units on either side as a buffer
+    Spectra_plot=Spectra[ (Spectra[:,0]>lower_0baseline-50) & (Spectra[:,0]<upper_1baseline+50) ]
+
+    # Find peaks using Scipy find peaks
+    y=Spectra_plot[:, 1]
+    x=Spectra_plot[:, 0]
+    peaks = find_peaks(y,height = config.height, threshold = config.threshold,
+    distance = config.distance, prominence=config.prominence, width=config.width)
+
+    height = peaks[1]['peak_heights'] #list of the heights of the peaks
+    peak_pos = x[peaks[0]] #list of the peaks positions
+    df_sort=pd.DataFrame(data={'pos': peak_pos,
+                        'height': height})
+
+    df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
+
+    # Trim number of peaks based on user-defined N peaks
+    df_peak_sort_short=df_peak_sort[0:config.N_peaks]
+    if block_print is False:
+        print('Found peaks at:')
+        print(df_peak_sort_short)
+        print('Only returning up to N_peaks')
+
+    # Get actual baseline
+    Baseline_with_outl=Spectra_short[
+    ((Spectra_short[:, 0]<upper_0baseline) &(Spectra_short[:, 0]>lower_0baseline))
+        |
+    ((Spectra_short[:, 0]<upper_1baseline) &(Spectra_short[:, 0]>lower_1baseline))]
+
+    # Calculates the LH baseline
+    LH_baseline=Spectra_short[
+    ((Spectra_short[:, 0]<upper_0baseline) &(Spectra_short[:, 0]>lower_0baseline))]
+
+    Mean_LH_baseline=np.nanmean(LH_baseline[:, 1])
+    Std_LH_baseline=np.nanstd(LH_baseline[:, 1])
+
+    # Calculates the RH baseline
+    RH_baseline=Spectra_short[((Spectra_short[:, 0]<upper_1baseline)
+    &(Spectra_short[:, 0]>lower_1baseline))]
+    Mean_RH_baseline=np.nanmean(RH_baseline[:, 1])
+    Std_RH_baseline=np.nanstd(RH_baseline[:, 1])
+
+    # Removes points outside baseline
+
+    LH_baseline_filt=LH_baseline[(LH_baseline[:, 1]<Mean_LH_baseline+config.outlier_sigma*Std_LH_baseline)
+    &(LH_baseline[:, 1]>Mean_LH_baseline-config.outlier_sigma*Std_LH_baseline) ]
+
+    RH_baseline_filt=RH_baseline[(RH_baseline[:, 1]<Mean_RH_baseline+config.outlier_sigma*Std_RH_baseline)
+    &(RH_baseline[:, 1]>Mean_RH_baseline-config.outlier_sigma*Std_RH_baseline) ]
+
+    Baseline=np.concatenate((LH_baseline_filt, RH_baseline_filt), axis=0)
+
+
+
+
+
+    # Fits a polynomial to the baseline of degree
+    Pf_baseline = np.poly1d(np.polyfit(Baseline[:, 0], Baseline[:, 1], config.N_poly_carb_bck))
+    Py_base =Pf_baseline(Spectra_short[:, 0])
+
+    Baseline_ysub=Pf_baseline(Baseline[:, 0])
+    Baseline_x=Baseline[:, 0]
+    y_corr= Spectra_short[:, 1]-  Py_base
+    x=Spectra_short[:, 0]
+
+    # NOw into the voigt fitting
+
+    model0 = VoigtModel()#+ ConstantModel()
+
+    # create parameters with initial values
+    pars0 = model0.make_params()
+    pars0['center'].set(config.cent_generic, min=config.cent_generic-30, max=config.cent_generic+30)
+    pars0['amplitude'].set(config.amplitude, min=0)
+
+
+    init0 = model0.eval(pars0, x=x)
+    result0 = model0.fit(y_corr, pars0, x=x)
+    Center_p0=result0.best_values.get('center')
+    area_p0=result0.best_values.get('amplitude')
+
+
+
+    # Make a nice linspace for plotting with smooth curves.
+    xx_carb=np.linspace(min(x), max(x), 2000)
+    y_carb=result0.eval(x=xx_carb)
+    height=np.max(y_carb)
+
+    # Plotting what its doing
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
+    fig.suptitle('Secondary Phase, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
+
+    # Plot the peak positions and heights
+
+
+
+    ax1.set_title('Background fit')
+    ax1.plot(Spectra_plot[:, 0], Spectra_plot[:, 1], '-r', label='Spectra')
+    ax1.plot(RH_baseline_filt[:, 0], RH_baseline_filt[:, 1], '-b',
+    lw=3,  label='bck points')
+    ax1.plot(LH_baseline_filt[:, 0], LH_baseline_filt[:, 1], '-b',
+    lw=3, label='_bck points')
+
+
+    ax2.set_title('Bkg-subtracted, carbonate peak fit')
+
+    ax2.plot(xx_carb, y_carb, '-k', label='Peak fit')
+
+    ax2.plot(x, y_corr, 'ok', mfc='red', label='Bck-sub data')
+    ax2.set_ylim([min(y_carb)-0.5*(max(y_carb)-min(y_carb)),
+                max(y_carb)+0.1*max(y_carb),
+    ])
+
+    ax1.plot(Spectra_short[:, 0], Py_base, '-k')
+
+    ax1.plot(df_peak_sort_short['pos'], df_peak_sort_short['height'], '*k', mfc='yellow', label='SciPy Peaks')
+
+    ax1.set_ylabel('Intensity')
+    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+    ax2.set_ylabel('Bck-corrected Intensity')
+    ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+
+    ax1.legend()
+    ax2.legend()
+
+    ax1.set_ylim([
+    np.min(Spectra_plot[:, 1])-50,
+    np.max(Spectra_plot[:, 1])+50
+    ])
+
+
+
+    if area_p0 is None:
+        area_p0=np.nan
+        if area_p0 is not None:
+            if area_p0<0:
+                area_p0=np.nan
+
+
+
+    if plot_figure is True:
+        path3=path+'/'+'Carbonate_fit_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'Carbonate_fit_images', exist_ok=False)
+
+        file=filename.rsplit('.txt', 1)[0]
+        fig.savefig(path3+'/'+'Carbonate_Fit_{}.png'.format(file), dpi=config.dpi)
+
+    df=pd.DataFrame(data={'Peak_Cent': Center_p0,
+    'Peak_Area': area_p0,
+    'Peak_Height': height}, index=[0])
+
+
+    if config.return_other_params is True:
+        return df, xx_carb, y_carb, result0
+    else:
+        return df
 
 
 
