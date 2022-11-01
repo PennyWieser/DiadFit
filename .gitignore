@@ -11,3 +11,6 @@ ipynb_checkpoints
 *.orig
 *.ini
 *.png
+*/CCMR_Metadata/Cap*
+*/CCMR_Metadata/Ne*
+*/CCMR_Metadata/PO*
