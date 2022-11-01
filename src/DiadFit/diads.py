@@ -855,7 +855,8 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
     # create parameters with initial values
     params_ini = model_ini.make_params(center=initial_guess)
-
+    params_ini['amplitude'].set(diad_amplitude, min=0, max=diad_amplitude*10)
+    params_ini['sigma'].set(diad_sigma, min=diad_sigma/10, max=diad_sigma*10)
     init_ini = model_ini.eval(params_ini, x=xdat)
 
 

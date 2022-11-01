@@ -45,7 +45,7 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
     return Ne_files
 
 
-def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_str_2='ne', exclude_type='.png'):
+def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_str_2='ne', exclude_str_3='Si_wafer', exclude_type='.png'):
     """ This function takes a user path, and extracts all files which dont contain the excluded string and type
 
     Parameters
@@ -73,7 +73,7 @@ def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_st
     print('exclude type')
     print(exclude_type)
 
-    Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_type not in item]
+    Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_type not in item]
 
     if sort is True:
 
@@ -656,3 +656,22 @@ def extracting_filenames_generic(*, names, prefix=False,
 
     return file_m
 
+def extract_temp_Aranet(df):
+    """ Extracts temperature data from the aranet
+    """
+    TD=df['Time(dd/mm/yyyy)']
+    hour=np.empty(len(Temp), dtype=object)
+    date=np.empty(len(Temp), dtype=object)
+    time=np.empty(len(Temp), dtype=object)
+    minutes=np.empty(len(Temp), dtype=object)
+    seconds=np.empty(len(Temp), dtype=object)
+    secs_sm=np.empty(len(Temp), dtype=object)
+    for i in range(0, len(Temp)):
+        date[i]=TD.iloc[i].split(' ')[0]
+        time[i]=TD.iloc[i].split(' ')[1]
+        hour[i]=time[i].split(':')[0]
+        minutes[i]=time[i].split(':')[1]
+        seconds[i]=time[i].split(':')[2]
+        secs_sm[i]=float(hour[i])*60*60+float(minutes[i])*60+float(seconds[i])
+
+    return secs_sm

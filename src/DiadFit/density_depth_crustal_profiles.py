@@ -411,6 +411,7 @@ def convert_co2_density_depth_Coolprop(T_K=None,
 
         Depth_km=convert_pressure_to_depth(P_kbar=P_kbar, crust_dens_kgm3=crust_dens_kgm3,
         g=g, d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
+
         if type(P_kbar) is float:
         # Crustal density, using P=rho g H
             df=pd.DataFrame(data={'Pressure (kbar)': P_kbar,
