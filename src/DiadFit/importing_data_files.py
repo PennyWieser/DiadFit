@@ -631,18 +631,25 @@ def extracting_filenames_generic(*, names, prefix=False,
 
     file_m=np.empty(len(names), dtype=object)
     for i in range(0, len(names)):
+        name=names.iloc[i]
+        print(name)
+        print(type(name))
+        # If no prefix or suffix to remove, simple
         if prefix is False and suffix is False:
-            file_m[i]=names.iloc[i]
+            file_m[i]=name
 
         else:
             if prefix is True:
-                str_nof_name=names.iloc[i].split(str_prefix, maxsplit=1)[1:]
+                str_nof_name=name.split(str_prefix, maxsplit=1)[1:]
+                print(str_nof_name)
+                print(type(str_nof_name))
             if prefix is False:
-                str_nof_name=names.iloc[i]
+                str_nof_name=name
+
             if suffix is True:
-                file_m[i]=str_nof_name[0].split(str_suffix, maxsplit=1)[0]
+                file_m[i]=str_nof_name.split(str_suffix, maxsplit=1)[0]
             if suffix is False:
-                file_m[i]=str_nof_name[0]
+                file_m[i]=str_nof_name
 
         if file_type in file_m[i]:
             file_m[i]=file_m[i].replace(file_type, '')

@@ -206,10 +206,12 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
     if plot_figure is True:
         fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
-        ax0.plot(df['pos'], df['height'], '*k', mfc='cyan')
-        ax1.plot(df['pos'], df['height'], '*k', mfc='cyan')
-        ax2.plot(df['pos'], df['height'], '*k', mfc='cyan')
+
         ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
+        ax0.plot(df['pos'], df['height'], '*k')
+        ax1.plot(df['pos'], df['height'], '*k', label='All Scipy Peaks')
+        ax2.plot(df['pos'], df['height'], '*k')
+
         if Discard_str is not False:
             ax0.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
             ax1.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
@@ -237,8 +239,9 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
         ax2.set_xlim([1350, 1450])
         #ax0.set_ylim[np.min(Diad[:, 1]), np.max(Diad[:, 1]) ])
         fig.tight_layout()
-        ax2.plot(df_sort_diad2_trim['pos'], df_sort_diad2_trim['height'], '*k')
-        ax1.plot(df_sort_diad1_trim['pos'], df_sort_diad1_trim['height'], '*k')
+        ax2.plot(df_sort_diad2_trim['pos'], df_sort_diad2_trim['height'], '*k', mfc='yellow', ms=10)
+        ax1.plot(df_sort_diad1_trim['pos'], df_sort_diad1_trim['height'], '*k',  mfc='yellow', ms=10, label='Selected Pks')
+        ax1.legend()
         ax0.set_xlabel('Wavenumber')
         ax0.set_ylabel('Intensity')
         ax1.set_xlabel('Wavenumber')
