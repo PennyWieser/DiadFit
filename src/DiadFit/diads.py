@@ -13,17 +13,19 @@ from DiadFit.importing_data_files import *
 from typing import Tuple, Optional
 from dataclasses import dataclass
 import matplotlib.patches as patches
+import warnings as w
 
 encode="ISO-8859-1"
 
 def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII'):
+
 
     Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
 
     Spectra=np.array(Spectra_df)
 
 
-    fig, (ax1) = plt.subplots(1, 1, figsize=(7,4))
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6,4))
 
     miny=np.min(Spectra[:, 1])
     maxy=np.max(Spectra[:, 1])
@@ -496,7 +498,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
                                 diad_amplitude=100,
                                 HB_amplitude=20,
                                 span=None,
-                                plot_figure=True, block_print=False, dpi=200):
+                                plot_figure=True,  dpi=200):
 
     """ This function fits diad 1 at ~1283, and the hot band if present
 
@@ -536,6 +538,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
 
 
     """
+
     if peak_pos_gauss is None:
         # Fit just as many peaks as there are peak_pos_voigt
 
@@ -603,7 +606,7 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
         params = model.make_params()
         params['bkg_'+'amplitude'].set(gauss_amp, min=gauss_amp/10, max=gauss_amp*10)
         params['bkg_'+'sigma'].set(gauss_sigma, min=gauss_sigma/10, max=gauss_sigma*10)
-        params['bkg_'+'center'].set(peak_pos_gauss, min=peak_pos_gauss-30, max=peak_pos_gauss+30)
+        params['bkg_'+'center'].set(peak_pos_gauss, min=peak_pos_gauss-10, max=peak_pos_gauss+10)
 
 
 
@@ -653,33 +656,67 @@ def fit_gaussian_voigt_diad1(*, path=None, filename=None,
     comps = result.eval_components()
 
 
+
     # Get first peak center
     Peak1_Cent=result.best_values.get('lz1_center')
     Peak1_Int=result.best_values.get('lz1_amplitude')
     Peak1_sigma=result.best_values.get('lz1_sigma')
     Peak1_gamma=result.best_values.get('lz1_gamma')
 
-    df_out=pd.DataFrame(data={'Diad1_Cent': Peak1_Cent,
-                            'Diad1_Area': Peak1_Int,
-                            'Diad1_Sigma': Peak1_sigma,
-                            'Diad1_Gamma': Peak1_gamma
+    df_out=pd.DataFrame(data={'Diad1_Voigt_Cent': Peak1_Cent,
+                            'Diad1_Voigt_Area': Peak1_Int,
+                            'Diad1_Voigt_Sigma': Peak1_sigma,
+                            'Diad1_Voigt_Gamma': Peak1_gamma,
+
     }, index=[0])
+
+    if Peak1_Int>=(diad_amplitude*10-0.1):
+        w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the config file')
+    if Peak1_sigma>=(diad_amplitude*10-0.1):
+        w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the config file')
+    if Peak1_sigma>=(diad_sigma*10-0.1):
+        w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_sigma in the config file')
+    if Peak1_sigma<=(diad_sigma/10+0.1):
+        w.warn('Diad fit right at the lower limit of the allowed fit parameter, change diad_sigma in the config file')
+
 
 
     if peak_pos_gauss is not None:
         Gauss_cent=result.best_values.get('bkg_center')
         Gauss_amp=result.best_values.get('bkg_amplitude')
         Gauss_sigma=result.best_values.get('bkg_sigma')
-        if block_print is False:
-            print('Gauss_cent='+str(Gauss_cent))
-            print('Gauss_amp='+str(Gauss_amp))
-            print('Gauss_sigma='+str(Gauss_sigma))
+        df_out['Gauss_Cent']=Gauss_cent
+        df_out['Gauss_Area']=Gauss_amp
+        df_out['Gauss_Sigma']=Gauss_sigma
+        if Gauss_sigma>=(gauss_sigma*10-0.1):
+            w.warn('Best fit Gauss sigma right at the upper limit of the allowed fit parameter, change gauss_sigma in the config file')
+        if Gauss_sigma<=(gauss_sigma/10+0.1):
+            w.warn('Best fit Gauss  sigma is right at the lower limit of the allowed fit parameter, change gauss_sigma in the config file')
+        if Gauss_amp>=(gauss_amp*10-0.1):
+            w.warn('Best fit Gauss amplitude is right at the upper limit of the allowed fit parameter, change gauss_amp in the config file')
+        if Gauss_amp<=(gauss_sigma/10+0.1):
+            w.warn('Best fit Gauss amplitude is right at the lower limit of the allowed fit parameter, change gauss_amp in the configfile')
+        if Gauss_cent<=(peak_pos_gauss-30+0.5):
+            w.warn('Best fit Gauss Cent is right at the lower limit of the allowed fit parameter, change peak_pos_gauss in the configfile')
+        if Gauss_cent>=(peak_pos_gauss+30-0.5):
+            w.warn('Best fit Gauss Cent is right at the upper limit of the allowed fit parameter, change peak_pos_gauss in the configfile')
+
 
 
 
     x_lin=np.linspace(span[0], span[1], 2000)
+
     y_best_fit=result.eval(x=x_lin)
     components=result.eval_components(x=x_lin)
+
+
+    x_cent_lin=np.linspace(Peak1_Cent-1, Peak1_Cent+1, 20000)
+
+    y_cent_best_fit=result.eval(x=x_cent_lin)
+    diad_height = np.max(y_cent_best_fit)
+    df_out['Diad1_Combofit_Height']= diad_height
+    df_out.insert(0, 'Diad1_Combofit_Cent', np.nanmean(x_cent_lin[y_cent_best_fit==diad_height]))
+
 
 
         # Uncommnet to get full report
@@ -896,17 +933,6 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
                 params=pars1
 
             if len(peak_pos_voigt)==2:
-                # Do a prelim fit
-                # model_prel = VoigtModel(prefix='lzp_')#+ ConstantModel(prefix='c1')
-                # pars2 = model_prel.make_params()
-                # pars2['lzp_'+ 'amplitude'].set(amplitude, min=0, max=Amplitude_ini)
-                # pars2['lzp_'+ 'center'].set(peak_pos_voigt[0])
-                # pars2['lzp_'+ 'sigma'].set(sigma_ini, min=sigma_ini/5, max=sigma_ini*5)
-                #
-                #
-                # init = model_prel.eval(pars2, x=xdat)
-                # result_prel = model_prel.fit(ydat, pars2, x=xdat)
-                # comps_prel = result_prel.eval_components()
 
                 Peakp_Cent=Center_ini
                 Peakp_Area=Amplitude_ini
@@ -964,7 +990,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
         params = model.make_params()
         params['bkg_'+'amplitude'].set(gauss_amp, min=gauss_amp/10, max=gauss_amp*10)
         params['bkg_'+'sigma'].set(gauss_sigma, min=gauss_sigma/10, max=gauss_sigma*10)
-        params['bkg_'+'center'].set(peak_pos_gauss, min=peak_pos_gauss-30, max=peak_pos_gauss+30)
+        params['bkg_'+'center'].set(peak_pos_gauss, min=peak_pos_gauss-10, max=peak_pos_gauss+10)
 
 
 
@@ -1033,14 +1059,33 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     Peak1_sigma=result.best_values.get('lz1_sigma')
     Peak1_gamma=result.best_values.get('lz1_gamma')
 
+    if Peak1_Int>=(diad_amplitude*10-0.1):
+        w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the config file')
+    if Peak1_sigma>=(diad_amplitude*10-0.1):
+        w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the config file')
+    if Peak1_sigma>=(diad_sigma*10-0.1):
+        w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_sigma in the config file')
+    if Peak1_sigma<=(diad_sigma/10+0.1):
+        w.warn('Diad fit right at the lower limit of the allowed fit parameter, change diad_sigma in the config file')
+
+
     if peak_pos_gauss is not None:
         Gauss_cent=result.best_values.get('bkg_center')
         Gauss_amp=result.best_values.get('bkg_amplitude')
         Gauss_sigma=result.best_values.get('bkg_sigma')
-        if block_print is False:
-            print('Gauss_cent='+str(Gauss_cent))
-            print('Gauss_amp='+str(Gauss_amp))
-            print('Gauss_sigma='+str(Gauss_sigma))
+        if Gauss_sigma>=(gauss_sigma*10-0.1):
+            w.warn('Best fit Gauss sigma right at the upper limit of the allowed fit parameter, change gauss_sigma in the config file')
+        if Gauss_sigma<=(gauss_sigma/10+0.1):
+            w.warn('Best fit Gauss  sigma is right at the lower limit of the allowed fit parameter, change gauss_sigma in the config file')
+        if Gauss_amp>=(gauss_amp*10-0.1):
+            w.warn('Best fit Gauss amplitude is right at the upper limit of the allowed fit parameter, change gauss_amp in the config file')
+        if Gauss_amp<=(gauss_sigma/10+0.1):
+            w.warn('Best fit Gauss amplitude is right at the lower limit of the allowed fit parameter, change gauss_amp in the configfile')
+        if Gauss_cent<=(peak_pos_gauss-30+0.5):
+            w.warn('Best fit Gauss Cent is right at the lower limit of the allowed fit parameter, change peak_pos_gauss in the configfile')
+        if Gauss_cent>=(peak_pos_gauss+30-0.5):
+            w.warn('Best fit Gauss Cent is right at the upper limit of the allowed fit parameter, change peak_pos_gauss in the configfile')
+
 
 
     Peak1_Int=result.best_values.get('lz1_amplitude')
@@ -1052,7 +1097,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     y_best_fit=result.eval(x=x_lin)
     components=result.eval_components(x=x_lin)
 
-
+    #
 
     # Work out what peak is what
 
@@ -1087,10 +1132,10 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
             ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+30]
 
     if Peak2_Cent is None:
-        df_out=pd.DataFrame(data={'Diad2_Cent': Peak1_Cent,
-                                'Diad2_Area': Peak1_Int,
-                            'Diad2_Sigma': Peak1_sigma,
-                            'Diad2_Gamma': Peak1_gamma
+        df_out=pd.DataFrame(data={'Diad2_Voigt_Cent': Peak1_Cent,
+                                'Diad2_Voigt_Area': Peak1_Int,
+                            'Diad2_Voigt_Sigma': Peak1_sigma,
+                            'Diad2_Voigt_Gamma': Peak1_gamma
         }, index=[0])
 
     if Peak2_Cent is not None:
@@ -1115,8 +1160,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
 
         if Peak3_Cent is not None:
             Peaks=np.array([Peak1_Cent, Peak2_Cent, Peak3_Cent])
-            if block_print is False:
-                print(Peaks)
+
             # C13 is lower peak
             C13_Cent=np.min(Peaks)
             # Diad is medium peak
@@ -1146,12 +1190,10 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
             if C13_Cent==Peak3_Cent:
                 C13_Int=Peak3_Int
 
-        if block_print is False:
-            print('made df')
-        df_out=pd.DataFrame(data={'Diad2_Cent': Diad2_Cent,
-                                'Diad2_Area': Diad2_Int,
-                                'Diad2_Sigma': Peak1_sigma,
-                                'Diad2_Gamma': Peak1_gamma,
+        df_out=pd.DataFrame(data={'Diad2_Voigt_Cent': Diad2_Cent,
+                                'Diad2_Voigt_Area': Diad2_Int,
+                                'Diad2_Voigt_Sigma': Peak1_sigma,
+                                'Diad2_Voigt_Gamma': Peak1_gamma,
         }, index=[0])
 
         df_out['HB2_Cent']=HB2_Cent
@@ -1169,8 +1211,20 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     residual_diad2_coords=ydat_inrange-result_diad2_origx
 
 
+    x_cent_lin=np.linspace(df_out['Diad2_Voigt_Cent']-1, df_out['Diad2_Voigt_Cent']+1, 20000)
+    y_cent_best_fit=result.eval(x=x_cent_lin)
+    diad_height = np.max(y_cent_best_fit)
+    df_out['Diad2_Combofit_Height']= diad_height
+    df_out.insert(0, 'Diad2_Combofit_Cent', np.nanmean(x_cent_lin[y_cent_best_fit==diad_height]))
+
+
     residual_diad2=np.sum(((ydat_inrange-result_diad2_origx)**2)**0.5)/(len(ydat_inrange))
     df_out['Residual_Diad2']=residual_diad2
+
+    if peak_pos_gauss is not None:
+        df_out['Gauss_Cent']=Gauss_cent
+        df_out['Gauss_Area']=Gauss_amp
+        df_out['Gauss_Sigma']=Gauss_sigma
 
 
 
@@ -1309,7 +1363,7 @@ class diad2_fit_config:
 
 
 def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: diad_id_config=diad_id_config(),
-    path=None, filename=None, peak_pos_voigt=None,filetype=None, block_print=True,
+    path=None, filename=None, peak_pos_voigt=None,filetype=None,
     close_figure=True):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
@@ -1390,7 +1444,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=config1.peak_pos_gauss,
                     gauss_sigma=config1.gauss_sigma,  gauss_amp=config1.gauss_amp,
-                    span=span_diad2, plot_figure=False, block_print=block_print)
+                    span=span_diad2, plot_figure=False)
 
     # get a best fit to the baseline using a linspace from the peak fitting
     ybase_xlin=Pf_baseline_diad2(x_lin)
@@ -1409,8 +1463,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     CD
     EE
     """
-    if block_print is False:
-        print('Making summary figure of different fits for saving')
+
     fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
     fig.suptitle('Diad 2, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
 
@@ -1491,9 +1544,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     axes['B'].set_xlim(ax2_xlim)
 
     # Dashed lines so matches part D
-    if block_print is False:
-        print(df_out.columns)
-    axes['B'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(ydat), np.max(ydat)], ':b')
+
+    axes['B'].plot([df_out['Diad2_Voigt_Cent'], df_out['Diad2_Voigt_Cent']], [np.min(ydat), np.max(ydat)], ':b')
 
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
         if len(peak_pos_voigt)>=2:
@@ -1506,8 +1558,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     # First, set up x and y limits on axis
 
     if config1.x_range_baseline is not None:
-        axc_xmin=df_out['Diad2_Cent'][0]-config1.x_range_baseline
-        axc_xmax=df_out['Diad2_Cent'][0]+config1.x_range_baseline
+        axc_xmin=df_out['Diad2_Voigt_Cent'][0]-config1.x_range_baseline
+        axc_xmax=df_out['Diad2_Voigt_Cent'][0]+config1.x_range_baseline
     else:
         axc_xmin=config1.lower_bck_diad2[0]
         axc_xmax=config1.upper_bck_diad2[1]
@@ -1541,9 +1593,9 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
         axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
 
 
-
-
     axes['C'].legend()
+
+
     axes['C'].set_xlim([axc_xmin, axc_xmax])
     axes['C'].set_ylim([axc_ymin, axc_ymax])
     #axes['C'].plot(Diad_short[:, 0], Diad_short[:, 1], '"r', label='Data')
@@ -1551,7 +1603,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     # Residual on plot D
     axes['D'].set_title('f) Residuals')
-    axes['D'].plot([df_out['Diad2_Cent'], df_out['Diad2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], ':b')
+    axes['D'].plot([df_out['Diad2_Voigt_Cent'], df_out['Diad2_Voigt_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], ':b')
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
         if len(peak_pos_voigt)>=2:
             axes['D'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad2_coords), np.max(residual_diad2_coords)], ':r')
@@ -1562,10 +1614,10 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     axes['D'].set_xlabel('Wavenumber')
     # axes['D'].set_xlim(ax1_xlim)
     # axes['D'].set_xlim(ax2_xlim)
-    Local_Residual_diad2=residual_diad2_coords[((xdat_inrange>(df_out['Diad2_Cent'][0]-config1.x_range_residual))
-                                            &(xdat_inrange<df_out['Diad2_Cent'][0]+config1.x_range_residual))]
-    axes['D'].set_xlim([df_out['Diad2_Cent'][0]-config1.x_range_residual,
-                df_out['Diad2_Cent'][0]+config1.x_range_residual])
+    Local_Residual_diad2=residual_diad2_coords[((xdat_inrange>(df_out['Diad2_Voigt_Cent'][0]-config1.x_range_residual))
+                                            &(xdat_inrange<df_out['Diad2_Voigt_Cent'][0]+config1.x_range_residual))]
+    axes['D'].set_xlim([df_out['Diad2_Voigt_Cent'][0]-config1.x_range_residual,
+                df_out['Diad2_Voigt_Cent'][0]+config1.x_range_residual])
     #ax5.plot([cent_1117, cent_1117 ], [np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10], ':k')
     axes['D'].set_ylim([np.min(Local_Residual_diad2)-10, np.max(Local_Residual_diad2)+10])
 
@@ -1608,7 +1660,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
 def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: diad_id_config=diad_id_config(),
-    path=None, filename=None, peak_pos_voigt=None,filetype=None, block_print=True, close_figure=True):
+    path=None, filename=None, peak_pos_voigt=None,filetype=None, close_figure=True):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -1688,7 +1740,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
                     peak_pos_voigt=peak_pos_voigt,
                     peak_pos_gauss=config1.peak_pos_gauss,
                     gauss_sigma=config1.gauss_sigma,  gauss_amp=config1.gauss_amp,
-                    span=span_diad1, plot_figure=False, block_print=block_print)
+                    span=span_diad1, plot_figure=False)
 
     # get a best fit to the baseline using a linspace from the peak fitting
     ybase_xlin=Pf_baseline_diad1(x_lin)
@@ -1707,8 +1759,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     CD
     EE
     """
-    if block_print is False:
-        print('Making summary figure of different fits for saving')
+
     fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
     fig.suptitle('Diad 1, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
 
@@ -1789,7 +1840,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     axes['B'].set_xlim(ax2_xlim)
 
     # Dashed lines so matches part D
-    axes['B'].plot([df_out['Diad1_Cent'], df_out['Diad1_Cent']], [np.min(ydat), np.max(ydat)], ':b')
+    axes['B'].plot([df_out['Diad1_Voigt_Cent'], df_out['Diad1_Voigt_Cent']], [np.min(ydat), np.max(ydat)], ':b')
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
         if len(peak_pos_voigt)>=2:
             axes['B'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(ydat), np.max(ydat)], ':r')
@@ -1801,8 +1852,8 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     # First, set up x and y limits on axis
 
     if config1.x_range_baseline is not None:
-        axc_xmin=df_out['Diad1_Cent'][0]-config1.x_range_baseline
-        axc_xmax=df_out['Diad1_Cent'][0]+config1.x_range_baseline
+        axc_xmin=df_out['Diad1_Voigt_Cent'][0]-config1.x_range_baseline
+        axc_xmax=df_out['Diad1_Voigt_Cent'][0]+config1.x_range_baseline
     else:
         axc_xmin=config1.lower_bck_diad1[0]
         axc_xmax=config1.upper_bck_diad1[1]
@@ -1846,7 +1897,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
     # Residual on plot D
     axes['D'].set_title('f) Residuals')
-    axes['D'].plot([df_out['Diad1_Cent'], df_out['Diad1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], ':b')
+    axes['D'].plot([df_out['Diad1_Voigt_Cent'], df_out['Diad1_Voigt_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], ':b')
     if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
         if len(peak_pos_voigt)>=2:
             axes['D'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad1_coords), np.max(residual_diad1_coords)], ':r')
@@ -1857,10 +1908,10 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     axes['D'].set_xlabel('Wavenumber')
     # axes['D'].set_xlim(ax1_xlim)
     # axes['D'].set_xlim(ax2_xlim)
-    Local_Residual_diad1=residual_diad1_coords[((xdat_inrange>(df_out['Diad1_Cent'][0]-config1.x_range_residual))
-                                            &(xdat_inrange<df_out['Diad1_Cent'][0]+config1.x_range_residual))]
-    axes['D'].set_xlim([df_out['Diad1_Cent'][0]-config1.x_range_residual,
-                df_out['Diad1_Cent'][0]+config1.x_range_residual])
+    Local_Residual_diad1=residual_diad1_coords[((xdat_inrange>(df_out['Diad1_Voigt_Cent'][0]-config1.x_range_residual))
+                                            &(xdat_inrange<df_out['Diad1_Voigt_Cent'][0]+config1.x_range_residual))]
+    axes['D'].set_xlim([df_out['Diad1_Voigt_Cent'][0]-config1.x_range_residual,
+                df_out['Diad1_Voigt_Cent'][0]+config1.x_range_residual])
     #ax5.plot([cent_1117, cent_1117 ], [np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10], ':k')
 
 
@@ -1921,8 +1972,8 @@ to_clipboard=True, path=None):
             combo['C13_Cent']=np.nan
             combo['C13_Area']=0
 
-        combo['Splitting']=combo['Diad2_Cent']-combo['Diad1_Cent']
-        cols_to_move = ['Splitting', 'Diad1_Cent', 'Diad1_Area', 'Diad1_Sigma', 'Diad1_Gamma', 'Residual_Diad1', 'Diad2_Cent', 'Diad2_Area', 'Diad2_Sigma', 'Diad2_Gamma', 'Residual_Diad2',
+        combo['Splitting']=combo['Diad2_Voigt_Cent']-combo['Diad1_Voigt_Cent']
+        cols_to_move = ['Splitting', 'Diad1_Combofit_Cent', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma', 'Diad1_Voigt_Gamma', 'Residual_Diad1', 'Diad2_Combofit_Cent', 'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Residual_Diad2',
                     'HB1_Cent', 'HB1_Area', 'HB2_Cent', 'HB2_Area', 'C13_Cent', 'C13_Area']
         combo_f = combo[cols_to_move + [
                 col for col in combo.columns if col not in cols_to_move]]
@@ -1937,11 +1988,12 @@ to_clipboard=True, path=None):
 
 
         if Carb_fit is not None:
-            width=np.shape(combo_f)[1]
-            combo_f.insert(width, 'Carb_Cent',Carb_fit['Carb_Cent'])
-            combo_f.insert(width+1, 'Carb_Area',Carb_fit['Carb_Area'])
-            area_ratio=Carb_fit['Carb_Area']/(combo_f['Diad1_Area']+combo_f['Diad2_Area'])
-            combo_f.insert(width+2, 'Carb_Area/Diad_Area',  area_ratio)
+            combo_f=pd.concat([combo_f, Carb_fit], axis=1)
+            # width=np.shape(combo_f)[1]
+            # combo_f.insert(width, 'Carb_Cent',Carb_fit['Carb_Cent'])
+            # combo_f.insert(width+1, 'Carb_Area',Carb_fit['Carb_Area'])
+            # area_ratio=Carb_fit['Carb_Area']/(combo_f['Diad1_Voigt_Area']+combo_f['Diad2_Voigt_Area'])
+            # combo_f.insert(width+2, 'Carb_Area/Diad_Area',  area_ratio)
             if to_clipboard is True:
                 combo_f.to_clipboard(excel=True, header=False, index=False)
 
@@ -1950,11 +2002,11 @@ to_clipboard=True, path=None):
     if Diad1_fit is None and Diad2_fit is None:
         df=pd.DataFrame(data={'filename': filename,
                             'Splitting': np.nan,
-                                'Diad1_Cent':np.nan,
-                                    'Diad1_Area':np.nan,
+                                'Diad1_Voigt_Cent':np.nan,
+                                    'Diad1_Voigt_Area':np.nan,
                                     'Residual_Diad1': np.nan,
-                                        'Diad2_Cent':np.nan,
-                                        'Diad2_Area':np.nan,
+                                        'Diad2_Voigt_Cent':np.nan,
+                                        'Diad2_Voigt_Area':np.nan,
                                         'Residual_Diad2': np.nan,
                                             'HB1_Cent':np.nan,
                                                 'HB1_Area':np.nan,
@@ -1962,10 +2014,8 @@ to_clipboard=True, path=None):
                                                     'HB2_Area':np.nan,
                                                         'C13_Cent': np.nan,
                                                         'C13_Area': np.nan,
-                                                        'Carb_Cent':Carb_fit['Carb_Cent'],
-                                                        'Carb_Area': Carb_fit['Carb_Area'],
-                                                        'Carb_Area/Diad_Area':np.nan
                                                         })
+        combo_f=pd.concat([df, Carb_fit], axis=1)
         if to_clipboard is True:
             df.to_clipboard(excel=True, header=False, index=False)
         combo_f=df
@@ -2080,7 +2130,7 @@ class carb_peak_config:
 
 def fit_carbonate_peak(*, config: carb_peak_config=carb_peak_config(),
 path=None, filename=None, filetype=None,
-fit_carbonate=None, block_print=True, plot_figure=True):
+fit_carbonate=None, plot_figure=True):
 
     """ This function fits a carbonate peak with a gaussian, and returns a plot
 
@@ -2180,10 +2230,7 @@ fit_carbonate=None, block_print=True, plot_figure=True):
 
         # Trim number of peaks based on user-defined N peaks
         df_peak_sort_short=df_peak_sort[0:config.N_peaks]
-        if block_print is False:
-            print('Found peaks at:')
-            print(df_peak_sort_short)
-            print('Only returning up to N_peaks')
+
 
         # Get actual baseline
         Baseline_with_outl=Spectra_short[
@@ -2250,8 +2297,8 @@ fit_carbonate=None, block_print=True, plot_figure=True):
         height=np.max(y_carb)
 
         # Plotting what its doing
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
-        fig.suptitle('Secondary Phase, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,4))
+        fig.suptitle('Secondary Phase, file= '+ str(filename), fontsize=12, x=0.5, y=1.0)
 
         # Plot the peak positions and heights
 
@@ -2362,10 +2409,10 @@ def proceed_to_fit_diads(filename, Carb_fit, diads_present=False):
 
         df=pd.DataFrame(data={'filename': filename,
                             'Splitting': np.nan,
-                                'Diad1_Cent':np.nan,
-                                    'Diad1_Area':np.nan,
-                                        'Diad2_Cent':np.nan,
-                                        'Diad2_Area':np.nan,
+                                'Diad1_Voigt_Cent':np.nan,
+                                    'Diad1_Voigt_Area':np.nan,
+                                        'Diad2_Voigt_Cent':np.nan,
+                                        'Diad2_Voigt_Area':np.nan,
                                             'HB1_Cent':np.nan,
                                                 'HB1_Area':np.nan,
                                                 'HB2_Cent':np.nan,
@@ -2386,6 +2433,9 @@ def proceed_to_fit_diads(filename, Carb_fit, diads_present=False):
 
 @dataclass
 class generic_peak_config:
+
+    # Name that gets stamped onto fits
+    name: str= 'generic'
     # Selecting the two background positions
     lower_bck: Tuple[float, float]=(1060, 1065)
     upper_bck: Tuple[float, float]=(1120, 1130)
@@ -2428,7 +2478,7 @@ class generic_peak_config:
 
 def fit_generic_peak(*, config: generic_peak_config=generic_peak_config(),
 path=None, filename=None, filetype=None,
- block_print=True, plot_figure=True):
+ plot_figure=True):
 
     """ This function fits a generic peak with a gaussian, and returns a plot
 
@@ -2479,8 +2529,8 @@ path=None, filename=None, filetype=None,
     return_other_params: bool
         if False (Default), returns just df of fit information
         if True, also returns:
-            xx_carb: :linspace for plotting
-            y_carb: Best fit to background-subtracted data
+            xx_generic: :linspace for plotting
+            y_generic: Best fit to background-subtracted data
             result0: fit results from lmfit
 
     """
@@ -2488,7 +2538,7 @@ path=None, filename=None, filetype=None,
 
     Spectra_in=get_data(path=path, filename=filename, filetype=filetype)
 
-
+    name=config.name
 
     # If exclude range, trim that here
     if config.exclude_range is not None:
@@ -2524,10 +2574,7 @@ path=None, filename=None, filetype=None,
 
     # Trim number of peaks based on user-defined N peaks
     df_peak_sort_short=df_peak_sort[0:config.N_peaks]
-    if block_print is False:
-        print('Found peaks at:')
-        print(df_peak_sort_short)
-        print('Only returning up to N_peaks')
+
 
     # Get actual baseline
     Baseline_with_outl=Spectra_short[
@@ -2609,7 +2656,7 @@ path=None, filename=None, filetype=None,
     lw=3, label='_bck points')
 
 
-    ax2.set_title('Bkg-subtracted, carbonate peak fit')
+    ax2.set_title('Bkg-subtracted, ' + name + ' peak fit')
 
     ax2.plot(xx_carb, y_carb, '-k', label='Peak fit')
 
@@ -2650,14 +2697,14 @@ path=None, filename=None, filetype=None,
         if os.path.exists(path3):
             out='path exists'
         else:
-            os.makedirs(path+'/'+ 'Carbonate_fit_images', exist_ok=False)
+            os.makedirs(path+'/'+ name + '_fit_images', exist_ok=False)
 
         file=filename.rsplit('.txt', 1)[0]
-        fig.savefig(path3+'/'+'Carbonate_Fit_{}.png'.format(file), dpi=config.dpi)
+        fig.savefig(path3+'/'+ name +'_Fit_{}.png'.format(file), dpi=config.dpi)
 
-    df=pd.DataFrame(data={'Peak_Cent': Center_p0,
-    'Peak_Area': area_p0,
-    'Peak_Height': height}, index=[0])
+    df=pd.DataFrame(data={'Peak_Cent_{}'.format(name): Center_p0,
+    'Peak_Area_{}'.format(name): area_p0,
+    'Peak_Height_{}'.format(name): height}, index=[0])
 
 
     if config.return_other_params is True:

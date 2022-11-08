@@ -14,6 +14,8 @@ from tqdm import tqdm
 encode="ISO-8859-1"
 
 ## Functions for getting file names
+
+
 def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True):
     """ This function takes a user path, and extracts all files which contain the ID_str
 
@@ -70,8 +72,7 @@ def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_st
 
 
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
-    print('exclude type')
-    print(exclude_type)
+
 
     Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_type not in item]
 
@@ -632,8 +633,6 @@ def extracting_filenames_generic(*, names, prefix=False,
     file_m=np.empty(len(names), dtype=object)
     for i in range(0, len(names)):
         name=names.iloc[i]
-        print(name)
-        print(type(name))
         # If no prefix or suffix to remove, simple
         if prefix is False and suffix is False:
             file_m[i]=name
@@ -641,15 +640,15 @@ def extracting_filenames_generic(*, names, prefix=False,
         else:
             if prefix is True:
                 str_nof_name=name.split(str_prefix, maxsplit=1)[1:]
-                print(str_nof_name)
-                print(type(str_nof_name))
+                # print(str_nof_name)
+                # print(type(str_nof_name))
             if prefix is False:
                 str_nof_name=name
 
             if suffix is True:
                 file_m[i]=str_nof_name.split(str_suffix, maxsplit=1)[0]
             if suffix is False:
-                file_m[i]=str_nof_name
+                file_m[i]=str_nof_name[0]
 
         if file_type in file_m[i]:
             file_m[i]=file_m[i].replace(file_type, '')
@@ -682,3 +681,51 @@ def extract_temp_Aranet(df):
         secs_sm[i]=float(hour[i])*60*60+float(minutes[i])*60+float(seconds[i])
 
     return secs_sm
+
+
+## Stitching together looped and individually fitted spectra
+
+
+def get_ind_saved_files(*, path, ID_str='ind_fit_', sort=True, file_ext='.csv'):
+
+    Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
+    ind_files=[item for item in Allfiles if ID_str in item and file_ext in item]
+
+    if sort is True:
+        ind_files=sorted(ind_files)
+    return ind_files
+
+
+
+def stitch_loop_individual_fits(*, fit_individually=True,
+    saved_spectra_path, looped_df,
+  ID_str='ind_fit_', sort=True,  file_ext='.csv'):
+
+    df_Dense=looped_df.copy()
+
+    ind_files=get_ind_saved_files(path=saved_spectra_path,
+        sort=sort, ID_str=ID_str, file_ext=file_ext)
+
+    if fit_individually:
+        df_Dense2 = pd.DataFrame([])
+        for file in ind_files:
+            data=pd.read_csv(file)
+            df_Dense2 = pd.concat([df_Dense2, data], axis=0)
+
+        df_Dense_loop=df_Dense.reset_index(drop=True)
+        cols=list(df_Dense_loop.columns)
+        for file in df_Dense_loop['filename'].unique():
+            if file in df_Dense2['filename'].unique():
+                df_Dense2_fill=df_Dense2.loc[df_Dense2['filename']==file]
+                df_Dense_loop.loc[df_Dense_loop['filename']==file, cols]= df_Dense2_fill[cols].values
+
+            else:
+                df_Dense_Fill=df_Dense_loop.loc[df_Dense_loop['filename']==file]
+                df_Dense_loop.loc[df_Dense_loop['filename']==file, cols]=df_Dense_Fill[cols]
+                #df_Dense_loop.loc[df_Dense_loop['filename']==file, 'filename']= file + str(' ind_fit')
+
+        df_Dense_Combo=df_Dense_loop.copy()
+    else:
+        df_Dense_Combo=df_Dense
+
+    return df_Dense_Combo
