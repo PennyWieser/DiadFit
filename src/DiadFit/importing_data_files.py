@@ -47,7 +47,7 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
     return Ne_files
 
 
-def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_str_2='ne', exclude_str_3='Si_wafer', exclude_type='.png'):
+def get_diad_files(path, sort=True, file_ext='txt', exclude_str=None, exclude_str_2=None, exclude_str_3=None, exclude_str_4=None, exclude_type='.png'):
     """ This function takes a user path, and extracts all files which dont contain the excluded string and type
 
     Parameters
@@ -73,9 +73,18 @@ def get_diad_files(path, sort=True, file_ext='txt', exclude_str='Ne', exclude_st
 
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
 
+    if exclude_str is None:
+        Diad_files=[item for item in Allfiles and exclude_type not in item]
+    if exclude_str is not None:
+        Diad_files=[item for item in Allfiles if exclude_str not in item and exclude_type not in item]
+    if exclude_str_2 is not None:
+        Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_type not in item ]
+    if exclude_str_3 is not None:
+        Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_type not in item]
+    if exclude_str_4 is not None:
+        Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_str_4 not in item and exclude_type not in item]
 
-    Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_type not in item]
-
+        Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_str_4 not in item and exclude_type not in item]
     if sort is True:
 
         Diad_files2=sorted(Diad_files)
@@ -523,8 +532,13 @@ def calculates_time(*, path, filename):
 
 
 
+
+        # If its any pm after 12, you add 12 hours to the time
         if line3_hr != '12' and 'PM' in line2:
             line3_sec_int=12*60*60+float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)
+        elif line3_hr=='12' and 'AM' in line2:
+            line3_sec_int=float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)-12*60*60
+        # If its 12 pm,  then you can just do the maths as normal
         else:
             line3_sec_int=float(line3_hr)*60*60+float(line3_min)*60+float(line3_sec)
 
@@ -538,13 +552,17 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
         path=os.getcwd()
     # string values
     time_str=[]
+    hour_str=[]
     filename_str=[]
     duration_str=[]
     date_str=[]
+    month_str=[]
     # Numerical values
     Int_time=np.empty(len(Allfiles), dtype=float)
     objec=np.empty(len(Allfiles), dtype=float)
     time=np.empty(len(Allfiles), dtype=float)
+
+    Day=np.empty(len(Allfiles), dtype=float)
     power=np.empty(len(Allfiles), dtype=float)
     accumulations=np.empty(len(Allfiles), dtype=float)
     spectral_cent=np.empty(len(Allfiles), dtype=float)
@@ -561,8 +579,10 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
         powr, accums, integ, Obj, Dur, dat, spec=extract_acq_params(path=path,
                                                        filename=filename1, trupower=trupower)
 
+        date2=dat.split(',')[0]
+        m_str=date2.split(' ')[0]
 
-
+        Day[i]=date2.split(' ')[1]
         Int_time[i]=integ
         objec[i]=Obj
         power[i]=powr
@@ -571,6 +591,9 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
 
 
         time[i]=time_num
+
+
+        month_str.append(format(m_str))
         time_str.append(format(t_str))
         filename_str.append(format(filename))
         duration_str.append(format(Dur))
@@ -579,8 +602,13 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
 
 
 
+
+
+
     Time_Df=pd.DataFrame(data={'filename': filename_str,
                                'date': date_str,
+                               'Month': month_str,
+                               'Day': Day,
                                'power (mW)': power,
                                'Int_time (s)': Int_time,
                                'accumulations': accumulations,
@@ -596,6 +624,26 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
 
     Time_Df_2=Time_Df_2.sort_values('sec since midnight', axis=0, ascending=True)
     print('Done')
+
+    # Check if the person worked after midnight (lame)
+    dates_unique=Time_Df_2['date'].unique()
+    month_unique=Time_Df_2['Month'].unique()
+    if len(dates_unique)>1:
+        print('Oof, try not to work after midnight!')
+
+    if len(dates_unique)>1 and len(month_unique)==1:
+        min_date=np.min(Time_Df_2['date'])
+        max_date=np.max(Time_Df_2['date'])
+
+        Time_Df_2.loc[Time_Df_2['date']==max_date, 'sec since midnight' ]= Time_Df_2['sec since midnight']+24*60*60
+
+    # If youve crossed a month boundary, the minimum date is the one you did afterwards.
+    if len(dates_unique)>1 and len(month_unique)>1:
+        min_date=np.min(Time_Df_2['date'])
+        max_date=np.max(Time_Df_2['date'])
+        Time_Df_2.loc[Time_Df_2['date']==min_date, 'sec since midnight' ]= Time_Df_2['sec since midnight']+24*60*60
+
+
 
     return Time_Df_2
 
@@ -665,7 +713,7 @@ def extracting_filenames_generic(*, names, prefix=False,
 def extract_temp_Aranet(df):
     """ Extracts temperature data from the aranet
     """
-    TD=df['Time(dd/mm/yyyy)']
+    TD=str(Temp['Time(dd/mm/yyyy)'])
     hour=np.empty(len(Temp), dtype=object)
     date=np.empty(len(Temp), dtype=object)
     time=np.empty(len(Temp), dtype=object)
@@ -673,8 +721,9 @@ def extract_temp_Aranet(df):
     seconds=np.empty(len(Temp), dtype=object)
     secs_sm=np.empty(len(Temp), dtype=object)
     for i in range(0, len(Temp)):
-        date[i]=TD.iloc[i].split(' ')[0]
-        time[i]=TD.iloc[i].split(' ')[1]
+        TD=str(Temp['Time(dd/mm/yyyy)'].iloc[i])
+        date[i]=TD.split(' ')[0]
+        time[i]=TD.split(' ')[1]
         hour[i]=time[i].split(':')[0]
         minutes[i]=time[i].split(':')[1]
         seconds[i]=time[i].split(':')[2]

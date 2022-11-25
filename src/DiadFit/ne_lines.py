@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
 import lmfit
-from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel
+from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel, PseudoVoigtModel
 from scipy.signal import find_peaks
 import os
 import re
@@ -135,7 +135,7 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
 
 def plot_Ne_lines(*, path=None, filename=None, filetype=None, n_peaks=6,
 peak1_cent=1118, peak2_cent=1447, exclude_range_1=None, Ne_array=None,
-exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width=1,):
+exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width=1, plot_figure=True, print_df=False):
 
     """
     Loads Ne line, uses scipy find peaks to identify peaks, overlays these,
@@ -182,6 +182,7 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
 
     """
 
+
     if filename is not None and path is not None and filetype is not None:
         Ne_in=get_data(path=path, filename=filename, filetype=filetype)
     if Ne_array is not None:
@@ -202,19 +203,6 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
     y=Ne[:, 1]
     x=Ne[:, 0]
 
-    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
-    ax0.plot(x, y, '-r')
-    miny=np.min(y)
-    maxy=np.max(y)
-    ax0.plot([1117, 1117], [miny, maxy], ':k')
-    ax0.plot([1220, 1220], [miny, maxy], ':k')
-    ax0.plot([1310, 1310], [miny, maxy], ':k')
-    ax0.plot([1398, 1398], [miny, maxy], ':k')
-    ax0.plot([1447, 1447], [miny, maxy], ':k')
-    ax0.plot([1566, 1566], [miny, maxy], ':k')
-
-    ax0.set_ylabel('Amplitude (counts)')
-    ax0.set_xlabel('Wavenumber (cm$^{-1}$)')
 
 
     peaks = find_peaks(y,height = height, threshold = threshold, distance = distance, prominence=prominence, width=width)
@@ -232,8 +220,9 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
     df_sort_Ne=df.sort_values('height', axis=0, ascending=False)
     df_sort_Ne_trim=df_sort_Ne[0:n_peaks]
 
-    print('Biggest 6 peaks:')
-    display(df_sort_Ne_trim)
+    if print_df is True:
+        print('Biggest 6 peaks:')
+        display(df_sort_Ne_trim)
 
     df_pk1=df_sort_Ne.loc[df['pos'].between(peak1_cent-5, peak1_cent+5)]
     df_pk2=df_sort_Ne.loc[df['pos'].between(peak2_cent-5, peak2_cent+5)]
@@ -242,61 +231,83 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
     df_pk2_trim=df_pk2[0:1]
 
 
+    if plot_figure is True:
+        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
+        ax0.plot(x, y, '-r')
+        miny=np.min(y)
+        maxy=np.max(y)
+        ax0.plot([1117, 1117], [miny, maxy], ':k')
+        ax0.plot([1220, 1220], [miny, maxy], ':k')
+        ax0.plot([1310, 1310], [miny, maxy], ':k')
+        ax0.plot([1398, 1398], [miny, maxy], ':k')
+        ax0.plot([1447, 1447], [miny, maxy], ':k')
+        ax0.plot([1566, 1566], [miny, maxy], ':k')
 
-    ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '-c', label='input')
-    ax1.plot(x, y, '-r', label='filtered')
-    ax1.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*c', label='all peaks')
+        ax0.set_ylabel('Amplitude (counts)')
+        ax0.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '-c', label='input')
+        ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '.c', label='input')
+        ax1.plot(Ne[:, 0], Ne[:, 1], '.r', label='input')
+        ax1.plot(x, y, '-r', label='filtered')
+        ax1.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*c', label='all peaks')
 
     if len(df_pk1_trim)==0:
-        print('No peak found within +-5 wavenumbers of peak position 1, have returned user-entered peak')
+        if print_df is True:
+            print('No peak found within +-5 wavenumbers of peak position 1, have returned user-entered peak')
         #ax1.plot(peak2_cent, df_pk2_trim['height'], '*k')
-        pos_pk1=str(peak1_cent)
-        ax1.annotate(pos_pk1, xy=(peak1_cent,
-        100-10), xycoords="data", fontsize=10, rotation=90)
+        if plot_figure is True:
+            pos_pk1=str(peak1_cent)
+            ax1.annotate(pos_pk1, xy=(peak1_cent,
+            100-10), xycoords="data", fontsize=10, rotation=90)
         nearest_pk1=peak1_cent
 
     else:
-        ax1.plot(df_pk1_trim['pos'], df_pk1_trim['height'], '*k', mfc='yellow', ms=8, label='selected peak')
+
         pos_pk1=str(np.round(df_pk1_trim['pos'].iloc[0], 1))
-        ax1.annotate(pos_pk1, xy=(df_pk1_trim['pos']-5,
+        if plot_figure is True:
+            ax1.annotate(pos_pk1, xy=(df_pk1_trim['pos']-5,
         df_pk1_trim['height']-10), xycoords="data", fontsize=10, rotation=90)
+            ax1.plot(df_pk1_trim['pos'], df_pk1_trim['height'], '*k', mfc='yellow', ms=8, label='selected peak')
         nearest_pk1=float(df_pk1_trim['pos'])
 
     if len(df_pk2_trim)==0:
-        print('No peak found within +-5 wavenumbers of peak position 2, have returned user-entered peak')
+        if print_df is True:
+            print('No peak found within +-5 wavenumbers of peak position 2, have returned user-entered peak')
         pos_pk2=str(peak2_cent)
         nearest_pk2=peak2_cent
-        ax2.annotate(pos_pk2, xy=(nearest_pk2,
+        if plot_figure is True:
+            ax2.annotate(pos_pk2, xy=(nearest_pk2,
         200), xycoords="data", fontsize=10, rotation=90)
 
     else:
-        ax2.plot(df_pk2_trim['pos'], df_pk2_trim['height'], '*k', mfc='yellow', ms=8,label='selected peak')
-        ax2.legend(bbox_to_anchor=(0.3,1.1))
-
         pos_pk2=str(np.round(df_pk2_trim['pos'].iloc[0], 1))
         nearest_pk2=float(df_pk2_trim['pos'])
-
-        ax2.annotate(pos_pk2, xy=(df_pk2_trim['pos']-5,
+        if plot_figure is True:
+            ax2.plot(df_pk2_trim['pos'], df_pk2_trim['height'], '*k', mfc='yellow', ms=8,label='selected peak')
+            ax2.legend(bbox_to_anchor=(0.3,1.1))
+            ax2.annotate(pos_pk2, xy=(df_pk2_trim['pos']-5,
         df_pk2_trim['height']/2), xycoords="data", fontsize=10, rotation=90)
 
-    ax1.set_xlim([peak1_cent-15, peak1_cent+15])
+    if plot_figure is True:
+        ax1.set_xlim([peak1_cent-15, peak1_cent+15])
 
-    ax1.set_xlim([peak1_cent-10, peak1_cent+10])
+        ax1.set_xlim([peak1_cent-10, peak1_cent+10])
 
-    ax2.plot(x, y, '-r')
-    ax2.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*k', mfc='yellow', ms=8)
-    #print(df_pk1)
+        ax2.plot(x, y, '-r')
+        ax2.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*k', mfc='yellow', ms=8)
+        #print(df_pk1)
 
 
-    ax2.set_xlim([peak2_cent-15, peak2_cent+15])
+        ax2.set_xlim([peak2_cent-15, peak2_cent+15])
 
-    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
-    ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
 
-    print('selected Peak 1 Pos')
-    print(nearest_pk1)
-    print('selected Peak 2 Pos')
-    print(nearest_pk2)
+    if print_df is True:
+        print('selected Peak 1 Pos')
+        print(nearest_pk1)
+        print('selected Peak 2 Pos')
+        print(nearest_pk2)
     return Ne, df_sort_Ne_trim, nearest_pk1, nearest_pk2
 
 
@@ -449,8 +460,9 @@ lower_bck=None, upper_bck1=None, upper_bck2=None):
 
 
 
-def fit_pk1(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98, sigma=0.28,
-LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
+def fit_pk1(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98, pk1_sigma=0.28,
+LH_offset_mini=[1.5, 3], peaks_pk1=2, model_name='PseudoVoigtModel', block_print=True,
+const_params=True) :
     """ This function fits the 1117 Ne line as 1 or two voigt peaks
 
     Parameters
@@ -486,6 +498,12 @@ LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
 
 
     """
+    if const_params is True:
+        min_off=0.8
+        max_off=1.2
+    if const_params is False:
+        min_off=0
+        max_off=100
 
     # Flatten x and y if needed
     xdat=x.flatten()
@@ -504,7 +522,10 @@ LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
     if peaks_pk1>1:
 
         # Setting up lmfit
-        model0 = VoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
+        if model_name == 'PseudoVoigtModel':
+            model0 = PseudoVoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
+        if model_name=="VoigtModel":
+            model0 = VoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
         pars0 = model0.make_params(p0_center=Ne_center, p0_amplitude=amplitude)
         init0 = model0.eval(pars0, x=xdat)
         result0 = model0.fit(ydat, pars0, x=xdat)
@@ -521,17 +542,24 @@ LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
 
         #Ne_center=Ne_center
         #rough_peak_positions=Ne_center-2
-
-        model1 = VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c1')
+        if model_name == 'PseudoVoigtModel':
+            model1 = PseudoVoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
+        if model_name=="VoigtModel":
+            model1 = VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
         pars1 = model1.make_params()
-        pars1['p1_'+ 'amplitude'].set(Amp_p0, min=0.8*Amp_p0, max=1.2*Amp_p0)
+        pars1['p1_'+ 'amplitude'].set(Amp_p0, min=min_off*Amp_p0, max=max_off*Amp_p0)
         pars1['p1_'+ 'center'].set(Center_p0, min=Center_p0-0.2, max=Center_p0+0.2)
-        pars1['p1_'+ 'fwhm'].set(fwhm_p0, min=fwhm_p0-1, max=fwhm_p0+1)
+        pars1['p1_'+ 'sigma'].set(pk1_sigma, min=pk1_sigma*min_off, max=pk1_sigma*max_off)
 
 
         # Second wee peak
         prefix='p2_'
-        peak = VoigtModel(prefix='p2_')#+ ConstantModel(prefix='c2')
+        if model_name == 'PseudoVoigtModel':
+            peak = PseudoVoigtModel(prefix='p2_')#+ ConstantModel(prefix='c0')
+        if model_name=="VoigtModel":
+            peak = VoigtModel(prefix='p2_')#+ ConstantModel(prefix='c0')
+
+
         pars = peak.make_params()
         minp2=Center_p0-LH_offset_mini[1]
         maxp2=Center_p0-LH_offset_mini[0]
@@ -553,8 +581,11 @@ LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
     if peaks_pk1==1:
         if block_print is False:
             print('fitting a single peak, if you want the shoulder, do peaks_pk1=2')
+            if model_name == 'PseudoVoigtModel':
+                model_combo = PseudoVoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
+            if model_name=="VoigtModel":
+                model_combo= VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
 
-        model_combo = VoigtModel(prefix='p1_')#+ ConstantModel()
 
 
         # create parameters with initial values
@@ -576,6 +607,9 @@ LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
     # Get center value
     Center_p1=result.best_values.get('p1_center')
     Center_p1_error=result.params.get('p1_center')
+
+    # Get mix of lorenz
+    Peak1_Prop_Lor=result.best_values.get('p1_fraction')
 
 
     if peaks_pk1==1:
@@ -644,10 +678,11 @@ LH_offset_mini=[1.5, 3], peaks_pk1=2, block_print=True) :
 
 
 
-    return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps
+    return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor
 
 
-def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=0.28, print_report=False) :
+def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, pk2_sigma=0.4,
+model_name='PseudoVoigtModel', print_report=False, const_params=True) :
     """ This function fits the 1447 Ne line as a single Voigt
 
     Parameters
@@ -678,6 +713,13 @@ def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=0
 
 
     """
+    if const_params is True:
+        min_off=0.8
+        max_off=1.2
+    if const_params is False:
+        min_off=0
+        max_off=100
+
 
     # This defines the range you want to fit (e.g. how big the tails are)
     lower_pk2=Ne_center+x_span[0]
@@ -689,24 +731,30 @@ def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=0
     Ne_pk2_reg_x_plot=x[(x>(lower_pk2-3))&(x<(upper_pk2+3))]
     Ne_pk2_reg_y_plot=y_corr[(x>(lower_pk2-3))&(x<(upper_pk2+3))]
 
+    if model_name == 'PseudoVoigtModel':
+        model = PseudoVoigtModel()#+ ConstantModel(prefix='c0')
+    if model_name=="VoigtModel":
+        model = VoigtModel()#+ ConstantModel(prefix='c0')
 
-    model = VoigtModel()#+ ConstantModel()
 
 
     # create parameters with initial values
-    params = model.make_params(center=Ne_center, amplitude=amplitude, sigma=sigma)
+    params = model.make_params(center=Ne_center, amplitude=amplitude, sigma=pk2_sigma)
 
     # Place bounds on center allowed
     params['center'].min = Ne_center+x_span[0]
     params['center'].max = Ne_center+x_span[1]
-
-
-
+    params['sigma'].max = pk2_sigma*max_off
+    params['sigma'].min = pk2_sigma*min_off
+    params['amplitude'].max = amplitude*max_off
+    params['amplitude'].min = amplitude*min_off
     result = model.fit(Ne_pk2_reg_y.flatten(), params, x=Ne_pk2_reg_x.flatten())
 
     # Get center value
     Center_pk2=result.best_values.get('center')
     Center_pk2_error=result.params.get('center')
+
+    Peak2_Prop_Lor=result.best_values.get('fraction')
 
     #print(result.best_values)
 
@@ -727,11 +775,13 @@ def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, sigma=0
     if print_report is True:
          print(result.fit_report(min_correl=0.5))
 
-    return Center_pk2,Area_pk2, sigma_pk2, gamma_pk2,  Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx
+    return Center_pk2,Area_pk2, sigma_pk2, gamma_pk2,  Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, Peak2_Prop_Lor
 
 ## Setting default Ne fitting parameters
 @dataclass
 class Ne_peak_config:
+
+    model_name: str = 'PseudoVoigtModel'
     # Things for the background positioning and fit
     N_poly_pk1_baseline: float = 1 #Degree of polynomial to fit to the baseline
     N_poly_pk2_baseline: float = 1 #Degree of polynomial to fit to the baseline
@@ -748,8 +798,12 @@ class Ne_peak_config:
     y_range_baseline: float= 200    # Where the y axis is cut off above the minimum baseline measurement
 
     # Things for fitting the primary peak
-    pk1_amplitude: float = 100
-    pk2_amplitude: float = 100
+    pk1_amplitude: float = 4000
+    pk2_amplitude: float = 10000
+    # Sigma for peaks
+    pk1_sigma: float = 0.4
+    pk2_sigma: float = 0.4
+
     # Things for plotting the primary peak
     x_range_peak: float=15 # How many units to each side are shown when plotting the peak fits
 
@@ -770,7 +824,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
     Ne=None, filename=None, path=None, prefix=True,
     plot_figure=True, loop=True,
     DeltaNe_ideal=330.477634, save_clipboard=True,
-    close_figure=False):
+    close_figure=False, const_params=True):
 
 
 
@@ -889,11 +943,13 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
         x_span_pk2_dist=abs(config.x_span_pk2[1]-config.x_span_pk2[0])
 
     # Fit the 1117 peak
-    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=config.pk1_amplitude)
+    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1,model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=config.pk1_amplitude, pk1_sigma=config.pk1_sigma,
+    const_params=const_params)
+
 
 
     # Fit the 1447 peak
-    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx = fit_pk2(x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, amplitude=config.pk2_amplitude)
+    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, Peak2_Prop_Lor = fit_pk2( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, amplitude=config.pk2_amplitude, pk2_sigma=config.pk2_sigma, const_params=const_params)
 
 
     # Calculate difference between peak centers, and Delta Ne
@@ -1080,11 +1136,14 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
                           'pk2_sigma': sigma_pk2,
                           'pk2_gamma': gamma_pk2,
                           'error_pk2': error_pk2,
+                          'Peak2_Prop_Lor': Peak2_Prop_Lor,
                           'pk1_peak_cent':cent_pk1,
                           'pk1_amplitude': Area_pk1,
                           'pk1_sigma': sigma_pk1,
                           'pk1_gamma': gamma_pk1,
                           'error_pk1': error_pk1,
+                          'Peak1_Prop_Lor': Peak1_Prop_Lor,
+
                          'deltaNe': DeltaNe,
                          'Ne_Corr': Ne_Corr,
                          'Ne_Corr_min':Ne_Corr_min,
@@ -1147,9 +1206,14 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
     return fig
 
 ## Looping Ne lines
-def loop_Ne_lines(*, files, path, filetype,
-                  config, peaks_1,  Ne_center_1,
-                  Ne_center_2, DeltaNe_ideal, prefix=None,
+def loop_Ne_lines(*, files, spectra_path, filetype,
+                  config, peaks_1,
+                  DeltaNe_ideal,
+                  peak1_cent, peak2_cent, height=10,
+                threshold=0.6, distance=1, prominence=10, width=1,
+                exclude_range_1=None,
+                exclude_range_2=None,
+                 prefix=None, print_df=False,
                   plot_figure=True, save_clipboard=True, single_acq=True):
 
     df = pd.DataFrame([])
@@ -1160,8 +1224,8 @@ def loop_Ne_lines(*, files, path, filetype,
 
             data=fit_Ne_lines(
             config=config, peaks_1=peaks_1,
-            Ne=Ne, filename=filename, path=path, prefix=prefix,
-            Ne_center_1=Ne_center_1, Ne_center_2=Ne_center_2,
+            Ne=Ne, filename=filename, spectra_path=spectra_path, prefix=prefix,
+            Ne_center_1=nearest_pk1, Ne_center_2=nearest_pk2,
             DeltaNe_ideal=DeltaNe_ideal, plot_figure=plot_figure,
             save_clipboard=save_clipboard)
             df = pd.concat([df, data], axis=0)
@@ -1170,11 +1234,18 @@ def loop_Ne_lines(*, files, path, filetype,
     if single_acq is False:
         for i in tqdm(range(0, len(files))):
             filename=files[i]
-            Ne=get_data(path=path, filename=filename, filetype=filetype)
+
+            Ne, df_sort_Ne_trim, nearest_pk1, nearest_pk2=plot_Ne_lines(path=spectra_path,
+                filename=filename, filetype=filetype,
+                n_peaks=6, peak1_cent=peak1_cent, peak2_cent=peak2_cent,
+                height=10, threshold=0.6, distance=1, prominence=10, width=1,
+                exclude_range_2=None, plot_figure=False, print_df=False)
+
+
             data=fit_Ne_lines(
             config=config, peaks_1=peaks_1,
-            Ne=Ne, filename=filename, path=path, prefix=prefix,
-            Ne_center_1=Ne_center_1, Ne_center_2=Ne_center_2,
+            Ne=Ne, filename=filename, path=spectra_path, prefix=prefix,
+            Ne_center_1=nearest_pk1, Ne_center_2=nearest_pk2,
             DeltaNe_ideal=DeltaNe_ideal, plot_figure=plot_figure,
             save_clipboard=save_clipboard)
             df = pd.concat([df, data], axis=0)

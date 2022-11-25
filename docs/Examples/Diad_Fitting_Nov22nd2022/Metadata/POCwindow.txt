@@ -1,0 +1,39 @@
+Video Stitch--047
+
+General:
+System ID: 	100-1200-1488
+Start Time: 	5:22:35 PM
+Start Date: 	Saturday, November 28, 2020
+Duration: 	0h 0m 15s
+User Name: 	Witec
+
+Video System:
+Objective Name: 	Zeiss  5x / 0.251
+Objective Magnification: 	5
+Image Width [µm]: 	4131.297
+Image Height [µm]: 	4131.297
+Camera Exposure [s]: 	1/168
+Camera Gain [dB]: 	0.00
+
+Illumination:
+Reflection Light [%]: 	1.00
+Transmission Light [%]: 	Off
+
+Stitching Settings:
+Stitching Table: 	Sample Positioner
+
+Size X [Pixel]: 	1713
+Size Y [Pixel]: 	1713
+
+Origin X [µm]: 	347.603
+Origin Y [µm]: 	2549.245
+Origin Z [µm]: 	0.000
+Gamma [°]: 	0.0
+
+Number of Stitching Images: 	16
+Number of Stitching Images X: 	4
+Number of Stitching Images Y: 	4
+
+Scan Table:
+Position X [µm]: 	0.000
+Position Y [µm]: 	0.000
