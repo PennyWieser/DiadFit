@@ -51,6 +51,13 @@ class diad_id_config:
     approx_diad2_pos: Tuple[float, float]=(1379, 1395)
     approx_diad1_pos: Tuple[float, float]=(1275, 1295)
 
+    # Diad window
+    Diad_window_width=30
+    Diad2_window: Tuple[float, float]=(approx_diad2_pos[0]-Diad_window_width, approx_diad2_pos[1]+Diad_window_width)
+    Diad1_window: Tuple[float, float]=(approx_diad1_pos[0]-Diad_window_width, approx_diad1_pos[1]+Diad_window_width)
+
+    approx_diad2_pos_3peaks: Tuple[float, float]=(1379, 1395, 1379-17)
+
     # Thresholds for Scipy find peaks
     height: float = 400
     distance: float = 5
@@ -131,7 +138,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
             Diad=Diad[(Diad[:, 0]<config.exclude_range1[0])|(Diad[:, 0]>config.exclude_range1[1])]
             Discard=Diad_old[(Diad_old[:, 0]>=config.exclude_range1[0]) & (Diad_old[:, 0]<=config.exclude_range1[1])]
 
-        # NEED TO FIX
+
         if config.exclude_range2 is not None and config.exclude_range1 is None:
             Diad_old=Diad.copy()
             Diad=Diad[(Diad[:, 0]<config.exclude_range2[0])|(Diad[:, 0]>config.exclude_range2[1])]
@@ -152,55 +159,69 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
             ((Diad_old[:, 0]>=config.exclude_range2[0]) & (Diad_old[:, 0]<=config.exclude_range2[1]))
             ]
 
+    if plot_figure is True:
+        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
 
+    # Now you have filtered out the bits you dont want to use, lets use scipy to find the peaks.
     y=Diad[:, 1]
     x=Diad[:, 0]
     peaks = find_peaks(y,height = config.height, threshold = config.threshold,
     distance = config.distance, prominence=config.prominence, width=config.width)
 
-    height = peaks[1]['peak_heights'] #list of the heights of the peaks
-    peak_pos = x[peaks[0]] #list of the peaks positions
+    # This gets the list of the peak heights
+    height = peaks[1]['peak_heights']
+    # This gets the list of peak positions.
+    peak_pos = x[peaks[0]]
     df=pd.DataFrame(data={'pos': peak_pos,
                         'height': height})
 
+    # Here, we are looking for peaks in the diad window.
 
+    df_pks_diad1=df[(df['pos']>config.Diad1_window[0]) & (df['pos']<config.Diad1_window[1]) ]
 
-    df_pks_diad1=df[(df['pos']>1220) & (df['pos']<1320) ]
     # Find peaks within the 2nd diad window
-    df_pks_diad2=df[(df['pos']>1350) & (df['pos']<1430) ]
+    df_pks_diad2=df[(df['pos']>config.Diad2_window[0]) & (df['pos']<config.Diad2_window[1]) ]
 
 
 
+    # Find N highest peaks within range you have selected.
     df_sort_diad1=df_pks_diad1.sort_values('height', axis=0, ascending=False)
     df_sort_diad1_trim=df_sort_diad1[0:n_peaks_diad1]
 
     df_sort_diad2=df_pks_diad2.sort_values('height', axis=0, ascending=False)
     df_sort_diad2_trim=df_sort_diad2[0:n_peaks_diad2]
 
+     # Check if any of the peaks for Diad2 fall within the range
     if any(df_sort_diad2_trim['pos'].between(config.approx_diad2_pos[0], config.approx_diad2_pos[1])):
         diad_2_peaks=tuple(df_sort_diad2_trim['pos'].values)
+    # If literally no peaks within the range.
     else:
+        # If you had asked for one peak, we return the average of the 2 peaks
         if n_peaks_diad2==1:
             if block_print is False:
-                print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad2_pos), 2)) +  'to move forwards')
+                print('WARNING: Couldnt find any peaks within approx_diad2_pos+-Diad_window_width, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad2_pos), 2)) +  'to move forwards')
             diad_2_peaks=np.array([np.average(config.approx_diad2_pos)])
+
         if n_peaks_diad2==2:
             if block_print is False:
-                print('WARNING: Couldnt find diad2, ive guesed a peak position of 1389.1 and 1410')
-            diad_2_peaks=np.array([np.average(config.approx_diad2_pos)])
-        if n_peaks_diad2==3:
+                print('WARNING: Couldnt find diad2, ive returned approx_diad2_pos from diad_id_config. Plotted in green')
+            diad_2_peaks=config.approx_diad2_pos
 
-            raise TypeError('WARNING: Couldnt find diad2, and you specified 3 peaks, try adjusting the Scipy peak parameters')
+
+    if n_peaks_diad2==3:
+        if len(diad_2_peaks)<3:
+            diad_2_peaks=config.approx_diad2_pos_3peaks
+            w.warn('WARNING: Couldnt find diad2, and you specified 3 peaks, ive returned the approx_diad2_pos_3peaks value from diad_id_config')
 
     if any(df_sort_diad1_trim['pos'].between(config.approx_diad1_pos[0], config.approx_diad1_pos[1])):
         diad_1_peaks=tuple(df_sort_diad1_trim['pos'].values)
-        if n_peaks_diad2==2:
+        if n_peaks_diad1==2:
             if len(diad_1_peaks)==1:
                 print('Warning - couldnt find hotband, guessing its positoin as 20 below the peak')
                 diad_1_peaks=(diad_1_peaks[0], diad_1_peaks[0]-20)
     else:
         if block_print is False:
-            print('WARNING: Couldnt find diad2, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad1_pos), 2)) +  'to move forwards')
+            print('WARNING: Couldnt find diad1, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad1_pos), 2)) +  'to move forwards')
         diad_1_peaks=np.array([np.average(config.approx_diad1_pos)])
 
 
@@ -208,8 +229,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
         print('Initial estimates: Diad1+HB=' +str(np.round(diad_1_peaks, 1)) + ', Diad2+HB=' + str(np.round(diad_2_peaks, 1)))
 
 
-    if plot_figure is True:
-        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
+
 
         ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
         ax0.plot(df['pos'], df['height'], '*k')
@@ -237,10 +257,10 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
         ax0.legend()
         ax1.set_title('Diad1')
         ax1.plot(Diad[:, 0],Diad[:, 1], '-r')
-        ax1.set_xlim([1200, 1350])
+        ax1.set_xlim([config.Diad1_window[0], config.Diad1_window[1]])
         ax2.set_title('Diad2')
         ax2.plot(Diad[:, 0],Diad[:, 1], '-r')
-        ax2.set_xlim([1350, 1450])
+        ax2.set_xlim([config.Diad2_window[0], config.Diad2_window[1]])
         #ax0.set_ylim[np.min(Diad[:, 1]), np.max(Diad[:, 1]) ])
         fig.tight_layout()
         ax2.plot(df_sort_diad2_trim['pos'], df_sort_diad2_trim['height'], '*k', mfc='yellow', ms=10)
@@ -3177,7 +3197,7 @@ def fit_gaussian_voigt_diad1(*,  path=None,filename=None, xdat=None, ydat=None, 
                     peak = PseudoVoigtModel(prefix='lz2_')# + ConstantModel(prefix='c1')
 
                 pars = peak.make_params()
-                pars[prefix + 'center'].set(max(peak_pos_voigt), min=max(peak_pos_voigt)-2, max=max(peak_pos_voigt)+2)
+                pars[prefix + 'center'].set(min(peak_pos_voigt), min=min(peak_pos_voigt)-2, max=min(peak_pos_voigt)+2)
                 pars[prefix + 'amplitude'].set(HB_amplitude, min=Peakp_Area/100, max=Peakp_Area/5)
                 pars[prefix+ 'fwhm'].set(Peakp_HW, min=Peakp_HW/10, max=Peakp_HW*10)
 
@@ -3324,8 +3344,8 @@ def fit_gaussian_voigt_diad1(*,  path=None,filename=None, xdat=None, ydat=None, 
             Peak2_Cent=result.best_values.get('lz2_center')
             Peak2_Int=result.best_values.get('lz2_amplitude')
             Peak3_Cent=None
-            ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+30]
-            ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+30]
+            ax1_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
+            ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
 
 
 
