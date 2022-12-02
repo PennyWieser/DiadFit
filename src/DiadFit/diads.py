@@ -159,8 +159,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
             ((Diad_old[:, 0]>=config.exclude_range2[0]) & (Diad_old[:, 0]<=config.exclude_range2[1]))
             ]
 
-    if plot_figure is True:
-        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
+
 
     # Now you have filtered out the bits you dont want to use, lets use scipy to find the peaks.
     y=Diad[:, 1]
@@ -229,7 +228,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
         print('Initial estimates: Diad1+HB=' +str(np.round(diad_1_peaks, 1)) + ', Diad2+HB=' + str(np.round(diad_2_peaks, 1)))
 
 
-
+    if plot_figure is True:
+        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
 
         ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
         ax0.plot(df['pos'], df['height'], '*k')
