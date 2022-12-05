@@ -1723,7 +1723,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
     if len(peak_pos_voigt)>1:
         axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
-    if len(peak_pos_voigt)>1:
+    if len(peak_pos_voigt)>2:
         axes['C'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-c', label='Peak3', linewidth=1)
 
     axes['C'].legend()
@@ -2861,10 +2861,13 @@ path=None, filename=None, filetype=None, model_name='VoigtModel',
 
 
 def filter_files_by_intensity(Diad_files, spectra_path, filetype,
-combo_upper_cutoff=3300, combo_lower_cutoff=-500, yoff=100):
+combo_upper_cutoff=3300, combo_lower_cutoff=-500, yoff=100,
+highback=True, bck_cutoff=1000):
     max_diad1=np.empty(len(Diad_files), dtype=float)
     max_diad2=np.empty(len(Diad_files), dtype=float)
     index_diad=np.empty(len(Diad_files), dtype=float)
+    Med_diad1=np.empty(len(Diad_files), dtype=float)
+    Med_diad2=np.empty(len(Diad_files), dtype=float)
     i=0
     for file in Diad_files:
 
@@ -2877,11 +2880,19 @@ combo_upper_cutoff=3300, combo_lower_cutoff=-500, yoff=100):
         #Med_central_back_diad2=np.nanmedian(Diad[(Diad[:, 0]>1300)& (Diad[:, 0]<1350)]
 
         Diad_diad1=Diad[(Diad[:, 0]>1260)& (Diad[:, 0]<1300)]
-        Diad_diad2=Diad[(Diad[:, 0]>1385)& (Diad[:, 0]<1395)]
+        Diad_diad2=Diad[(Diad[:, 0]>1380)& (Diad[:, 0]<1400)]
+        Med_diad1[i]=(Med_LHS_diad1)
+        Med_diad2[i]=(Med_RHS_diad2)
         max_diad1[i]=np.max(Diad_diad1[:, 1])-  (Med_LHS_diad1+Med_RHS_diad1)/2
         max_diad2[i]=np.max(Diad_diad2[:, 1]) - (Med_LHS_diad2+Med_RHS_diad2)/2
         index_diad[i]=i
         i=i+1
+
+    print(Med_diad1/Med_diad2)
+
+    high_back=(Med_diad1/Med_diad2)>bck_cutoff
+    print(sum(high_back))
+
 
 
     fig, (ax3, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
@@ -2905,17 +2916,32 @@ combo_upper_cutoff=3300, combo_lower_cutoff=-500, yoff=100):
     ax3.plot([np.min(index_diad), np.max(index_diad)],
              [combo_upper_cutoff, combo_upper_cutoff], '-r', lw=4)
     ax3.plot([np.min(index_diad), np.max(index_diad)],
-             [combo_lower_cutoff, combo_lower_cutoff], '-r', lw=4)
+             [combo_lower_cutoff, combo_lower_cutoff], '-b', lw=4)
 
     df_out=pd.DataFrame(data={'filename': Diad_files,
                               'Intensity': max_diad1+max_diad2})
 
 
     # This gets dense diad files
-    df_out_Dense=df_out.loc[(max_diad2+max_diad1)>combo_upper_cutoff]
-    df_out_Weak=df_out.loc[((max_diad2+max_diad1)<=combo_upper_cutoff)
-                                                   &((max_diad2+max_diad1)>combo_lower_cutoff) ]
-    df_out_nofit=df_out.loc[(max_diad2+max_diad1)<=combo_lower_cutoff]
+    if highback is False:
+        df_out_Grp1=df_out.loc[(max_diad2+max_diad1)>combo_upper_cutoff]
+        df_out_Grp2=df_out.loc[((max_diad2+max_diad1)<=combo_upper_cutoff)
+                                                    &((max_diad2+max_diad1)>combo_lower_cutoff) ]
+        df_out_Grp3=df_out.loc[(max_diad2+max_diad1)<=combo_lower_cutoff]
+
+    if highback is True:
+        df_out_highback=df_out.loc[high_back]
+        df_sort_highback=df_out_highback.sort_values(by='Intensity', ascending=True)
+        Diad_Files_highback=list(df_sort_highback['filename'])
+
+
+        print(Diad_Files_highback)
+        df_out_Grp1=df_out.loc[((max_diad2+max_diad1)>combo_upper_cutoff)&(~high_back)]
+        df_out_Grp2=df_out.loc[(((max_diad2+max_diad1)<=combo_upper_cutoff)
+                                                    &
+                                ((max_diad2+max_diad1)>combo_lower_cutoff)
+                                &(~high_back) )]
+        df_out_Grp3=df_out.loc[((max_diad2+max_diad1)<=combo_lower_cutoff)&(~high_back)]
 
     # ax1.set_yscale('log')
     # ax2.set_yscale('log')
@@ -2924,37 +2950,49 @@ combo_upper_cutoff=3300, combo_lower_cutoff=-500, yoff=100):
 
 
 
-    df_sort_Dense=df_out_Dense.sort_values(by='Intensity', ascending=True)
-    Diad_Files_Grp1=list(df_sort_Dense['filename'])
+    df_sort_Grp1=df_out_Grp1.sort_values(by='Intensity', ascending=True)
+    Diad_Files_Grp1=list(df_sort_Grp1['filename'])
 
-    df_sort_Weak=df_out_Weak.sort_values(by='Intensity', ascending=True)
-    Diad_Files_Grp2=list(df_sort_Weak['filename'])
+    df_sort_Grp2=df_out_Grp2.sort_values(by='Intensity', ascending=True)
+    Diad_Files_Grp2=list(df_sort_Grp2['filename'])
 
-    df_sort_nofit=df_out_nofit.sort_values(by='Intensity', ascending=True)
-    Diad_Files_Grp3=list(df_sort_nofit['filename'])
+    df_sort_Grp3=df_out_Grp3.sort_values(by='Intensity', ascending=True)
+    Diad_Files_Grp3=list(df_sort_Grp3['filename'])
 
-    fig, (ax0, ax1, ax2) = plt.subplots(3, 1, figsize=(12,10))
+
+
+
+
+    fig, (ax0, ax1, ax2, ax3) = plt.subplots(4, 1, figsize=(12,15))
+
+
+
     if len(Diad_Files_Grp3)>0:
         i=0
-        ax0.set_title('Diad_Files_Grp3')
+        ax0.set_title('Diad_Files_Grp3 - below lower cut off 1')
         for file in Diad_Files_Grp3:
             Diad=get_data(path=spectra_path, filename=file, filetype=filetype)
             ax0.plot(Diad[:, 0], Diad[:, 1]+i, '-k', lw=1)
             i=i+yoff
 
         i=0
-        ax1.set_title('Diad_Files_Grp2')
+        ax1.set_title('Diad_Files_Grp2 - between upper and lower cut off')
         for file in Diad_Files_Grp2:
             Diad=get_data(path=spectra_path, filename=file, filetype=filetype)
             ax1.plot(Diad[:, 0], Diad[:, 1]+i, '-r', lw=1)
             i=i+yoff
         i=0
-        ax2.set_title('Diad_Files_Grp1')
+        ax2.set_title('Diad_Files_Grp1 - above upper cut off')
         for file in Diad_Files_Grp1:
             Diad=get_data(path=spectra_path, filename=file, filetype=filetype)
             ax2.plot(Diad[:, 0], Diad[:, 1]+i, '-b', lw=1)
             i=i+yoff
-
+    if highback is True:
+        if len(Diad_Files_highback)>0:
+            for file in Diad_Files_highback:
+                Diad=get_data(path=spectra_path, filename=file, filetype=filetype)
+                ax3.plot(Diad[:, 0], Diad[:, 1]+i, '-c', lw=1)
+            ax3.set_title('high background')
     # fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,10))
     #
     # i=0
@@ -3014,7 +3052,10 @@ combo_upper_cutoff=3300, combo_lower_cutoff=-500, yoff=100):
     # fig.tight_layout()
 
 
-    return Diad_Files_Grp1,  Diad_Files_Grp2,  Diad_Files_Grp3
+    if highback is False:
+        Diad_Files_highback=[]
+    return Diad_Files_Grp1,  Diad_Files_Grp2,  Diad_Files_Grp3, Diad_Files_highback
+
 
 
 def plot_diad_spectra(Diad_Files_Specific=None, df_out=None, yoff=100):

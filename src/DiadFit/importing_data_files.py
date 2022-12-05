@@ -383,6 +383,7 @@ def extract_date(*, path, filename):
         if l.startswith('Start Date'):
             line=l
             break
+
     return line
 
 def checks_if_video(*, path, filename):
@@ -481,6 +482,7 @@ def extract_acq_params(*, path, filename, trupower=False):
         Dur=Dur_str.split()[1:]
 
         dat_str=extract_date(path=path, filename=filename)
+
         dat=dat_str.split(':')[1].split(',',1)[1].lstrip( )
 
         spec=extract_Spectral_Center(path=path, filename=filename)
@@ -571,18 +573,28 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
         filename1=Allfiles[i] #.rsplit('.',1)[0]
         if prefix is True:
             filename=filename1.split(' ')[1:][0]
+
         else:
             filename=filename1
+
         #print('working on file' + str(filename1))
         time_num, t_str=calculates_time(path=path, filename=filename1)
 
         powr, accums, integ, Obj, Dur, dat, spec=extract_acq_params(path=path,
                                                        filename=filename1, trupower=trupower)
 
-        date2=dat.split(',')[0]
-        m_str=date2.split(' ')[0]
-
-        Day[i]=date2.split(' ')[1]
+        if type(dat)==float:
+            if np.isnan(dat):
+                date2=dat
+        else:
+            date2=dat.split(',')[0]
+        if type(date2)==float:
+            if np.isnan(date2):
+                m_str=date2
+                Day[i]=date2
+        else:
+            m_str=date2.split(' ')[0]
+            Day[i]=date2.split(' ')[1]
         Int_time[i]=integ
         objec[i]=Obj
         power[i]=powr
