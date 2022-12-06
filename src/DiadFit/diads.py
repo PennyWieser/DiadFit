@@ -1163,6 +1163,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     Peak1_sigma=result.best_values.get('lz1_sigma')
     Peak1_gamma=result.best_values.get('lz1_gamma')
     Peak1_Prop_Lor=result.best_values.get('lz1_fraction')
+    Peak1_fwhm=result.params['lz1_fwhm'].value
 
     if Peak1_Int>=(diad_amplitude*10-0.1):
         w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the diad 2 config file')
@@ -1338,6 +1339,7 @@ def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, 
     residual_diad2=np.sum(((ydat_inrange-result_diad2_origx)**2)**0.5)/(len(ydat_inrange))
     df_out['Residual_Diad2']=residual_diad2
     df_out['Diad2_Prop_Lor']= Peak1_Prop_Lor
+    df_out['Diad2_fwhm']=Peak1_fwhm
 
     if peak_pos_gauss is not None:
         df_out['Gauss_Cent']=Gauss_cent
@@ -2110,11 +2112,11 @@ to_clipboard=True, path=None):
             combo['C13_Area']=0
 
         combo['Splitting']=combo['Diad2_Voigt_Cent']-combo['Diad1_Voigt_Cent']
-        cols_to_move = ['Splitting', 'Diad1_Combofit_Cent', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma', 'Diad1_Voigt_Gamma', 'Residual_Diad1', 'Diad1_Prop_Lor', 'Diad1_refit','Diad2_Combofit_Cent', 'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Residual_Diad2', 'Diad2_Prop_Lor', 'Diad2_refit',
+        cols_to_move = ['Splitting', 'Diad1_Combofit_Cent', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma', 'Diad1_Voigt_Gamma', 'Residual_Diad1', 'Diad1_Prop_Lor', 'Diad1_fwhm', 'Diad1_refit','Diad2_Combofit_Cent', 'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Residual_Diad2', 'Diad2_Prop_Lor', 'Diad2_fwhm', 'Diad2_refit',
                     'HB1_Cent', 'HB1_Area', 'HB2_Cent', 'HB2_Area', 'C13_Cent', 'C13_Area']
         combo_f = combo[cols_to_move + [
                 col for col in combo.columns if col not in cols_to_move]]
-        combo_f=combo_f.iloc[:, 0:20]
+        combo_f=combo_f.iloc[:, 0:len(cols_to_move)]
         file=filename.rsplit('.txt', 1)[0]
         combo_f.insert(0, 'filename', file)
 
@@ -3314,6 +3316,9 @@ def fit_gaussian_voigt_diad1(*,  path=None,filename=None, xdat=None, ydat=None, 
     Peak1_sigma=result.best_values.get('lz1_sigma')
     Peak1_gamma=result.best_values.get('lz1_gamma')
     Peak1_Prop_Lor=result.best_values.get('lz1_fraction')
+    Peak1_fwhm=Peak1_fwhm=result.params['lz1_fwhm'].value
+
+
 
     if Peak1_Int>=(diad_amplitude*10-0.1):
         w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the diad 2 config file')
@@ -3433,6 +3438,7 @@ def fit_gaussian_voigt_diad1(*,  path=None,filename=None, xdat=None, ydat=None, 
     residual_diad1=np.sum(((ydat_inrange-result_diad1_origx)**2)**0.5)/(len(ydat_inrange))
     df_out['Residual_Diad1']=residual_diad1
     df_out['Diad1_Prop_Lor']= Peak1_Prop_Lor
+    df_out['Diad1_fwhm']=Peak1_fwhm
 
     if peak_pos_gauss is not None:
         df_out['Gauss_Cent']=Gauss_cent
