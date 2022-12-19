@@ -17,18 +17,23 @@ import warnings as w
 
 encode="ISO-8859-1"
 
-def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII'):
+def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None, Spectra_y=None):
+
+    if Spectra_x is None:
+        Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
+
+        Spectra=np.array(Spectra_df)
+
+        Spectra_x=Spectra[:, 0]
+        Spectra_y=Spectra[:, 1]
 
 
-    Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
-
-    Spectra=np.array(Spectra_df)
 
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(4,3))
 
-    miny=np.min(Spectra[:, 1])
-    maxy=np.max(Spectra[:, 1])
+    miny=np.min(Spectra_x)
+    maxy=np.max(Spectra_y)
     ax1.plot([1090, 1090], [miny, maxy], ':k', label='Magnesite')
     ax1.plot([1131, 1131], [miny, maxy], '-',  alpha=0.5,color='grey', label='Anhydrite/Mg-Sulfate')
     #ax1.plot([1136, 1136], [miny, maxy], '-', color='grey', label='Mg-Sulfate')
@@ -36,7 +41,7 @@ def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII'):
     ax1.plot([1286, 1286], [miny, maxy], '-g',  alpha=0.5,label='Diad1')
     ax1.plot([1389, 1389], [miny, maxy], '-m', alpha=0.5, label='Diad2')
     ax1.legend()
-    ax1.plot(Spectra[:, 0], Spectra[:, 1], '-r')
+    ax1.plot(Spectra_x, Spectra_y, '-r')
     ax1.set_xlabel('Wavenumber (cm-1)')
     ax1.set_ylabel('Intensity')
 
@@ -49,7 +54,7 @@ class diad_id_config:
     exclude_range2: Optional [Tuple[float, float]] = None
     # Approximate diad position
     approx_diad2_pos: Tuple[float, float]=(1379, 1395)
-    approx_diad1_pos: Tuple[float, float]=(1275, 1295)
+    approx_diad1_pos: Tuple[float, float]=(1275, 1290)
 
     # Diad window
     Diad_window_width=30
@@ -77,6 +82,316 @@ def calculate_split(diad1_peaks, diad2_peaks):
         diad2=np.nanmedian(diad2_peaks)
     split=diad2-np.max(diad1_peaks)
     return split
+
+
+def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None, filename, filetype='Witec_ASCII',  plot_figure=True):
+    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+    Diad=np.array(Diad_df)
+
+
+    # First lets use find peaks
+    y=Diad[:, 1]
+    x=Diad[:, 0]
+    spec_res=np.abs(x[1]-x[0])
+    # Spacing of hotband from main peak
+    diad2_HB2_min_offset=19-spec_res
+    diad2_HB2_max_offset=23+spec_res
+
+    # Spacing of HB from main peak.
+    diad1_HB1_min_offset=19.8-spec_res
+    diad1_HB1_max_offset=20.4+spec_res
+
+    # Spacing of c13 from main peak
+    diad2_C13_min_offset=16.5-spec_res
+    diad2_C13_max_offset=20+spec_res
+
+    peaks = find_peaks(y,height = config.height, threshold = config.threshold,
+    distance = config.distance, prominence=config.prominence, width=config.width)
+
+    # This gets the list of peak positions.
+    peak_pos = x[peaks[0]]
+    height = peaks[1]['peak_heights']
+    df=pd.DataFrame(data={'pos': peak_pos,
+                        'height': height})
+
+    # Here, we are looking for peaks in the diad window.
+
+    df_pks_diad1=df[(df['pos']>config.Diad1_window[0]) & (df['pos']<config.Diad1_window[1]) ]
+
+    # Find peaks within the 2nd diad window
+    df_pks_diad2=df[(df['pos']>config.Diad2_window[0]) & (df['pos']<config.Diad2_window[1]) ]
+
+
+    # Find N highest peaks within range you have selected.
+    df_sort_diad1=df_pks_diad1.sort_values('height', axis=0, ascending=False)
+    if len(df_sort_diad1)>2:
+        df_sort_diad1_trim=df_sort_diad1 #[0:2]
+    else:
+        df_sort_diad1_trim=df_sort_diad1
+
+    df_sort_diad2=df_pks_diad2.sort_values('height', axis=0, ascending=False)
+    if len(df_sort_diad2)>3:
+        df_sort_diad2_trim=df_sort_diad2  #[0:3]
+
+    else:
+        df_sort_diad2_trim=df_sort_diad2
+
+    # Check if any peaks lie within the diad range.
+    right_pos_diad2=df_sort_diad2_trim['pos'].between(config.approx_diad2_pos[0], config.approx_diad2_pos[1])
+    if any(right_pos_diad2):
+        manual_diad2=False
+        df_sort_diad2_rightpos=df_sort_diad2_trim.loc[right_pos_diad2]
+        diad_2_diad=df_sort_diad2_rightpos.loc[df_sort_diad2_rightpos['height']==np.max(df_sort_diad2_rightpos['height'])]
+        df_out=pd.DataFrame(data={'filename': filename,
+                                'Diad2_pos': diad_2_diad['pos'],
+                                'Diad2_height': diad_2_diad['height']})
+
+
+        # We know the approx hotband position, look here.
+
+
+        if any(df_sort_diad2_trim['pos'].between(diad_2_diad['pos'].iloc[0]+diad2_HB2_min_offset, diad_2_diad['pos'].iloc[0]+diad2_HB2_max_offset)):
+
+            diad_2_HB=df_sort_diad2_trim.loc[df_sort_diad2_trim['pos'].between(diad_2_diad['pos'].iloc[0]+diad2_HB2_min_offset, diad_2_diad['pos'].iloc[0]+diad2_HB2_max_offset)]
+
+            df_out['HB2_pos']=diad_2_HB['pos'].iloc[0]
+            df_out['HB2_height']=diad_2_HB['height'].iloc[0]
+
+            # Now calculate prominence of this
+            # Find midpoint between diad and hotband
+            MidPoint_x_Diad2=(df_out['Diad2_pos'].iloc[0]+df_out['HB2_pos'].iloc[0])/2
+
+            # Find median y coordinate around this midpoint +-2 data points
+            MidPoint_y_Diad2=np.median(Diad[:, 1][
+            (Diad[:, 0]<MidPoint_x_Diad2+2*spec_res)
+            &(Diad[:, 0]>MidPoint_x_Diad2-2*spec_res)])
+
+
+            RHS_x_Diad2=(df_out['HB2_pos'].iloc[0])+15
+            RHS_y_Diad2=np.median(Diad[:, 1][
+            (Diad[:, 0]<RHS_x_Diad2+2*spec_res)
+            &(Diad[:, 0]>RHS_x_Diad2-2*spec_res)])
+            # First, find HB prominence
+
+            df_out['Diad2_HB2_Valley_prom']=MidPoint_y_Diad2-RHS_y_Diad2
+
+
+        else:
+
+            df_out['HB2_pos']=np.nan
+            df_out['HB2_height']=np.nan
+            df_out['Diad2_HB2_Valley_prom']=np.nan
+
+
+
+        if any(df_sort_diad2_trim['pos'].between(diad_2_diad['pos'].iloc[0]-diad2_C13_max_offset, diad_2_diad['pos'].iloc[0]-diad2_C13_min_offset)):
+            diad_2_C13=df_sort_diad2_trim.loc[df_sort_diad2_trim['pos'].between(diad_2_diad['pos'].iloc[0]-diad2_C13_max_offset, diad_2_diad['pos'].iloc[0]-diad2_C13_min_offset)]
+            df_out['C13_pos']=diad_2_C13['pos'].iloc[0]
+            df_out['C13_height']=diad_2_C13['height'].iloc[0]
+        else:
+            df_out['C13_pos']=np.nan
+            df_out['C13_height']=np.nan
+
+    else:
+        manual_diad2=True
+        # Lets find the highest bit within this range
+        diad2_range=(Diad[:, 0]>config.approx_diad2_pos[0]) & (Diad[:, 0]<config.approx_diad2_pos[1])
+        diad2_height=np.max(Diad[:, 1][diad2_range])
+        diad2_pos=Diad[:, 0][Diad[:, 1]==diad2_height]
+
+        # Lets see if we can allocate a hotband at around the right position after this
+
+
+        print('WARNING: Couldnt find any peaks within approx_diad2_pos+-Diad_window_width, taking the max peak positin within the window defined by' + str(config.approx_diad2_pos[0]) +'and' +  str(config.approx_diad2_pos[1]))
+
+        df_out=pd.DataFrame(data={'Diad2_pos': diad2_pos ,
+                                'Diad2_height':diad2_height})
+
+        # Lets try to find the hotband and hope its here!
+
+        if any(df_sort_diad2_trim['pos'].between(df_out['Diad2_pos'].iloc[0]+diad2_HB2_min_offset, df_out['Diad2_pos'].iloc[0]+diad2_HB2_max_offset)):
+
+            diad_2_HB=df_sort_diad2_trim.loc[df_sort_diad2_trim['pos'].between(df_out['Diad2_pos'].iloc[0]+diad2_HB2_min_offset, df_out['Diad2_pos'].iloc[0]+diad2_HB2_max_offset)]
+
+            df_out['HB2_pos']=diad_2_HB['pos'].iloc[0]
+            df_out['HB2_height']=diad_2_HB['height'].iloc[0]
+
+        else:
+            df_out['HB2_pos']=np.nan
+            df_out['HB2_height']=np.nan
+
+        # Lets try and find the C13 peak
+
+        if any(df_sort_diad2_trim['pos'].between(df_out['Diad2_pos'].iloc[0]-diad2_C13_max_offset, df_out['Diad2_pos'].iloc[0]-diad2_C13_min_offset)):
+            diad_2_C13=df_sort_diad2_trim.loc[df_sort_diad2_trim['pos'].between(df_out['Diad2_pos'].iloc[0]-diad2_C13_max_offset, df_out['Diad2_pos'].iloc[0]-diad2_C13_min_offset)]
+            print('found c13 in convoluted way')
+            df_out['C13_pos']=diad_2_C13['pos'].iloc[0]
+            df_out['C13_height']=diad_2_C13['height'].iloc[0]
+        else:
+            print('didnt find C13 in convoluted way')
+            df_out['C13_pos']=np.nan
+            df_out['C13_height']=np.nan
+
+
+    # Do the same for diad 1
+
+    right_pos_diad1=df_sort_diad1_trim['pos'].between(config.approx_diad1_pos[0], config.approx_diad1_pos[1])
+    if any(right_pos_diad1):
+        manual_diad1=False
+        df_sort_diad1_rightpos=df_sort_diad1_trim.loc[right_pos_diad1]
+        diad_1_diad=df_sort_diad1_rightpos.loc[df_sort_diad1_rightpos['height']==np.max(df_sort_diad1_rightpos['height'])]
+
+        df_out['Diad1_pos']=diad_1_diad['pos'].iloc[0]
+        df_out['Diad1_height']=diad_1_diad['height'].iloc[0]
+
+        if any(df_sort_diad1_trim['pos'].between(diad_1_diad['pos'].iloc[0]-diad1_HB1_max_offset, diad_1_diad['pos'].iloc[0]-diad1_HB1_min_offset)):
+            diad_1_HB=df_sort_diad1_trim.loc[df_sort_diad1_trim['pos'].between(diad_1_diad['pos'].iloc[0]-diad1_HB1_max_offset, diad_1_diad['pos'].iloc[0]-diad1_HB1_min_offset)]
+            df_out['HB1_pos']=diad_1_HB['pos'].iloc[0]
+            df_out['HB1_height']=diad_1_HB['height'].iloc[0]
+
+
+            # Lets take the median of the peaks between the HB and the diad
+            MidPoint_x_Diad1=(df_out['Diad1_pos'].iloc[0]+df_out['HB1_pos'].iloc[0])/2
+            MidPoint_y_Diad1=np.median(Diad[:, 1][
+            (Diad[:, 0]<MidPoint_x_Diad1+2*spec_res)
+            &(Diad[:, 0]>MidPoint_x_Diad1-2*spec_res)])
+
+
+
+            # Lets do the same, but 15 away from this
+
+            LHS_x_Diad1=(df_out['HB1_pos'].iloc[0])-15
+            LHS_y_Diad1=np.median(Diad[:, 1][
+            (Diad[:, 0]<LHS_x_Diad1+2*spec_res)
+            &(Diad[:, 0]>LHS_x_Diad1-2*spec_res)])
+
+
+            df_out['Diad1_HB1_Valley_prom']=MidPoint_y_Diad1-LHS_y_Diad1
+
+        else:
+            df_out['HB1_pos']=np.nan
+            df_out['HB1_height']=np.nan
+            df_out['Diad1_HB1_Valley_prom']=np.nan
+
+    else:
+        manual_diad1=True
+        diad1_range=(Diad[:, 0]>config.approx_diad1_pos[0]) & (Diad[:, 0]<config.approx_diad1_pos[1])
+        diad1_height=np.max(Diad[:, 1][diad1_range])
+        diad1_pos=Diad[:, 0][Diad[:, 1]==diad1_height]
+
+        print('WARNING: Couldnt find any peaks within approx_diad1_pos+-Diad_window_width, taking the max peak positin within the window defined by' + str(config.approx_diad1_pos[0]) +'and' +  str(config.approx_diad1_pos[1]))
+
+        df_out['Diad1_pos']= diad1_pos
+        df_out['Diad1_height']=diad1_height
+
+        # Lets see if we can find a hotband in here now
+        if any(df_sort_diad1_trim['pos'].between(df_out['Diad1_pos'].iloc[0]-diad1_HB1_max_offset, df_out['Diad1_pos'].iloc[0]-diad1_HB1_min_offset)):
+            diad_1_HB=df_sort_diad1_trim.loc[df_sort_diad1_trim['pos'].between(df_out['Diad1_pos'].iloc[0]-diad1_HB1_max_offset, df_out['Diad1_pos'].iloc[0]-diad1_HB1_min_offset)]
+            df_out['HB1_pos']=diad_1_HB['pos'].iloc[0]
+            df_out['HB1_height']=diad_1_HB['height'].iloc[0]
+
+        else:
+            df_out['HB1_pos']=np.nan
+            df_out['HB1_height']=np.nan
+
+
+
+    # Now lets get approximate strength subtracting the backgrround
+
+
+    Diad_x=Diad[:, 0]
+    Diad_y=Diad[:, 1]
+    Med_LHS_diad1=np.nanmedian(Diad_y[(Diad[:, 0]>1180)& (Diad[:, 0]<1220)])
+    Med_RHS_diad1=np.nanmedian(Diad_y[(Diad[:, 0]>1330)& (Diad[:, 0]<1350)])
+    Med_LHS_diad2=np.nanmedian(Diad_y[(Diad[:, 0]>1330)& (Diad[:, 0]<1350)])
+    Med_RHS_diad2=np.nanmedian(Diad_y[(Diad[:, 0]>1450)& (Diad[:, 0]<1470)])
+    #Med_central_back_diad2=np.nanmedian(Diad[(Diad[:, 0]>1300)& (Diad[:, 0]<1350)]
+
+    Diad_diad1=Diad_y[(Diad[:, 0]>1260)& (Diad[:, 0]<1300)]
+    Diad_diad2=Diad_y[(Diad[:, 0]>1380)& (Diad[:, 0]<1400)]
+    Med_bck_diad1=(Med_LHS_diad1+Med_RHS_diad1)/2
+    Med_bck_diad2=(Med_RHS_diad2+Med_LHS_diad2)/2
+
+    df_out['Diad1_Median_Bck']=Med_bck_diad1
+    df_out['Diad2_Median_Bck']=Med_bck_diad2
+
+    df_out['Diad1_prom']=df_out['Diad1_height']-Med_bck_diad1
+    df_out['Diad2_prom']=df_out['Diad2_height']-Med_bck_diad2
+    df_out['HB1_prom']=df_out['HB1_height']-Med_LHS_diad1
+    df_out['HB2_prom']=df_out['HB2_height']-Med_RHS_diad2
+
+
+
+    df_out['approx_split']=df_out['Diad2_pos']-df_out['Diad1_pos']
+
+    # Lets get the C13 prominence
+    if any(df_out['C13_pos']>-500):
+        C13_back=np.quantile(Diad_y[
+        ((Diad_x>(df_out['C13_pos'].iloc[0]-spec_res*3))&(Diad_x<(df_out['C13_pos'].iloc[0]+spec_res*3)))
+        ], 0.25)
+
+        df_out['C13_prom']=df_out['C13_height']-C13_back
+        df_out['C13_HB2_prom_ratio']=df_out['HB2_prom']/df_out['C13_prom']
+    else:
+        df_out['C13_prom']=np.nan
+        df_out['C13_HB2_prom_ratio']=np.nan
+
+
+
+
+
+
+
+
+    # Now lets make a plot
+    if plot_figure is True:
+        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
+
+        ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
+        ax0.plot(df['pos'], df['height'], '*k')
+        ax1.plot(df['pos'], df['height'], '*k', label='All Scipy Peaks')
+        if manual_diad1 is True:
+            ax1.plot(diad1_pos, diad1_height, 'dk', mfc='yellow', ms=7, label='SciPyMissed')
+        ax2.plot(df['pos'], df['height'], '*k')
+        if manual_diad2 is True:
+            ax1.plot(diad2_pos, diad2_height, 'dk', mfc='yellow', ms=7)
+        #ax0.legend()
+        ax1.set_title('Diad1')
+        ax1.plot(Diad[:, 0],Diad[:, 1], '-r')
+        ax1.set_xlim([config.Diad1_window[0], config.Diad1_window[1]])
+        ax2.set_title('Diad2')
+        ax2.plot(Diad[:, 0],Diad[:, 1], '-r')
+        ax2.set_xlim([config.Diad2_window[0], config.Diad2_window[1]])
+        #ax0.set_ylim[np.min(Diad[:, 1]), np.max(Diad[:, 1]) ])
+        fig.tight_layout()
+        ax2.plot(df_sort_diad2_trim['pos'], df_sort_diad2_trim['height'], '*k', mfc='yellow', ms=10)
+        ax1.plot(df_sort_diad1_trim['pos'], df_sort_diad1_trim['height'], '*k',  mfc='yellow', ms=10, label='Selected Pks')
+        ax1.legend()
+        ax0.set_xlabel('Wavenumber')
+        ax0.set_ylabel('Intensity')
+        ax1.set_xlabel('Wavenumber')
+        ax1.set_ylabel('Intensity')
+        ax2.set_xlabel('Wavenumber')
+        ax2.set_ylabel('Intensity')
+
+        for i in range(0, len(df_sort_diad1_trim)):
+            ax1.annotate(str(np.round(df_sort_diad1_trim['pos'].iloc[i], 1)), xy=(df_sort_diad1_trim['pos'].iloc[i]-10,
+            df_sort_diad1_trim['height'].iloc[i]-1/7*(df_sort_diad1_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
+
+        for i in range(0, len(df_sort_diad2_trim)):
+            ax2.annotate(str(np.round(df_sort_diad2_trim['pos'].iloc[i], 1)), xy=(df_sort_diad2_trim['pos'].iloc[i]-10,
+            df_sort_diad2_trim['height'].iloc[i]-1/7*(df_sort_diad2_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
+
+
+    return df_out, Diad
+
+
+
+
+
+
+
+
 
 
 def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, filename, filetype='Witec_ASCII',
@@ -202,7 +517,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
      # Check if any of the peaks for Diad2 fall within the range
     if any(df_sort_diad2_trim['pos'].between(config.approx_diad2_pos[0], config.approx_diad2_pos[1])):
-        diad_2_peaks=tuple(df_sort_diad2_trim['pos'].values)
+        diad_2_peaks=tuple(df_sort_diad2_trim['pos'].iloc[0])
     # If literally no peaks within the range.
     else:
         # If you had asked for one peak, we return the average of the 2 peaks
@@ -223,7 +538,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
             w.warn('WARNING: Couldnt find diad2, and you specified 3 peaks, ive returned the approx_diad2_pos_3peaks value from diad_id_config')
 
     if any(df_sort_diad1_trim['pos'].between(config.approx_diad1_pos[0], config.approx_diad1_pos[1])):
-        diad_1_peaks=tuple(df_sort_diad1_trim['pos'].values)
+        diad_1_peaks=tuple(df_sort_diad1_trim['pos'].iloc[0])
         if n_peaks_diad1==2:
             if len(diad_1_peaks)==1:
                 print('Warning - couldnt find hotband, guessing its positoin as 20 below the peak')
@@ -1627,8 +1942,8 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             pars1 = model_F.make_params()
             pars1['lz1_'+ 'amplitude'].set(config1.diad_amplitude, min=0, max=config1.diad_amplitude*10)
             pars1['lz1_'+ 'center'].set(peak_pos_voigt)
-            pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=diad_sigma*config1.diad_sigma_min_allowance,
-                         max=diad_sigma*config1.diad_sigma_max_allowance)
+            pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
+                         max=config1.diad_sigma*config1.diad_sigma_max_allowance)
             params=pars1
 
         # If there is more than one peak
@@ -2659,6 +2974,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
 
     """
+
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
     Diad=np.array(Diad_df)
     # First, we feed data into the remove baseline function, which returns corrected data
