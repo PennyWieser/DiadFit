@@ -1046,12 +1046,12 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sig
 #     Peak1_Cent=result.best_values.get('lz1_center')
 #     Peak1_Prop_Lor=result.best_values.get('lz1_fraction')
 #     Peak1_Int=result.best_values.get('lz1_amplitude')
-#     Peak1_sigma=result.best_values.get('lz1_sigma')
+#     Peak1_Sigma=result.best_values.get('lz1_sigma')
 #     Peak1_gamma=result.best_values.get('lz1_gamma')
 #
 #     df_out=pd.DataFrame(data={'Diad1_Voigt_Cent': Peak1_Cent,
 #                             'Diad1_Voigt_Area': Peak1_Int,
-#                             'Diad1_Voigt_Sigma': Peak1_sigma,
+#                             'Diad1_Voigt_Sigma': Peak1_Sigma,
 #                             'Diad1_Voigt_Gamma': Peak1_gamma,
 #
 #
@@ -1060,13 +1060,13 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sig
 #     if Peak1_Int>=(diad_amplitude*10-0.1):
 #         w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the diad1 config file')
 #         refit=True
-#     if Peak1_sigma>=(diad_amplitude*10-0.1):
+#     if Peak1_Sigma>=(diad_amplitude*10-0.1):
 #         w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the  diad1 config file')
 #         refit=True
-#     if Peak1_sigma>=(diad_sigma*sigma_allowance-0.001):
+#     if Peak1_Sigma>=(diad_sigma*sigma_allowance-0.001):
 #         w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_sigma in the  diad1 config file')
 #         refit=True
-#     if Peak1_sigma<=(diad_sigma/sigma_allowance+0.001):
+#     if Peak1_Sigma<=(diad_sigma/sigma_allowance+0.001):
 #         w.warn('Diad fit right at the lower limit of the allowed fit parameter, change diad_sigma in the  diad1 config file')
 #         refit=True
 #
@@ -1221,550 +1221,6 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sig
 
 
 
-def fit_gaussian_voigt_diad2(*,  path=None,filename=None, xdat=None, ydat=None, peak_pos_voigt=(1389, 1410), model_name='VoigtModel',
-                    diad_amplitude=100, diad_sigma=0.2, sigma_allowance=10, HB_amplitude=20, C13_amplitude=20, peak_pos_gauss=(1400), gauss_sigma=None, gauss_amp=100, span=None, plot_figure=True, dpi=200,
-                    block_print=True):
-
-
-    """ This function fits diad 2, at ~1389 and the hot band and C13 peak
-
-    Parameters
-    -----------
-    path: str
-        Folder user wishes to read data from
-
-    filename: str
-        Specific file being read
-
-    xdat, ydat: pd.series
-        x and background substracted y data to fit.
-
-    peak_pos_voigt: list
-        Estimates of peak positions for peaks.
-        Fits as many peaks as positions in this list
-
-    peak_pos_gauss: None, int, or flota
-        If you want a gaussian as part of your fit, put an approximate center here
-
-    amplitude: int, float
-        Approximate amplitude of main peak
-
-    span: list
-        x bits that are actually peak for residuals. Basically upper and lower back coords
-
-    plot_figure: bool
-        if True, saves figure
-
-    dpi: int
-        dpi for saved figure
-
-    Returns
-    -----------
-    result, df_out, y_best_fit, x_lin
-
-        result: fitted model
-        df_out: Dataframe of fit parameters for diad.
-
-
-    """
-    # Gets overridden if you have triggered any of the warnings
-    refit=False
-    refit_param='Flagged Warnings:'
-    # Super useful in all cases to fit a first peak, which is the biggest peak
-
-
-        # If peak find functoin has put out a float, does this for 1 peak
-
-    if type(peak_pos_voigt) is np.ndarray:
-        peak_pos_voigt=peak_pos_voigt[0]
-
-
-    if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
-        initial_guess=peak_pos_voigt
-        type_peak="int"
-            # Sometimes length 1 can be with a comma
-    else:
-
-
-        if len(peak_pos_voigt)==1:
-            initial_guess=peak_pos_voigt[0]
-        if len(peak_pos_voigt)==2:
-            initial_guess=np.min(peak_pos_voigt)
-        if len(peak_pos_voigt)==3:
-            initial_guess=np.median(peak_pos_voigt)
-
-    if model_name=="VoigtModel":
-        model_ini = VoigtModel()#+ ConstantModel()
-    if model_name=="PseudoVoigtModel":
-        model_ini = PseudoVoigtModel()#+ ConstantModel()
-    # create parameters with initial values
-    params_ini = model_ini.make_params(center=initial_guess, max=initial_guess+5, min=initial_guess-5)
-    params_ini['amplitude'].set(diad_amplitude, min=diad_amplitude/100, max=diad_amplitude*10)
-    params_ini['sigma'].set(diad_sigma, min=diad_sigma/sigma_allowance, max=diad_sigma*sigma_allowance)
-    init_ini = model_ini.eval(params_ini, x=xdat)
-
-
-    result_ini  = model_ini.fit(ydat, params_ini, x=xdat)
-    comps_ini  = result_ini.eval_components()
-    Center_ini=result_ini.best_values.get('center')
-    Amplitude_ini=result_ini.params.get('amplitude')
-    sigma_ini=result_ini.params.get('sigma')
-    fwhm_ini=result_ini.params.get('fwhm')
-    if block_print is False:
-        print(Center_ini)
-        print(sigma_ini)
-
-
-
-    if peak_pos_gauss is None:
-        # Fit just as many peaks as there are peak_pos_voigt
-
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
-            if model_name=='VoigtModel':
-                model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-            if model_name=='PseudoVoigtModel':
-                model_F = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-            pars1 = model_F.make_params()
-            pars1['lz1_'+ 'amplitude'].set(diad_amplitude, min=0, max=diad_amplitude*10)
-            pars1['lz1_'+ 'center'].set(peak_pos_voigt)
-            pars1['lz1_'+ 'sigma'].set(diad_sigma, min=diad_sigma/sigma_allowance, max=diad_sigma*sigma_allowance)
-            params=pars1
-
-        else:
-            if len(peak_pos_voigt)==1:
-                if model_name=='VoigtModel':
-                    model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-                if model_name=='PseudoVoigtModel':
-                    model_F = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-                pars1 = model_F.make_params()
-                pars1['lz1_'+ 'amplitude'].set(diad_amplitude, min=0, max=diad_amplitude*10)
-                pars1['lz1_'+ 'center'].set(peak_pos_voigt[0])
-                pars1['lz1_'+ 'sigma'].set(diad_sigma, min=diad_sigma/sigma_allowance, max=diad_sigma*sigma_allowance)
-                params=pars1
-
-            if len(peak_pos_voigt)==2:
-
-                Center_ini=Center_ini
-                Amplitude_ini=Amplitude_ini
-                sigma_ini=sigma_ini
-
-
-
-                # Then use these to inform next peak
-                if model_name=='VoigtModel':
-                    model1 = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-                if model_name=='PseudoVoigtModel':
-                    model1 = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-                pars1 = model1.make_params()
-                pars1['lz1_'+ 'amplitude'].set(Amplitude_ini, min=Amplitude_ini/2, max=Amplitude_ini*2)
-                pars1['lz1_'+ 'center'].set(Center_ini, min=Center_ini-1, max=Center_ini+2)
-
-                # Second wee peak
-                prefix='lz2_'
-                if model_name=='VoigtModel':
-                    peak = VoigtModel(prefix='lz2_')# + ConstantModel(prefix='c1')
-                if model_name=='PseudoVoigtModel':
-                    peak = PseudoVoigtModel(prefix='lz2_')# + ConstantModel(prefix='c1')
-
-                pars = peak.make_params()
-                pars[prefix + 'center'].set(max(peak_pos_voigt), min=max(peak_pos_voigt)-2, max=max(peak_pos_voigt)+2)
-                pars[prefix + 'amplitude'].set(HB_amplitude, min=Amplitude_ini/HB_amp_min_allowance, max=Amplitude_ini*HB_amp_max_allowance)
-                pars[prefix+ 'sigma'].set(sigma_ini, min=sigma_ini/HB_sigma_min_allowance, max=sigma_ini*HB_sigma_max_allowance)
-
-
-
-                model_F=model1+peak
-                pars1.update(pars)
-                params=pars1
-
-            if len(peak_pos_voigt)==3:
-                if block_print is False:
-                    print('Trying to iteratively fit 3 peaks')
-                low_peak=np.min(peak_pos_voigt)
-                med_peak=np.median(peak_pos_voigt)
-                high_peak=np.max(peak_pos_voigt)
-                peak_pos_left=np.array([low_peak, high_peak])
-
-                if model_name=='VoigtModel':
-                    model = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-                if model_name=='PseudoVoigtModel':
-                    model = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-                params = model.make_params()
-                params['lz1_'+ 'amplitude'].set(diad_amplitude, min=0)
-                params['lz1_'+ 'center'].set(med_peak)
-
-                for i, cen in enumerate(peak_pos_left):
-
-                    peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
-                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini, model_name=model_name)
-                    model = peak+model
-                    params.update(pars)
-
-                model_F=model
-
-
-
-
-    # Same, but also with a Gaussian Background
-    if peak_pos_gauss is not None:
-
-        model = GaussianModel(prefix='bkg_')
-        params = model.make_params()
-        params['bkg_'+'amplitude'].set(gauss_amp, min=gauss_amp/10, max=gauss_amp*10)
-        params['bkg_'+'sigma'].set(gauss_sigma, min=gauss_sigma/10, max=gauss_sigma*10)
-        params['bkg_'+'center'].set(peak_pos_gauss, min=peak_pos_gauss-10, max=peak_pos_gauss+10)
-
-
-
-
-        rough_peak_positions = peak_pos_voigt
-        # If you want a Gaussian background
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
-            type_peak="int"
-            peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, amplitude=amplitude, model_name=model_name)
-            model = peak+model
-            params.update(pars)
-        else:
-
-            if len(peak_pos_voigt)==1:
-                peak, pars = add_peak(prefix='lz1_', center=cen, amplitude=amplitude, model_name=model_name)
-                model = peak+model
-                params.update(pars)
-
-            if len(peak_pos_voigt)==2:
-                if block_print is False:
-                    print('Fitting 2 voigt peaks iteratively ')
-                for i, cen in enumerate(peak_pos_voigt):
-                    if block_print is False:
-                        print('working on voigt peak' + str(i))
-                    #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
-                    peak, pars = add_peak(prefix='lz%d_' % (i+1),  center=cen,
-                        min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*3, min_sigma=sigma_ini/10, model_name=model_name)
-
-
-                    model = peak+model
-                    params.update(pars)
-
-            if len(peak_pos_voigt)==3:
-                if block_print is False:
-                    print('Fitting 2 peaks iteratively, then adding C13')
-                for i, cen in enumerate(peak_pos_voigt):
-                    if block_print is False:
-                        print('working on voigt peak' + str(i))
-                    if i==0: # Fitting diad peak
-                    #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
-                        peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                        min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*2, min_sigma=sigma_ini/2, model_name=model_name)
-                    if i==1: # Fitting hotband peak
-                        peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                        min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*5, min_sigma=sigma_ini/10, model_name=model_name)
-                    if i==2:
-                        peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                        min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini/3, max_sigma=sigma_ini/2, min_sigma=sigma_ini/100, model_name=model_name)
-
-                    model = peak+model
-                    params.update(pars)
-
-        model_F=model
-
-
-
-    # Regardless of fit, evaluate model
-    init = model_F.eval(params, x=xdat)
-    result = model_F.fit(ydat, params, x=xdat)
-    comps = result.eval_components()
-
-    #print(result.fit_report(min_correl=0.5))
-    # Check if function gives error bars
-    Error_bars=result.errorbars
-    if Error_bars is False:
-        if block_print is False:
-            print('Error bars not determined by function')
-
-    # Get first peak center
-    Peak1_Cent=result.best_values.get('lz1_center')
-    Peak1_Int=result.best_values.get('lz1_amplitude')
-    Peak1_sigma=result.best_values.get('lz1_sigma')
-    Peak1_gamma=result.best_values.get('lz1_gamma')
-    Peak1_Prop_Lor=result.best_values.get('lz1_fraction')
-    Peak1_fwhm=result.params['lz1_fwhm'].value
-
-    if Peak1_Int>=(diad_amplitude*10-0.1):
-        #w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the Diad2 config file')
-        refit=True
-        refit_param=str(refit_param)+' V_LowAmp'
-    if Peak1_sigma>=(diad_amplitude*10-0.1):
-        #w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the Diad2 config file')
-        refit=True
-        refit_param=str(refit_param)+' V_HighAmp'
-    if Peak1_sigma>=(diad_sigma*sigma_allowance-0.001):
-        #w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_sigma in the Diad2 config file')
-        refit=True
-        refit_param=str(refit_param)+' V_HighSigma'
-    if Peak1_sigma<=(diad_sigma/sigma_allowance+0.001):
-        #w.warn('Diad fit right at the lower limit of the allowed fit parameter, change diad_sigma in the Diad2 config file')
-        refit=True
-        refit_param=str(refit_param)+' V_LowSigma'
-
-
-    if peak_pos_gauss is not None:
-        Gauss_cent=result.best_values.get('bkg_center')
-        Gauss_amp=result.best_values.get('bkg_amplitude')
-        Gauss_sigma=result.best_values.get('bkg_sigma')
-        if Gauss_sigma>=(gauss_sigma*10-0.1):
-            #w.warn('Best fit Gauss sigma right at the upper limit of the allowed fit parameter, change gauss_sigma in the Diad2 config file')
-            refit=True
-            refit_param=str(refit_param)+' G_HighSigma'
-        if Gauss_sigma<=(gauss_sigma/10+0.1):
-            #w.warn('Best fit Gauss  sigma is right at the lower limit of the allowed fit parameter, change gauss_sigma in the Diad2 config file')
-            refit=True
-            refit_param=str(refit_param)+ ' G_LowSigma'
-
-        if Gauss_amp>=(gauss_amp*10-0.1):
-            #w.warn('Best fit Gauss amplitude is right at the upper limit of the allowed fit parameter, change gauss_amp in the Diad2 config file')
-            refit=True
-            refit_param=str(refit_param)+' G_HighAmp'
-        if Gauss_amp<=(gauss_sigma+0.1):
-            #w.warn('Best fit Gauss amplitude is right at the lower limit of the allowed fit parameter, change gauss_amp in the Diad2 configfile')
-            refit=True
-            refit_param=str(refit_param)+' G_LowAmp'
-        if Gauss_cent<=(peak_pos_gauss-30+0.5):
-            #w.warn('Best fit Gauss Cent is right at the lower limit of the allowed fit parameter, change peak_pos_gauss in the Diad2 configfile')
-            refit=True
-            refit_param=str(refit_param)+' G_LowCent'
-        if Gauss_cent>=(peak_pos_gauss+30-0.5):
-            #w.warn('Best fit Gauss Cent is right at the upper limit of the allowed fit parameter, change peak_pos_gauss in the Diad2 configfile')
-            refit=True
-            refit_param=str(refit_param)+' G_HighCent'
-
-
-    Peak1_Int=result.best_values.get('lz1_amplitude')
-    # print('fwhm gauss')
-    # print(result.best_values)
-
-
-    x_lin=np.linspace(span[0], span[1], 2000)
-    y_best_fit=result.eval(x=x_lin)
-    components=result.eval_components(x=x_lin)
-
-    #
-
-    # Work out what peak is what
-
-
-    if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
-
-        Peak2_Cent=None
-        Peak3_Cent=None
-        ax1_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
-        ax2_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
-
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)==1:
-            Peak2_Cent=None
-            Peak3_Cent=None
-            ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-            ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-        if len(peak_pos_voigt)==2:
-            Peak2_Cent=result.best_values.get('lz2_center')
-            Peak2_Int=result.best_values.get('lz2_amplitude')
-            Peak2_Sigma=result.best_values.get('lz2_sigma')
-            Peak3_Cent=None
-            ax1_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
-            ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
-
-        if len(peak_pos_voigt)==3:
-            Peak2_Cent=result.best_values.get('lz2_center')
-            Peak2_Int=result.best_values.get('lz2_amplitude')
-            Peak2_Sigma=result.best_values.get('lz2_sigma')
-            Peak3_Cent=result.best_values.get('lz3_center')
-            Peak3_Int=result.best_values.get('lz3_amplitude')
-            Peak3_Sigma=result.best_values.get('lz3_sigma')
-
-            ax1_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+30]
-            ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+30]
-
-    if Peak2_Cent is None:
-        df_out=pd.DataFrame(data={'Diad2_Voigt_Cent': Peak1_Cent,
-                                'Diad2_Voigt_Area': Peak1_Int,
-                            'Diad2_Voigt_Sigma': Peak1_sigma,
-                            'Diad2_Voigt_Gamma': Peak1_gamma,
-
-
-        }, index=[0])
-
-    if Peak2_Cent is not None:
-
-
-        if Peak3_Cent is None:
-            Peaks=np.array([Peak1_Cent, Peak2_Cent])
-            # Diad is lower peak
-            Diad2_Cent=np.min(Peaks)
-            # Hot band is upper peak'
-            HB2_Cent=np.max(Peaks)
-            # Allocate areas
-            if Diad2_Cent==Peak2_Cent:
-                Diad2_Int=Peak2_Int
-                HB2_Int=Peak1_Int
-                HB2_Sigma=Peak1_Sigma
-            if Diad2_Cent==Peak1_Cent:
-                Diad2_Int=Peak1_Int
-                HB2_Int=Peak2_Int
-                HB2_Sigma=Peak2_Sigma
-
-
-
-
-        if Peak3_Cent is not None:
-            Peaks=np.array([Peak1_Cent, Peak2_Cent, Peak3_Cent])
-
-            # C13 is lower peak
-            C13_Cent=np.min(Peaks)
-            # Diad is medium peak
-            Diad2_Cent=np.median(Peaks)
-            # Hot band is upper peak'
-            HB2_Cent=np.max(Peaks)
-
-            if Diad2_Cent==Peak2_Cent:
-                Diad2_Int=Peak2_Int
-            if Diad2_Cent==Peak1_Cent:
-                Diad2_Int=Peak1_Int
-            if Diad2_Cent==Peak3_Cent:
-                Diad2_Int=Peak3_Int
-            # Same for hotband
-            if HB2_Cent==Peak2_Cent:
-                HB2_Int=Peak2_Int
-                HB2_Sigma=Peak2_Sigma
-            if HB2_Cent==Peak1_Cent:
-                HB2_Int=Peak1_Int
-                HB2_Sigma=Peak1_Sigma
-            if HB2_Cent==Peak3_Cent:
-                HB2_Int=Peak3_Int
-                HB2_Sigma=Peak2_Sigma
-
-
-            # Same for C13
-            if C13_Cent==Peak2_Cent:
-                C13_Int=Peak2_Int
-                C13_Sigma=Peak2_Sigma
-            if C13_Cent==Peak1_Cent:
-                C13_Int=Peak1_Int
-                C13_Sigma=Peak1_Sigma
-            if C13_Cent==Peak3_Cent:
-                C13_Int=Peak3_Int
-                C13_Sigma=Peak3_Sigma
-
-        df_out=pd.DataFrame(data={'Diad2_Voigt_Cent': Diad2_Cent,
-                                'Diad2_Voigt_Area': Diad2_Int,
-                                'Diad2_Voigt_Sigma': Peak1_sigma,
-                                'Diad2_Voigt_Gamma': Peak1_gamma,
-        }, index=[0])
-
-        df_out['HB2_Cent']=HB2_Cent
-        df_out['HB2_Area']=HB2_Int
-        df_out['HB2_Sigma']=HB2_Sigma
-        if  Peak3_Cent is not None:
-            df_out['C13_Cent']=C13_Cent
-            df_out['C13_Area']=C13_Int
-            df_out['C13_Sigma']=C13_Sigma
-
-    result_diad2_origx_all=result.eval(x=xdat)
-    # Trim to be in range
-    #print(result_diad2_origx_all)
-    result_diad2_origx=result_diad2_origx_all[(xdat>span[0]) & (xdat<span[1])]
-    ydat_inrange=ydat[(xdat>span[0]) & (xdat<span[1])]
-    xdat_inrange=xdat[(xdat>span[0]) & (xdat<span[1])]
-    residual_diad_coords=ydat_inrange-result_diad2_origx
-
-
-    x_cent_lin=np.linspace(df_out['Diad2_Voigt_Cent']-1, df_out['Diad2_Voigt_Cent']+1, 20000)
-    y_cent_best_fit=result.eval(x=x_cent_lin)
-    diad_height = np.max(y_cent_best_fit)
-    df_out['Diad2_Combofit_Height']= diad_height
-    df_out.insert(0, 'Diad2_Combofit_Cent', np.nanmean(x_cent_lin[y_cent_best_fit==diad_height]))
-
-
-    residual_diad2=np.sum(((ydat_inrange-result_diad2_origx)**2)**0.5)/(len(ydat_inrange))
-    df_out['Residual_Diad2']=residual_diad2
-    df_out['Diad2_Prop_Lor']= Peak1_Prop_Lor
-    df_out['Diad2_fwhm']=Peak1_fwhm
-
-    if peak_pos_gauss is not None:
-        df_out['Gauss_Cent']=Gauss_cent
-        df_out['Gauss_Area']=Gauss_amp
-        df_out['Gauss_Sigma']=Gauss_sigma
-
-
-
-    if plot_figure is True:
-
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
-        ax1.plot(x_lin, y_best_fit, '-g', linewidth=2, label='best fit')
-        ax1.plot(xdat, ydat,  '.k', label='data')
-        ax1.legend()
-        ax1.set_xlim(ax1_xlim)
-        ax2.set_xlim(ax2_xlim)
-
-
-
-
-
-
-        if peak_pos_gauss is not None:
-            ax2.plot(x_lin, components.get('bkg_'), '.c',linewidth=2,  label='Gaussian bck')
-        ax2.plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
-        ax2.plot(xdat, ydat, '.k')
-
-
-    #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
-
-        fitspan=max(y_best_fit)-min(y_best_fit)
-        ax2.set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
-
-
-        ax1.set_ylabel('Intensity')
-        ax1.set_xlabel('Wavenumber')
-        ax2.set_ylabel('Intensity')
-        ax2.set_xlabel('Wavenumber')
-
-
-        if len(peak_pos_voigt)>1:
-            ax2.plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
-
-        if len(peak_pos_voigt)>2:
-            ax2.plot(x_lin, components.get('lz3_'), '-m', linewidth=2, label='Peak3')
-        # if len(peak_pos_voigt)>1:
-        #     lowerpeak=np.min([Peak1_Cent, Peak2_Cent])
-        #     upperpeak=np.max([Peak1_Cent, Peak2_Cent])
-        #     ax1.set_xlim([lowerpeak-15, upperpeak+15])
-        # if len(peak_pos_voigt)>1:
-        #     ax2.set_xlim([lowerpeak-20, upperpeak+20])
-
-        ax2.legend()
-
-        path3=path+'/'+'diad_fit_images'
-        if os.path.exists(path3):
-            out='path exists'
-        else:
-            os.makedirs(path+'/'+ 'diad_fit_images', exist_ok=False)
-
-
-        file=filename.rsplit('.txt', 1)[0]
-        fig.savefig(path3+'/'+'Diad2_Fit_{}.png'.format(file), dpi=dpi)
-
-
-
-
-    best_fit=result.best_fit
-
-    df_out['Diad2_refit']=refit_param
-
-
-    return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss, residual_diad_coords, ydat_inrange,  xdat_inrange
 
 ## Overall function for fitting diads in 1 single step
 @dataclass
@@ -1774,11 +1230,12 @@ class diad1_fit_config:
     """
     # What model to use
     model_name: str = 'PseudoVoigtModel'
+    fit_peaks:int = 2
 
     # Do you need a gaussian? Set position here if so
-    peak_pos_gauss: Optional [float] =None
-    gauss_sigma: float=1
-    gauss_amp: float = 3000
+    fit_gauss: Optional [bool] =False
+    gauss_amp: Optional [float]=1000
+
 
 
     diad_sigma: float=0.2
@@ -1794,8 +1251,8 @@ class diad1_fit_config:
     upper_bck_diad1: Tuple[float, float]=(1300, 1350)
 
     # Peak amplitude
-    diad_amplitude: float = 100
-    HB_amplitude: float = 20
+    diad_prom: float = 100
+    HB_prom: float = 20
     HB_sigma_min_allowance=0.05
     HB_sigma_max_allowance=3
     HB_amp_min_allowance=0.01
@@ -1818,10 +1275,10 @@ class diad2_fit_config:
 
     # What model to use
     model_name: str = 'PseudoVoigtModel'
+    fit_peaks:int = 3
 
-    peak_pos_gauss: Optional [float] =None
-    gauss_sigma: float=1
-    gauss_amp: float = 3000
+    fit_gauss: Optional [bool] =False
+    gauss_amp: Optional [float]=1000
 
     diad_sigma: float=0.2
     diad_sigma_min_allowance: float=0.2
@@ -1841,8 +1298,8 @@ class diad2_fit_config:
     upper_bck_diad2: Tuple[float, float]=(1440, 1470)
 
     # Peak amplitude
-    diad_amplitude: float = 100
-    HB_amplitude: float = 20
+    diad_prom: float = 100
+    HB_prom: float = 20
     HB_sigma_min_allowance=0.05
     HB_sigma_max_allowance=3
     HB_amp_min_allowance=0.01
@@ -1862,7 +1319,7 @@ class diad2_fit_config:
 ## Testing generic model
 
 
-def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=None, filename=None, xdat=None, ydat=None, peak_pos_voigt=(1389, 1410), span=None,  plot_figure=True, dpi=200,
+def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=None, filename=None, xdat=None, ydat=None, peak_pos_voigt=(1389, 1410), span=None,  plot_figure=True, dpi=200, Diad_pos=None, HB_pos=None, C13_pos=None, fit_peaks=None,
                     block_print=True):
 
 
@@ -1874,36 +1331,24 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
     """
+    # Calculate the amplitude from the sigma and the prominence
+    calc_diad_amplitude=((config1.diad_sigma)*(config1.diad_prom))/0.3939
+    calc_HB_amplitude=((config1.diad_sigma)*(config1.HB_prom))/0.3939
     # Gets overridden if you have triggered any of the warnings
     refit=False
     refit_param='Flagged Warnings:'
-
-        # If peak find functoin has put out a float, does this for 1 peak
-
-    if type(peak_pos_voigt) is np.ndarray:
-        peak_pos_voigt=peak_pos_voigt[0]
+    spec_res=xdat[1]-xdat[0]
 
 
-    if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
-        initial_guess=peak_pos_voigt
-        type_peak="int"
-            # Sometimes length 1 can be with a comma
-    else:
 
 
-        if len(peak_pos_voigt)==1:
-            initial_guess=peak_pos_voigt[0]
 
-        if diad2 is True:
-            # If its diad2, the peak is the minimum, or the median if you have C13
-            if len(peak_pos_voigt)==2:
-                initial_guess=np.min(peak_pos_voigt)
-            if len(peak_pos_voigt)==3:
-                initial_guess=np.median(peak_pos_voigt)
-        if diad1 is True:
-            # If its diad1, the maximum peak position is the diad
-            if len(peak_pos_voigt)==2:
-                initial_guess=np.max(peak_pos_voigt)
+    initial_guess=Diad_pos
+    HB_initial_guess=HB_pos
+    C13_initial_guess=C13_pos
+
+
+
 
     if config1.model_name=="VoigtModel":
         model_ini = VoigtModel()#+ ConstantModel()
@@ -1911,11 +1356,11 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         model_ini = PseudoVoigtModel()#+ ConstantModel()
 
     # Create initial peak params
-    # Set peak position to +-5 units either side of the initial guess made above
-    params_ini = model_ini.make_params(center=initial_guess, max=initial_guess+5, min=initial_guess-5 )
+    # Set peak position to 2 spectral res units either side of the initial guess made above
+    params_ini = model_ini.make_params(center=initial_guess, max=initial_guess+spec_res*2, min=initial_guess-spec_res*2)
     # Set the amplitude to within X0.1 or 10X of the guessed amplitude
-    params_ini['amplitude'].set(config1.diad_amplitude, min=config1.diad_amplitude/10,
-                                 max=config1.diad_amplitude*10)
+    params_ini['amplitude'].set(calc_diad_amplitude, min=calc_diad_amplitude/5,
+                                 max=calc_diad_amplitude*5)
     # Set sigma to be the entered value, then
     params_ini['sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
                                 max=config1.diad_sigma*config1.diad_sigma_max_allowance)
@@ -1930,45 +1375,40 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     fwhm_ini=result_ini.params.get('fwhm')
 
     # For relatively weak peaks, you wont want a gaussian background
-    if config1.peak_pos_gauss is None:
+    if config1.fit_gauss is None:
 
-        # If there is 1 peak, e.g. if float, integer, or float 64
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
+        # If there is 1 peak, e.g. if have a Nan for hotband
+        if fit_peaks==1:
             if config1.model_name=='VoigtModel':
                 model_F = VoigtModel(prefix='lz1_') #+ ConstantModel(prefix='c1')
             if config1.model_name=='PseudoVoigtModel':
                 model_F = PseudoVoigtModel(prefix='lz1_') + ConstantModel(prefix='c1')
 
             pars1 = model_F.make_params()
-            pars1['lz1_'+ 'amplitude'].set(config1.diad_amplitude, min=0, max=config1.diad_amplitude*10)
-            pars1['lz1_'+ 'center'].set(peak_pos_voigt)
+            pars1['lz1_'+ 'amplitude'].set(calc_diad_amplitude, min=0, max=calc_diad_amplitude*10)
+            pars1['lz1_'+ 'center'].set(Center_ini)
             pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
                          max=config1.diad_sigma*config1.diad_sigma_max_allowance)
             params=pars1
 
         # If there is more than one peak
         else:
-            if len(peak_pos_voigt)==1:
+            if fit_peaks>1:
                 if config1.model_name=='VoigtModel':
                     model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
                 if config1.model_name=='PseudoVoigtModel':
                     model_F = PseudoVoigtModel(prefix='lz1_') #+ ConstantModel(prefix='c1')
 
                 pars1 = model_F.make_params()
-                pars1['lz1_'+ 'amplitude'].set(config1.diad_amplitude, min=0, max=config1.diad_amplitude*10)
+                pars1['lz1_'+ 'amplitude'].set(calc_diad_amplitude, min=0, max=calc_diad_amplitude*10)
 
-                pars1['lz1_'+ 'center'].set(peak_pos_voigt[0])
+                pars1['lz1_'+ 'center'].set(Center_ini)
 
-                pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
-                             max=config1.diad_sigma*config1.diad_sigma_max_allowance)
+                pars1['lz1_'+ 'sigma'].set(sigma_ini, min=sigma_ini*config1.diad_sigma_min_allowance,
+                             max=sigma_ini*config1.diad_sigma_max_allowance)
                 params=pars1
 
-            if len(peak_pos_voigt)==2:
-
-                Center_ini=Center_ini
-                Amplitude_ini=Amplitude_ini
-                sigma_ini=sigma_ini
-
+            if fit_peaks==2:
 
 
                 # Then use these to inform next peak
@@ -1989,13 +1429,11 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                     peak = PseudoVoigtModel(prefix='lz2_')# + ConstantModel(prefix='c1')
 
                 pars = peak.make_params()
-                if diad2 is True:
-                    pars[prefix + 'center'].set(max(peak_pos_voigt),
-                    min=max(peak_pos_voigt)-2, max=max(peak_pos_voigt)+2)
-                if diad1 is True:
-                    pars[prefix + 'center'].set(min(peak_pos_voigt),
-                    min=min(peak_pos_voigt)-2, max=min(peak_pos_voigt)+2)
-                pars[prefix + 'amplitude'].set(config1.HB_amplitude, min=Amplitude_ini*config1.HB_amp_min_allowance, max=Amplitude_ini*config1.HB_amp_max_allowance)
+
+                pars[prefix + 'center'].set(HB_initial_guess,
+                    min=HB_initial_guess-2*spec_res, max=HB_initial_guess+2)
+
+                pars[prefix + 'amplitude'].set(calc_HB_amplitude, min=Amplitude_ini*config1.HB_amp_min_allowance, max=Amplitude_ini*config1.HB_amp_max_allowance)
                 pars[prefix+ 'sigma'].set(sigma_ini, min=sigma_ini*config1.HB_sigma_min_allowance, max=sigma_ini*config1.HB_sigma_max_allowance)
 
 
@@ -2003,13 +1441,13 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                 pars1.update(pars)
                 params=pars1
 
-            if len(peak_pos_voigt)==3:
+            if fit_peaks==3:
                 if block_print is False:
                     print('Trying to iteratively fit 3 peaks')
                 low_peak=np.min(peak_pos_voigt)
                 med_peak=np.median(peak_pos_voigt)
                 high_peak=np.max(peak_pos_voigt)
-                peak_pos_left=np.array([low_peak, high_peak])
+                peak_pos_left=np.array([HB_initial_guess, C13_initial_guess])
 
                 if config1.model_name=='VoigtModel':
                     model = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
@@ -2017,14 +1455,14 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                     model = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
 
                 params = model.make_params()
-                params['lz1_'+ 'amplitude'].set(diad_amplitude, min=0)
+                params['lz1_'+ 'amplitude'].set(Amplitude_ini, min=0)
                 params['lz1_'+ 'center'].set(med_peak)
 
                 for i, cen in enumerate(peak_pos_left):
 
                     peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
                     min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini,
-                    max_sigma=sigma_ini, model_name=model_name)
+                    max_sigma=sigma_ini, model_name=config1.model_name)
                     model = peak+model
                     params.update(pars)
 
@@ -2034,66 +1472,52 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
     # Same, but also with a Gaussian Background
-    if config1.peak_pos_gauss is not None:
-
+    if config1.fit_gauss is not None:
         model = GaussianModel(prefix='bkg_')
         params = model.make_params()
-        params['bkg_'+'amplitude'].set(config1.gauss_amp, min=config1.gauss_amp/10, max=config1.gauss_amp*10)
-        params['bkg_'+'sigma'].set(config1.gauss_sigma, min=config1.gauss_sigma/10, max=config1.gauss_sigma*10)
-        params['bkg_'+'center'].set(config1.peak_pos_gauss, min=config1.peak_pos_gauss-10, max=config1.peak_pos_gauss+10)
+        params['bkg_'+'amplitude'].set(config1.gauss_amp, min=config1.gauss_amp/100, max=config1.gauss_amp*10)
+        params['bkg_'+'sigma'].set(sigma_ini*5, min=sigma_ini*3, max=sigma_ini*20)
+        params['bkg_'+'center'].set(initial_guess, min=initial_guess-7, max=initial_guess+7)
 
 
+        if fit_peaks==1:
+            raise TypeError('Dont ask for a gaussian background and only 1 peak, youll need to add a diad and HB minimum')
 
 
-        rough_peak_positions = peak_pos_voigt
-        # If you want a Gaussian background
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
-            type_peak="int"
-            peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, amplitude=amplitude, model_name=model_name)
-            model = peak+model
-            params.update(pars)
-        else:
+        if fit_peaks==2:
+            peak_pos_voigt=np.array([initial_guess, HB_initial_guess])
+            for i, cen in enumerate(peak_pos_voigt):
+                if block_print is False:
+                    print('working on voigt peak' + str(i))
 
-            if len(peak_pos_voigt)==1:
-                peak, pars = add_peak(prefix='lz1_', center=cen, amplitude=amplitude, model_name=model_name)
+                peak, pars = add_peak(prefix='lz%d_' % (i+1),  center=cen,
+                min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
+                    min_sigma=sigma_ini*config1.HB_sigma_min_allowance, model_name=config1.model_name)
                 model = peak+model
                 params.update(pars)
 
-            if len(peak_pos_voigt)==2:
+        if fit_peaks==3:
+            peak_pos_voigt=np.array([initial_guess, HB_initial_guess, C13_initial_guess])
+
+            for i, cen in enumerate(peak_pos_voigt):
                 if block_print is False:
-                    print('Fitting 2 voigt peaks iteratively ')
-                for i, cen in enumerate(peak_pos_voigt):
-                    if block_print is False:
-                        print('working on voigt peak' + str(i))
+                    print('working on voigt peak' + str(i))
+                if i==0: # Fitting diad peak
+                #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
+                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini,
+                    max_sigma=sigma_ini*2, min_sigma=sigma_ini/2, model_name=config1.model_name)
+                if i==1: # Fitting hotband peak
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
+                    min_cent=cen-spec_res*2, max_cent=cen+spec_res*2, sigma=sigma_ini,
+                    max_sigma=sigma_ini*5, min_sigma=sigma_ini/20, model_name=config1.model_name)
+                if i==2:
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
+                    min_cent=cen-spec_res*2, max_cent=cen+spec_res*2, sigma=sigma_ini/3,
+                        max_sigma=sigma_ini/2, min_sigma=sigma_ini/100, model_name=config1.model_name)
 
-                    peak, pars = add_peak(prefix='lz%d_' % (i+1),  center=cen,
-                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
-                     min_sigma=sigma_ini*config1.HB_sigma_min_allowance, model_name=config1.model_name)
-                    model = peak+model
-                    params.update(pars)
-
-            if len(peak_pos_voigt)==3:
-                if block_print is False:
-                    print('Fitting 2 peaks iteratively, then adding C13')
-                for i, cen in enumerate(peak_pos_voigt):
-                    if block_print is False:
-                        print('working on voigt peak' + str(i))
-                    if i==0: # Fitting diad peak
-                    #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
-                        peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                        min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini,
-                        max_sigma=sigma_ini*2, min_sigma=sigma_ini/2, model_name=config1.model_name)
-                    if i==1: # Fitting hotband peak
-                        peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                        min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini,
-                        max_sigma=sigma_ini*5, min_sigma=sigma_ini/10, model_name=config1.model_name)
-                    if i==2:
-                        peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                        min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini/3,
-                         max_sigma=sigma_ini/2, min_sigma=sigma_ini/100, model_name=config1.model_name)
-
-                    model = peak+model
-                    params.update(pars)
+                model = peak+model
+                params.update(pars)
 
         model_F=model
 
@@ -2114,102 +1538,107 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     # Get first peak center
     Peak1_Cent=result.best_values.get('lz1_center')
     Peak1_Int=result.best_values.get('lz1_amplitude')
-    Peak1_sigma=result.best_values.get('lz1_sigma')
+    Peak1_Sigma=result.best_values.get('lz1_sigma')
     Peak1_gamma=result.best_values.get('lz1_gamma')
     Peak1_Prop_Lor=result.best_values.get('lz1_fraction')
     Peak1_fwhm=result.params['lz1_fwhm'].value
 
-    if Peak1_Int>=(config1.diad_amplitude*10-0.1):
+    x_lin=np.linspace(span[0], span[1], 2000)
+    y_best_fit=result.eval(x=x_lin)
+    components=result.eval_components(x=x_lin)
+
+    # Checking whether you need any flags.
+
+    if Peak1_Int>=(calc_diad_amplitude*10-0.1):
         refit=True
         refit_param=str(refit_param)+' V_LowAmp'
-    if Peak1_sigma>=(config1.diad_amplitude*10-0.1):
+    if Peak1_Sigma>=(calc_diad_amplitude*10-0.1):
         refit=True
         refit_param=str(refit_param)+' V_HighAmp'
-    if Peak1_sigma>=(config1.diad_sigma*config1.diad_sigma_max_allowance-0.001):
+    if Peak1_Sigma>=(config1.diad_sigma*config1.diad_sigma_max_allowance-0.001):
         refit=True
-        refit_param=str(refit_param)+' V_HighSigma'
-    if Peak1_sigma<=(config1.diad_sigma*config1.diad_sigma_min_allowance+0.001):
+        refit_param=str(refit_param)+' V_input_TooLowSigma'
+    if Peak1_Sigma<=(config1.diad_sigma*config1.diad_sigma_min_allowance+0.001):
         refit=True
-        refit_param=str(refit_param)+' V_LowSigma'
+        refit_param=str(refit_param)+' V_input_TooHighSigma'
 
 
-    if config1.peak_pos_gauss is not None:
+    if config1.fit_gauss is not None:
         Gauss_cent=result.best_values.get('bkg_center')
         Gauss_amp=result.best_values.get('bkg_amplitude')
         Gauss_sigma=result.best_values.get('bkg_sigma')
-        if Gauss_sigma>=(config1.gauss_sigma*10-0.1):
-            refit=True
-            refit_param=str(refit_param)+' G_HighSigma'
-        if Gauss_sigma<=(config1.gauss_sigma/10+0.1):
-            refit=True
-            refit_param=str(refit_param)+ ' G_LowSigma'
 
-        if Gauss_amp>=(config1.gauss_amp*10-0.1):
+        max_Gauss=np.max(components.get('bkg_'))
+        max_voigt=np.max(components.get('lz1_'))
+        if max_Gauss>max_voigt/5:
+            refit_param=str(refit_param)+ ' G_input_TooHighRelativeToDiad'
+        # if Gauss_sigma>=(config1.gauss_sigma*10-0.1):
+        #     refit=True
+        #     refit_param=str(refit_param)+' G_input_TooLowSigma'
+        # if Gauss_sigma<=(config1.gauss_sigma/10+0.1):
+        #     refit=True
+        #     refit_param=str(refit_param)+ ' G_input_TooHighSigma'
+        #
+        # if Gauss_amp>=(config1.gauss_amp*10-0.1):
+        #     refit=True
+        #     refit_param=str(refit_param)+' G_input_TooLowAmp'
+        # if Gauss_amp<=(config1.gauss_sigma+0.1):
+        #     refit=True
+        #     refit_param=str(refit_param)+' G_input_TooHighAmp'
+        if Gauss_cent<=(config1.fit_gauss-30+0.5):
             refit=True
-            refit_param=str(refit_param)+' G_HighAmp'
-        if Gauss_amp<=(config1.gauss_sigma+0.1):
+            refit_param=str(refit_param)+' G_InputTooLowCent'
+        if Gauss_cent>=(initial_guess+30-0.5):
             refit=True
-            refit_param=str(refit_param)+' G_LowAmp'
-        if Gauss_cent<=(config1.peak_pos_gauss-30+0.5):
-            refit=True
-            refit_param=str(refit_param)+' G_LowCent'
-        if Gauss_cent>=(config1.peak_pos_gauss+30-0.5):
-            refit=True
-            refit_param=str(refit_param)+' G_HighCent'
+            refit_param=str(refit_param)+' G_InputTooHighCent'
 
 
-    Peak1_Int=result.best_values.get('lz1_amplitude')
+
+
+
     # print('fwhm gauss')
     # print(result.best_values)
 
 
-    x_lin=np.linspace(span[0], span[1], 2000)
-    y_best_fit=result.eval(x=x_lin)
-    components=result.eval_components(x=x_lin)
+
 
     #
 
     # Work out what peak is what
     if diad2 is True:
 
-
-
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
+        if fit_peaks==1:
 
             Peak2_Cent=None
             Peak3_Cent=None
-            ax1_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
-            ax2_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
+            ax1_xlim=[Center_ini-15, Center_ini+15]
+            ax2_xlim=[Center_ini-15, Center_ini+15]
 
-        if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-            if len(peak_pos_voigt)==1:
-                Peak2_Cent=None
-                Peak3_Cent=None
-                ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-                ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-            if len(peak_pos_voigt)==2:
-                Peak2_Cent=result.best_values.get('lz2_center')
-                Peak2_Int=result.best_values.get('lz2_amplitude')
-                Peak2_Sigma=result.best_values.get('lz2_sigma')
-                Peak3_Cent=None
-                ax1_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
-                ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
+        if fit_peaks==2:
 
-            if len(peak_pos_voigt)==3:
-                Peak2_Cent=result.best_values.get('lz2_center')
-                Peak2_Int=result.best_values.get('lz2_amplitude')
-                Peak2_Sigma=result.best_values.get('lz2_sigma')
-                Peak3_Cent=result.best_values.get('lz3_center')
-                Peak3_Int=result.best_values.get('lz3_amplitude')
-                Peak3_Sigma=result.best_values.get('lz3_sigma')
+            Peak2_Cent=result.best_values.get('lz2_center')
+            Peak2_Int=result.best_values.get('lz2_amplitude')
+            Peak2_Sigma=result.best_values.get('lz2_sigma')
+            Peak3_Cent=None
+            ax1_xlim=[Center_ini-30, Center_ini+15]
+            ax2_xlim=[Center_ini-30, Center_ini+15]
 
-                ax1_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+30]
-                ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+30]
+        if fit_peaks==3:
+
+            Peak2_Cent=result.best_values.get('lz2_center')
+            Peak2_Int=result.best_values.get('lz2_amplitude')
+            Peak2_Sigma=result.best_values.get('lz2_sigma')
+            Peak3_Cent=result.best_values.get('lz3_center')
+            Peak3_Int=result.best_values.get('lz3_amplitude')
+            Peak3_Sigma=result.best_values.get('lz3_sigma')
+
+            ax1_xlim=[Center_ini-30, Center_ini+30]
+            ax2_xlim=[Center_ini-30, Center_ini+30]
 
         if Peak2_Cent is None:
             df_out=pd.DataFrame(data={'Diad2_Voigt_Cent': Peak1_Cent,
                                     'Diad2_Voigt_Area': Peak1_Int,
-                                'Diad2_Voigt_Sigma': Peak1_sigma,
+                                'Diad2_Voigt_Sigma': Peak1_Sigma,
                                 'Diad2_Voigt_Gamma': Peak1_gamma,
 
 
@@ -2278,7 +1707,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
             df_out=pd.DataFrame(data={'Diad2_Voigt_Cent': Diad2_Cent,
                                     'Diad2_Voigt_Area': Diad2_Int,
-                                    'Diad2_Voigt_Sigma': Peak1_sigma,
+                                    'Diad2_Voigt_Sigma': Peak1_Sigma,
                                     'Diad2_Voigt_Gamma': Peak1_gamma,
             }, index=[0])
 
@@ -2311,7 +1740,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         df_out['Diad2_Prop_Lor']= Peak1_Prop_Lor
         df_out['Diad2_fwhm']=Peak1_fwhm
 
-        if config1.peak_pos_gauss is not None:
+        if config1.fit_gauss is not None:
             df_out['Gauss_Cent']=Gauss_cent
             df_out['Gauss_Area']=Gauss_amp
             df_out['Gauss_Sigma']=Gauss_sigma
@@ -2332,7 +1761,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
 
-            if config1.peak_pos_gauss is not None:
+            if config1.fit_gauss is not None:
                 ax2.plot(x_lin, components.get('bkg_'), '.c',linewidth=2,  label='Gaussian bck')
             ax2.plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
             ax2.plot(xdat, ydat, '.k')
@@ -2350,17 +1779,12 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             ax2.set_xlabel('Wavenumber')
 
 
-            if len(peak_pos_voigt)>1:
+            if fit_peaks>1:
                 ax2.plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
 
-            if len(peak_pos_voigt)>2:
+            if fit_peaks>2:
                 ax2.plot(x_lin, components.get('lz3_'), '-m', linewidth=2, label='Peak3')
-            # if len(peak_pos_voigt)>1:
-            #     lowerpeak=np.min([Peak1_Cent, Peak2_Cent])
-            #     upperpeak=np.max([Peak1_Cent, Peak2_Cent])
-            #     ax1.set_xlim([lowerpeak-15, upperpeak+15])
-            # if len(peak_pos_voigt)>1:
-            #     ax2.set_xlim([lowerpeak-20, upperpeak+20])
+
 
             ax2.legend()
 
@@ -2382,46 +1806,40 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         df_out['Diad2_refit']=refit_param
 
     if diad1 is True:
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
 
+
+
+        if fit_peaks==1:
             Peak2_Cent=None
             Peak3_Cent=None
-            ax1_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
-            ax2_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
+            ax1_xlim=[Center_ini-15, Center_ini+15]
+            ax2_xlim=[Center_ini-15, Center_ini+15]
+        if fit_peaks==2:
+            Peak2_Cent=result.best_values.get('lz2_center')
+            Peak2_Int=result.best_values.get('lz2_amplitude')
+            Peak2_Sigma=result.best_values.get('lz2_sigma')
+            # Checking parameters for hot bands
+            if Peak2_Sigma>(sigma_ini*5-0.1):
+                refit_param=str(refit_param)+' HB1_HighSigma'
+            if Peak2_Sigma<=(sigma_ini/20+0.1):
+                refit_param=str(refit_param)+' HB1_LowSigma'
 
-        # If its not just a float or integer
-        if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-            if len(peak_pos_voigt)==1:
-                Peak2_Cent=None
-                Peak3_Cent=None
-                ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-                ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-            if len(peak_pos_voigt)==2:
-                Peak2_Cent=result.best_values.get('lz2_center')
-                Peak2_Int=result.best_values.get('lz2_amplitude')
-                Peak2_Sigma=result.best_values.get('lz2_sigma')
-                # Checking parameters for hot bands
-                if Peak2_Sigma>(sigma_ini*3-0.1):
-                    refit_param=str(refit_param)+' HB1_HighSigma'
-                if Peak2_Sigma<=(sigma_ini/20+0.1):
-                    refit_param=str(refit_param)+' HB1_LowSigma'
-
-                if Peak2_Int>(Amplitude_ini/5-0.001):
-                    refit_param=str(refit_param)+' HB1_HighAmp'
-                if Peak2_Int<=(Amplitude_ini/100+0.001):
-                    refit_param=str(refit_param)+' HB1_LowAmp'
+            if Peak2_Int>(Amplitude_ini/5-0.001):
+                refit_param=str(refit_param)+' HB1_HighAmp'
+            if Peak2_Int<=(Amplitude_ini/100+0.001):
+                refit_param=str(refit_param)+' HB1_LowAmp'
 
 
-                Peak3_Cent=None
-                ax1_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
-                ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
+            Peak3_Cent=None
+            ax1_xlim=[Center_ini-30, Center_ini+15]
+            ax2_xlim=[Center_ini-30, Center_ini+15]
 
 
 
         if Peak2_Cent is None:
             df_out=pd.DataFrame(data={'Diad1_Voigt_Cent': Peak1_Cent,
                                     'Diad1_Voigt_Area': Peak1_Int,
-                                'Diad1_Voigt_Sigma': Peak1_sigma,
+                                'Diad1_Voigt_Sigma': Peak1_Sigma,
                                 'Diad1_Voigt_Gamma': Peak1_gamma,
 
 
@@ -2434,7 +1852,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
             df_out=pd.DataFrame(data={'Diad1_Voigt_Cent': Peak1_Cent,
                                     'Diad1_Voigt_Area': Peak1_Int,
-                                    'Diad1_Voigt_Sigma': Peak1_sigma,
+                                    'Diad1_Voigt_Sigma': Peak1_Sigma,
                                     'Diad1_Voigt_Gamma': Peak1_gamma,
             }, index=[0])
 
@@ -2464,7 +1882,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         df_out['Diad1_Prop_Lor']= Peak1_Prop_Lor
         df_out['Diad1_fwhm']=Peak1_fwhm
 
-        if config1.peak_pos_gauss is not None:
+        if config1.fit_gauss is not None:
             df_out['Gauss_Cent']=Gauss_cent
             df_out['Gauss_Area']=Gauss_amp
             df_out['Gauss_Sigma']=Gauss_sigma
@@ -2485,7 +1903,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
 
-            if config1.peak_pos_gauss is not None:
+            if config1.fit_gauss is not None:
                 ax2.plot(x_lin, components.get('bkg_'), '.c',linewidth=2,  label='Gaussian bck')
             ax2.plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
             ax2.plot(xdat, ydat, '.k')
@@ -2503,10 +1921,10 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             ax2.set_xlabel('Wavenumber')
 
 
-            if len(peak_pos_voigt)>1:
+            if fit_peaks>1:
                 ax2.plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
 
-            if len(peak_pos_voigt)>2:
+            if fit_peaks>2:
                 ax2.plot(x_lin, components.get('lz3_'), '-m', linewidth=2, label='Peak3')
             # if len(peak_pos_voigt)>1:
             #     lowerpeak=np.min([Peak1_Cent, Peak2_Cent])
@@ -2534,15 +1952,18 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
         df_out['Diad1_refit']=refit_param
 
+        # Final check - that Gaussian isnt anywhere near the height of the diad
 
 
-    return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, config1.peak_pos_gauss, residual_diad_coords, ydat_inrange,  xdat_inrange
+
+
+    return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, config1.fit_gauss, residual_diad_coords, ydat_inrange,  xdat_inrange
 
 
 
 def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: diad_id_config=diad_id_config(),
     path=None, filename=None, peak_pos_voigt=None,filetype=None,
-    close_figure=True):
+    close_figure=True, Diad_pos=None, HB_pos=None, C13_pos=None, fit_peaks=None):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -2602,6 +2023,23 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
     """
+
+    # Check number of peaks makes sense
+    fit_peaks=config1.fit_peaks
+
+
+
+    if fit_peaks==2:
+        if np.isnan(HB_pos)==True:
+            fit_peaks=1
+
+    if fit_peaks==3:
+        if np.isnan(HB_pos)==True and np.isnan(C13_pos)==True:
+            fit_peaks=1
+
+        elif np.isnan(C13_pos)==True:
+            fit_peaks=2
+
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
     Diad=np.array(Diad_df)
     # First, we feed data into the remove baseline function, which returns corrected data
@@ -2617,7 +2055,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     # Then, we feed this baseline-corrected data into the combined gaussian-voigt peak fitting function
     result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config1, diad2=True, path=path, filename=filename,
     xdat=x_diad2, ydat=y_corr_diad2,
-     peak_pos_voigt=peak_pos_voigt, span=span_diad2, plot_figure=False)
+    span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=fit_peaks)
 
 
 
@@ -2627,35 +2065,38 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
         print('refit attempt 1')
         print(str(df_out['Diad2_refit'].iloc[0]))
         config_tweaked=config1
+        factor=2
 
 
-        if any(df_out['Diad2_refit'].str.contains('V_LowAmp')):
-            config_tweaked.diad_amplitude=config1.diad_amplitude*10
-        if any(df_out['Diad2_refit'].str.contains('V_HighAmp')):
-            config_tweaked.diad_amplitude=config1.diad_amplitude/10
-        if any(df_out['Diad2_refit'].str.contains('V_HighSigma')):
-            config_tweaked.diad_sigma=config1.diad_sigma*2
-        if any(df_out['Diad2_refit'].str.contains('V_LowSigma')):
-            config_tweaked.diad_sigma=config1.diad_sigma/2
+
+        # if any(df_out['Diad2_refit'].str.contains('V_HighAmp')):
+        #     config_tweaked.diad_amplitude=calc_diad_amplitude/10
+        if any(df_out['Diad2_refit'].str.contains('V_input_TooLowSigma')):
+            config_tweaked.diad_sigma=config1.diad_sigma*factor
+        if any(df_out['Diad2_refit'].str.contains('V_input_TooHighSigma')):
+            config_tweaked.diad_sigma=config1.diad_sigma/factor
         # Gaussian fit bits
-        if any(df_out['Diad2_refit'].str.contains('G_LowSigma')):
-            config_tweaked.gauss_sigma=config1.gauss_sigma/2
-        if any(df_out['Diad2_refit'].str.contains('G_HighSigma')):
-            config_tweaked.gauss_sigma=config1.gauss_sigma*2
-        if any(df_out['Diad2_refit'].str.contains('G_HighAmp')):
-            config_tweaked.gauss_amplitude=config1.gauss_sigma*2
-        if any(df_out['Diad2_refit'].str.contains('G_LowAmp')):
-            config_tweaked.gauss_amplitude=config1.gauss_sigma/2
+        if any(df_out['Diad2_refit'].str.contains('G_input_TooHighSigma')):
+            config_tweaked.gauss_sigma=config1.gauss_sigma/factor
+        if any(df_out['Diad2_refit'].str.contains('G_input_TooLowSigma')):
+            config_tweaked.gauss_sigma=config1.gauss_sigma*factor
+        if any(df_out['Diad2_refit'].str.contains('G_input_TooLowAmp')):
+            config_tweaked.gauss_amplitude=config1.gauss_amp*factor
+        if any(df_out['Diad2_refit'].str.contains('G_input_TooHighAmp')):
+            config_tweaked.gauss_amplitude=config1.gauss_amp/factor
+        if any(df_out['Diad2_refit'].str.contains('G_input_TooHighRelativeToDiad')):
+            config_tweaked.gauss_amplitude=config1.gauss_amp/factor
+            config_tweaked.gauss_sigma=config1.gauss_sigma*factor
            # Hot band fit bits
-        if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
-            config_tweaked.HB_amplitude=config1.HB_amplitude/2
-        if any(df_out['Diad2_refit'].str.contains('HB2_HighAmp')):
-            config_tweaked.HB_amplitude=config1.HB_amplitude*2
+        # if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
+        #     config_tweaked.HB_amplitude=calc_HB_amplitude/2
+        # if any(df_out['Diad2_refit'].str.contains('HB2_HighAmp')):
+        #     config_tweaked.HB_amplitude=calc_HB_amplitude*2
 
 
         result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked, diad2=True, path=path, filename=filename,
          xdat=x_diad2, ydat=y_corr_diad2,
-     peak_pos_voigt=peak_pos_voigt, span=span_diad2, plot_figure=False)
+    span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=fit_peaks)
         i=2
         while str(df_out['Diad2_refit'].iloc[0])!='Flagged Warnings:':
 
@@ -2663,34 +2104,38 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
             print(df_out['Diad2_refit'].iloc[0])
 
             config_tweaked2=config_tweaked
+            factor2=factor*2
 
-
-            if any(df_out['Diad2_refit'].str.contains('V_LowAmp')):
-                config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude*10
-            if any(df_out['Diad2_refit'].str.contains('V_HighAmp')):
-                config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude/10
-            if any(df_out['Diad2_refit'].str.contains('V_HighSigma')):
-                config_tweaked2.diad_sigma=config_tweaked.diad_sigma*2
-            if any(df_out['Diad2_refit'].str.contains('V_LowSigma')):
-                config_tweaked2.diad_sigma=config_tweaked.diad_sigma/2
+            #
+            # if any(df_out['Diad2_refit'].str.contains('V_LowAmp')):
+            #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude*10
+            # if any(df_out['Diad2_refit'].str.contains('V_HighAmp')):
+            #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude/10
+            if any(df_out['Diad2_refit'].str.contains('V_input_TooLowSigma')):
+                config_tweaked2.diad_sigma=config_tweaked.diad_sigma*factor2
+            if any(df_out['Diad2_refit'].str.contains('V_input_TooHighSigma')):
+                config_tweaked2.diad_sigma=config_tweaked.diad_sigma/factor2
             # Gaussian fit bits
-            if any(df_out['Diad2_refit'].str.contains('G_LowSigma')):
-                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma/2
-            if any(df_out['Diad2_refit'].str.contains('G_HighSigma')):
-                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*2
-            if any(df_out['Diad2_refit'].str.contains('G_HighAmp')):
-                config_tweaked2.gauss_amplitude=config_tweaked.gauss_sigma*2
-            if any(df_out['Diad2_refit'].str.contains('G_LowAmp')):
-                config_tweaked2.gauss_amplitude=config_tweaked.gauss_sigma/2
-        # Hot bands bits
-            if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
-                config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude/2
-            if any(df_out['Diad2_refit'].str.contains('HB2_HighAmp')):
-                config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude*2
+            if any(df_out['Diad2_refit'].str.contains('G_input_TooHighSigma')):
+                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma/factor2
+            if any(df_out['Diad2_refit'].str.contains('G_input_TooLowSigma')):
+                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
+            if any(df_out['Diad2_refit'].str.contains('G_input_TooLowAmp')):
+                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp*factor2
+            if any(df_out['Diad2_refit'].str.contains('G_input_TooHighAmp')):
+                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
+            if any(df_out['Diad2_refit'].str.contains('G_input_TooHighRelativeToDiad')):
+                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
+                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
+        # # Hot bands bits
+        #     if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
+        #         config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude/2
+        #     if any(df_out['Diad2_refit'].str.contains('HB2_HighAmp')):
+        #         config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude*2
 
 
             result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked2, diad2=True, path=path, filename=filename,
-        xdat=x_diad2, ydat=y_corr_diad2, peak_pos_voigt=peak_pos_voigt, span=span_diad2, plot_figure=False)
+        xdat=x_diad2, ydat=y_corr_diad2, span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=fit_peaks)
             i=i+1
             if i>5:
                 print('Got to 5 iteratoins and still couldnt adjust the fit parameters')
@@ -2777,12 +2222,12 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     axes['B'].plot(xdat, ydat, '.k')
 
     # This is for if there is more than 1 peak, this is when we want to plot the best fit
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)>1:
-            axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+
+    if fit_peaks>1:
+        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
 
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
-    if config1.peak_pos_gauss is not None:
+    if config1.fit_gauss is not None:
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
     #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
     axes['B'].legend()
@@ -2800,8 +2245,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     axes['B'].plot([df_out['Diad2_Voigt_Cent'], df_out['Diad2_Voigt_Cent']], [np.min(ydat), np.max(ydat)], ':b')
 
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)>=2:
+
+    if fit_peaks>=2:
             axes['B'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(ydat), np.max(ydat)], ':r')
 
     axes['B'].set_title('c) Fit Components')
@@ -2821,33 +2266,30 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     rect_diad2_b1=patches.Rectangle((config1.lower_bck_diad2[0],axc_ymin),config1.lower_bck_diad2[1]-config1.lower_bck_diad2[0],axc_ymax-axc_ymin,
                               linewidth=1,edgecolor='none',facecolor='cyan', label='bck', alpha=0.3, zorder=0)
-    axes['C'].add_patch(rect_diad2_b1)
-    rect_diad2_b2=patches.Rectangle((config1.upper_bck_diad2[0],axc_ymin),config1.upper_bck_diad2[1]-config1.upper_bck_diad2[0],axc_ymax-axc_ymin,
-                              linewidth=1,edgecolor='none',facecolor='cyan', alpha=0.3, zorder=0)
-    axes['C'].add_patch(rect_diad2_b2)
+
 
 
     axes['C'].set_title('d) Peaks overlain on data before subtraction')
-    axes['C'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b', label='bck')
+    axes['C'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b')
     axes['C'].plot(Diad_short_diad2[:, 0], Py_base_diad2, '-k', label='Poly bck fit')
-    axes['C'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '.r', label='Data')
+    axes['C'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '.r')
 
     axes['C'].set_ylabel('Intensity')
     axes['C'].set_xlabel('Wavenumber')
 
 
-    if config1.peak_pos_gauss is not None:
+    if config1.fit_gauss is not None:
 
         axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
 
     axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
     axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
-    if len(peak_pos_voigt)>1:
+    if fit_peaks>1:
         axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
-    if len(peak_pos_voigt)>2:
+    if fit_peaks>2:
         axes['C'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-c', label='Peak3', linewidth=1)
 
-    axes['C'].legend()
+    axes['C'].legend(loc='lower left')
 
 
     axes['C'].set_xlim([axc_xmin, axc_xmax])
@@ -2858,8 +2300,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     # Residual on plot D
     axes['D'].set_title('f) Residuals')
     axes['D'].plot([df_out['Diad2_Voigt_Cent'], df_out['Diad2_Voigt_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':b')
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)>=2:
+    if fit_peaks>1:
             axes['D'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':r')
 
     axes['D'].plot(xdat_inrange, residual_diad_coords, 'ok', mfc='c' )
@@ -2914,7 +2355,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
 def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: diad_id_config=diad_id_config(),
-    path=None, filename=None, peak_pos_voigt=None,filetype=None,  close_figure=True):
+    path=None, filename=None, filetype=None,  close_figure=True, Diad_pos=None, HB_pos=None, fit_peaks=None):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -2952,8 +2393,6 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
         wavenumbers of RH baseline region
 
 
-    peak_pos_voigt: list
-        Estimates of peak positions for peaks
 
     peak_pos_gauss: None, int, or flota
         If you want a gaussian as part of your fit, put an approximate center here
@@ -2974,6 +2413,11 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
 
     """
+    fit_peaks=config1.fit_peaks
+
+    if fit_peaks==2:
+        if np.isnan(HB_pos)==True:
+            fit_peaks=1
 
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
     Diad=np.array(Diad_df)
@@ -2991,43 +2435,46 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
     result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config1,diad1=True, path=path, filename=filename,
                     xdat=x_diad1, ydat=y_corr_diad1,
-                    peak_pos_voigt=peak_pos_voigt,
-                    span=span_diad1, plot_figure=False)
+                    span=span_diad1, plot_figure=False,
+                    Diad_pos=Diad_pos, HB_pos=HB_pos,fit_peaks=fit_peaks)
 
     # Try Refitting once
     if str(df_out['Diad1_refit'].iloc[0])!='Flagged Warnings:':
         print('refit attempt 1')
         print(str(df_out['Diad1_refit'].iloc[0]))
         config_tweaked=config1
+        factor=2
 
 
-        if any(df_out['Diad1_refit'].str.contains('V_LowAmp')):
-            config_tweaked.diad_amplitude=config1.diad_amplitude*10
-        if any(df_out['Diad1_refit'].str.contains('V_HighAmp')):
-            config_tweaked.diad_amplitude=config1.diad_amplitude/10
-        if any(df_out['Diad1_refit'].str.contains('V_HighSigma')):
-            config_tweaked.diad_sigma=config1.diad_sigma*2
-        if any(df_out['Diad1_refit'].str.contains('V_LowSigma')):
-            config_tweaked.diad_sigma=config1.diad_sigma/2
+        # if any(df_out['Diad1_refit'].str.contains('V_LowAmp')):
+        #     config_tweaked.diad_amplitude=calc_diad_amplitude*10
+        # if any(df_out['Diad1_refit'].str.contains('V_HighAmp')):
+        #     config_tweaked.diad_amplitude=calc_diad_amplitude/10
+        if any(df_out['Diad1_refit'].str.contains('V_input_TooLowSigma')):
+            config_tweaked.diad_sigma=config1.diad_sigma*factor
+        if any(df_out['Diad1_refit'].str.contains('V_input_TooHighSigma')):
+            config_tweaked.diad_sigma=config1.diad_sigma/factor
         # Gaussian fit bits
-        if any(df_out['Diad1_refit'].str.contains('G_LowSigma')):
-            config_tweaked.gauss_sigma=config1.gauss_sigma/2
-        if any(df_out['Diad1_refit'].str.contains('G_HighSigma')):
-            config_tweaked.gauss_sigma=config1.gauss_sigma*2
-        if any(df_out['Diad1_refit'].str.contains('G_HighAmp')):
-            config_tweaked.gauss_amplitude=config1.gauss_sigma*2
-        if any(df_out['Diad1_refit'].str.contains('G_LowAmp')):
-            config_tweaked.gauss_amplitude=config1.gauss_sigma/2
-        # Hot band fit bits
-        if any(df_out['Diad1_refit'].str.contains('HB1_LowAmp')):
-            config_tweaked.HB_amplitude=config1.HB_amplitude/2
-        if any(df_out['Diad1_refit'].str.contains('HB1_HighAmp')):
-            config_tweaked.HB_amplitude=config1.HB_amplitude*2
+        if any(df_out['Diad1_refit'].str.contains('G_input_TooHighSigma')):
+            config_tweaked.gauss_sigma=config1.gauss_sigma/factor
+        if any(df_out['Diad1_refit'].str.contains('G_input_TooLowSigma')):
+            config_tweaked.gauss_sigma=config1.gauss_sigma*factor
+        if any(df_out['Diad1_refit'].str.contains('G_input_TooLowAmp')):
+            config_tweaked.gauss_amplitude=config1.gauss_amp*factor
+        if any(df_out['Diad1_refit'].str.contains('G_input_TooHighAmp')):
+            config_tweaked.gauss_amplitude=config1.gauss_amp/factor
+        if any(df_out['Diad1_refit'].str.contains('G_input_TooHighRelativeToDiad')):
+            config_tweaked.gauss_amplitude=config1.gauss_amp/factor
+            config_tweaked.gauss_sigma=config1.gauss_sigma*factor
+        # # Hot band fit bits
+        # if any(df_out['Diad1_refit'].str.contains('HB1_LowAmp')):
+        #     config_tweaked.HB_amplitude=calc_HB_amplitude/2
+        # if any(df_out['Diad1_refit'].str.contains('HB1_HighAmp')):
+        #     config_tweaked.HB_amplitude=calc_HB_amplitude*2
 
         result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked,diad1=True, path=path, filename=filename,
                     xdat=x_diad1, ydat=y_corr_diad1,
-                    peak_pos_voigt=peak_pos_voigt,
-                    span=span_diad1, plot_figure=False)
+                    span=span_diad1, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, fit_peaks=fit_peaks)
         i=2
         while str(df_out['Diad1_refit'].iloc[0])!='Flagged Warnings:':
 
@@ -3035,36 +2482,39 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
             print(df_out['Diad1_refit'].iloc[0])
 
             config_tweaked2=config_tweaked
+            factor2=factor*2
 
 
-            if any(df_out['Diad1_refit'].str.contains('V_LowAmp')):
-                config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude*10
-            if any(df_out['Diad1_refit'].str.contains('V_HighAmp')):
-                config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude/10
-            if any(df_out['Diad1_refit'].str.contains('V_HighSigma')):
-                config_tweaked2.diad_sigma=config_tweaked.diad_sigma*2
-            if any(df_out['Diad1_refit'].str.contains('V_LowSigma')):
-                config_tweaked2.diad_sigma=config_tweaked.diad_sigma/2
+            # if any(df_out['Diad1_refit'].str.contains('V_LowAmp')):
+            #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude*10
+            # if any(df_out['Diad1_refit'].str.contains('V_HighAmp')):
+            #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude/10
+            if any(df_out['Diad1_refit'].str.contains('V_input_TooLowSigma')):
+                config_tweaked2.diad_sigma=config_tweaked.diad_sigma*factor2
+            if any(df_out['Diad1_refit'].str.contains('V_input_TooHighSigma')):
+                config_tweaked2.diad_sigma=config_tweaked.diad_sigma/factor2
             # Gaussian fit bits
-            if any(df_out['Diad1_refit'].str.contains('G_LowSigma')):
-                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma/2
-            if any(df_out['Diad1_refit'].str.contains('G_HighSigma')):
-                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*2
-            if any(df_out['Diad1_refit'].str.contains('G_HighAmp')):
-                config_tweaked2.gauss_amplitude=config_tweaked.gauss_sigma*2
-            if any(df_out['Diad1_refit'].str.contains('G_LowAmp')):
-                config_tweaked2.gauss_amplitude=config_tweaked.gauss_sigma/2
+            if any(df_out['Diad1_refit'].str.contains('G_input_TooHighSigma')):
+                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma/factor2
+            if any(df_out['Diad1_refit'].str.contains('G_input_TooLowSigma')):
+                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
+            if any(df_out['Diad1_refit'].str.contains('G_input_TooLowAmp')):
+                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp*factor2
+            if any(df_out['Diad1_refit'].str.contains('G_input_TooHighAmp')):
+                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
+            if any(df_out['Diad1_refit'].str.contains('G_input_TooHighRelativeToDiad')):
+                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
+                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
             # Hot bands bits
-            if any(df_out['Diad1_refit'].str.contains('HB1_LowAmp')):
-                config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude/2
-            if any(df_out['Diad1_refit'].str.contains('HB1_HighAmp')):
-                config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude*2
+            # if any(df_out['Diad1_refit'].str.contains('HB1_LowAmp')):
+            #     config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude/2
+            # if any(df_out['Diad1_refit'].str.contains('HB1_HighAmp')):
+            #     config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude*2
 
 
             result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked2,diad1=True, path=path, filename=filename,
                     xdat=x_diad1, ydat=y_corr_diad1,
-                    peak_pos_voigt=peak_pos_voigt,
-                    span=span_diad1, plot_figure=False)
+                    span=span_diad1, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, fit_peaks=fit_peaks)
             i=i+1
             if i>5:
                 print('Got to 5 iteratoins and still couldnt adjust the fit parameters')
@@ -3153,9 +2603,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     axes['B'].plot(xdat, ydat, '.k')
 
     # This is for if there is more than 1 peak, this is when we want to plot the best fit
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)>1:
-            axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+    if fit_peaks>1:
+
+        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
 
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
     if peak_pos_gauss is not None:
@@ -3174,9 +2624,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
     # Dashed lines so matches part D
     axes['B'].plot([df_out['Diad1_Voigt_Cent'], df_out['Diad1_Voigt_Cent']], [np.min(ydat), np.max(ydat)], ':b')
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)>=2:
-            axes['B'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(ydat), np.max(ydat)], ':r')
+
+    if fit_peaks>2:
+        axes['B'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(ydat), np.max(ydat)], ':r')
 
     axes['B'].set_title('c) Fit Components')
 
@@ -3216,7 +2666,8 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
     axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
     axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
-    if len(peak_pos_voigt)>1:
+
+    if fit_peaks>1:
         axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
 
 
@@ -3231,9 +2682,8 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     # Residual on plot D
     axes['D'].set_title('f) Residuals')
     axes['D'].plot([df_out['Diad1_Voigt_Cent'], df_out['Diad1_Voigt_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':b')
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)>=2:
-            axes['D'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':r')
+    if fit_peaks>2:
+        axes['D'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':r')
 
     axes['D'].plot(xdat_inrange, residual_diad_coords, 'ok', mfc='c' )
     axes['D'].plot(xdat_inrange, residual_diad_coords, '-c' )
@@ -4285,451 +3735,4 @@ def plot_diad_spectra(Diad_Files_Specific=None, df_out=None, yoff=100):
     ax2.set_ylabel('Intensity')
     fig.tight_layout()
 
-
-## NEW test Diad1 and Diad 2 so consistent
-
-def fit_gaussian_voigt_diad1(*, path=None, filename=None, xdat=None, ydat=None, peak_pos_voigt=(1389, 1410), span=None, config1=None, plot_figure=True, dpi=200,
-                    block_print=True):
-
-
-    """ This function fits diad 2, at ~1389 and the hot band and C13 peak
-
-    Parameters
-    -----------
-    path: str
-        Folder user wishes to read data from
-
-    filename: str
-        Specific file being read
-
-    xdat, ydat: pd.series
-        x and background substracted y data to fit.
-
-    peak_pos_voigt: list
-        Estimates of peak positions for peaks.
-        Fits as many peaks as positions in this list
-
-    peak_pos_gauss: None, int, or flota
-        If you want a gaussian as part of your fit, put an approximate center here
-
-    amplitude: int, float
-        Approximate amplitude of main peak
-
-    span: list
-        x bits that are actually peak for residuals. Basically upper and lower back coords
-
-    plot_figure: bool
-        if True, saves figure
-
-    dpi: int
-        dpi for saved figure
-
-    Returns
-    -----------
-    result, df_out, y_best_fit, x_lin
-
-        result: fitted model
-        df_out: Dataframe of fit parameters for diad.
-
-
-    """
-    # Gets overridden if you have triggered any of the warnings
-    refit=False
-    refit_param='Flagged Warnings:'
-
-    if type(peak_pos_voigt) is np.ndarray:
-        peak_pos_voigt=peak_pos_voigt[0]
-
-
-    if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
-        initial_guess=peak_pos_voigt
-        type_peak="int"
-            # Sometimes length 1 can be with a comma
-    else:
-
-
-        if len(peak_pos_voigt)==1:
-            initial_guess=peak_pos_voigt[0]
-        if len(peak_pos_voigt)==2:
-            initial_guess=np.max(peak_pos_voigt)
-
-
-    if config1.model_name=="VoigtModel":
-        model_ini = VoigtModel()#+ ConstantModel()
-    if config1.model_name=="PseudoVoigtModel":
-        model_ini = PseudoVoigtModel()#+ ConstantModel()
-    # create parameters with initial values
-    params_ini = model_ini.make_params(center=initial_guess, max=initial_guess+5, min=initial_guess-5 )
-    params_ini['amplitude'].set(config1.diad_amplitude, min=0, max=config1.diad_amplitude*10)
-    params_ini['sigma'].set(config1.diad_sigma, min=config1.diad_sigma/config1.diad_sigma_allowance, max=config1.diad_sigma*config1.diad_sigma_allowance)
-    init_ini = model_ini.eval(params_ini, x=xdat)
-
-
-    result_ini  = model_ini.fit(ydat, params_ini, x=xdat)
-    comps_ini  = result_ini.eval_components()
-    Center_ini=result_ini.best_values.get('center')
-    Amplitude_ini=result_ini.params.get('amplitude')
-    sigma_ini=result_ini.params.get('sigma')
-    fwhm_ini=result_ini.params.get('fwhm')
-    if block_print is False:
-        print(Center_ini)
-        print(sigma_ini)
-
-
-
-    if peak_pos_gauss is None:
-        # Fit just as many peaks as there are peak_pos_voigt
-
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is int or type(peak_pos_voigt) is np.float64:
-            if config1.model_name=='VoigtModel':
-                model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-            if config1.model_name=='PseudoVoigtModel':
-                model_F = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-            pars1 = model_F.make_params()
-            pars1['lz1_'+ 'amplitude'].set(diad_amplitude, min=0, max=diad_amplitude*10)
-            pars1['lz1_'+ 'center'].set(peak_pos_voigt)
-            pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma/config1.diad_sigma_allowance, max=config1.diad_sigma*config1.diad_sigma_allowance)
-            params=pars1
-
-        else:
-            if len(peak_pos_voigt)==1:
-                if config1.model_name=='VoigtModel':
-                    model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-                if config1.model_name=='PseudoVoigtModel':
-                    model_F = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-                pars1 = model_F.make_params()
-                pars1['lz1_'+ 'amplitude'].set(config1.diad_amplitude, min=0, max=diad_amplitude*10)
-                pars1['lz1_'+ 'center'].set(peak_pos_voigt[0])
-                pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma/config1.diad_sigma_allowance, max=config1.diad_sigma*config1.diad_sigma_allowance)
-                params=pars1
-
-            if len(peak_pos_voigt)==2:
-
-                Center_ini=Center_ini
-                Amplitude_ini=Amplitude_ini
-                sigma_ini=sigma_ini
-
-
-
-                # Then use these to inform next peak
-                if config1.model_name=='VoigtModel':
-                    model1 = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-                if config1.model_name=='PseudoVoigtModel':
-                    model1 = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-                pars1 = model1.make_params()
-                pars1['lz1_'+ 'amplitude'].set(Amplitude_ini, min=Amplitude_ini/2, max=Amplitude_ini*2)
-                pars1['lz1_'+ 'center'].set(Center_ini, min=Center_ini-1, max=Center_ini+2)
-
-                # Second wee peak
-                prefix='lz2_'
-                if config1.model_name=='VoigtModel':
-                    peak = VoigtModel(prefix='lz2_')# + ConstantModel(prefix='c1')
-                if config1.model_name=='PseudoVoigtModel':
-                    peak = PseudoVoigtModel(prefix='lz2_')# + ConstantModel(prefix='c1')
-
-                # Setting hotband parameters -
-                pars = peak.make_params()
-                pars[prefix + 'center'].set(min(peak_pos_voigt), min=min(peak_pos_voigt)-2, max=min(peak_pos_voigt)+2)
-                pars[prefix + 'amplitude'].set(config1.HB_amplitude, min=Amplitude_ini*config1.HB_amp_min_allowance, max=Amplitude_ini*config1.HB_amp_max_allowance)
-                pars[prefix+ 'sigma'].set(sigma_ini, min=sigma_ini*config1.HB_sigma_min_allowance, max=sigma_ini*config1.HB_sigma_max_allowance)
-
-                model_F=model1+peak
-                pars1.update(pars)
-                params=pars1
-
-
-
-
-
-
-
-    # Same, but also with a Gaussian Background
-    if peak_pos_gauss is not None:
-
-        model = GaussianModel(prefix='bkg_')
-        params = model.make_params()
-        params['bkg_'+'amplitude'].set(gauss_amp, min=gauss_amp/10, max=gauss_amp*10)
-        params['bkg_'+'sigma'].set(gauss_sigma, min=gauss_sigma/10, max=gauss_sigma*10)
-        params['bkg_'+'center'].set(peak_pos_gauss, min=peak_pos_gauss-10, max=peak_pos_gauss+10)
-
-
-
-
-        rough_peak_positions = peak_pos_voigt
-        # If you want a Gaussian background
-        if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
-            type_peak="int"
-            peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt, amplitude=amplitude, model_name=config1.model_name)
-            model = peak+model
-            params.update(pars)
-        else:
-
-            if len(peak_pos_voigt)==1:
-                peak, pars = add_peak(prefix='lz1_', center=cen, amplitude=amplitude, model_name=config1.model_name)
-                model = peak+model
-                params.update(pars)
-
-            if len(peak_pos_voigt)==2:
-                if block_print is False:
-                    print('Fitting 2 voigt peaks iteratively ')
-                for i, cen in enumerate(peak_pos_voigt):
-                    if block_print is False:
-                        print('working on voigt peak' + str(i))
-                    #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
-                    peak, pars = add_peak(prefix='lz%d_' % (i+1),  center=cen,
-                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*config1.HB_sigma_max_allowance,        min_sigma=sigma_ini*config1.HB_sigma_min_allowance, model_name=config1.model_name)
-
-                    model = peak+model
-                    params.update(pars)
-
-
-        model_F=model
-
-
-
-    # Regardless of fit, evaluate model
-    init = model_F.eval(params, x=xdat)
-    result = model_F.fit(ydat, params, x=xdat)
-    comps = result.eval_components()
-
-    #print(result.fit_report(min_correl=0.5))
-    # Check if function gives error bars
-    Error_bars=result.errorbars
-    if Error_bars is False:
-        if block_print is False:
-            print('Error bars not determined by function')
-
-    # Get first peak center
-    Peak1_Cent=result.best_values.get('lz1_center')
-    Peak1_Int=result.best_values.get('lz1_amplitude')
-    Peak1_sigma=result.best_values.get('lz1_sigma')
-    Peak1_gamma=result.best_values.get('lz1_gamma')
-    Peak1_Prop_Lor=result.best_values.get('lz1_fraction')
-    Peak1_fwhm=Peak1_fwhm=result.params['lz1_fwhm'].value
-
-
-
-    if Peak1_Int>=(diad_amplitude*10-0.1):
-        #w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the diad 1 config file')
-        refit=True
-        refit_param=str(refit_param)+' V_LowAmp'
-    if Peak1_sigma>=(diad_amplitude*10-0.1):
-        #w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_amplitude in the diad 1 config file')
-        refit=True
-        refit_param=str(refit_param)+' V_HighAmp'
-    if Peak1_sigma>=(diad_sigma*sigma_allowance-0.001):
-        #w.warn('Diad fit right at the upper limit of the allowed fit parameter, change diad_sigma in the diad 1 config file')
-        refit=True
-        refit_param=str(refit_param)+' V_HighSigma'
-    if Peak1_sigma<=(diad_sigma/sigma_allowance+0.001):
-        #w.warn('Diad fit right at the lower limit of the allowed fit parameter, change diad_sigma in the diad 1 config file')
-        refit=True
-        refit_param=str(refit_param)+' V_LowSigma'
-
-
-    if peak_pos_gauss is not None:
-        Gauss_cent=result.best_values.get('bkg_center')
-        Gauss_amp=result.best_values.get('bkg_amplitude')
-        Gauss_sigma=result.best_values.get('bkg_sigma')
-        if Gauss_sigma>=(gauss_sigma*10-0.1):
-            #w.warn('Best fit Gauss sigma right at the upper limit of the allowed fit parameter, change gauss_sigma in the diad 1 config file')
-            refit=True
-            refit_param=str(refit_param)+' G_HighSigma'
-        if Gauss_sigma<=(gauss_sigma/10+0.1):
-            #w.warn('Best fit Gauss  sigma is right at the lower limit of the allowed fit parameter, change gauss_sigma in the diad 1 config file')
-            refit=True
-            refit_param=str(refit_param)+ ' G_LowSigma'
-
-        if Gauss_amp>=(gauss_amp*10-0.1):
-            #w.warn('Best fit Gauss amplitude is right at the upper limit of the allowed fit parameter, change gauss_amp in the diad 1 config file')
-            refit=True
-            refit_param=str(refit_param)+' G_HighAmp'
-        if Gauss_amp<=(gauss_sigma+0.1):
-            #w.warn('Best fit Gauss amplitude is right at the lower limit of the allowed fit parameter, change gauss_amp in the diad 1 configfile')
-            refit=True
-            refit_param=str(refit_param)+' G_LowAmp'
-        if Gauss_cent<=(peak_pos_gauss-30+0.5):
-            #w.warn('Best fit Gauss Cent is right at the lower limit of the allowed fit parameter, change peak_pos_gauss in the diad 1 configfile')
-            refit=True
-            refit_param=str(refit_param)+' G_LowCent'
-        if Gauss_cent>=(peak_pos_gauss+30-0.5):
-            #w.warn('Best fit Gauss Cent is right at the upper limit of the allowed fit parameter, change peak_pos_gauss in the diad 1 configfile')
-            refit=True
-            refit_param=str(refit_param)+' G_HighCent'
-
-
-
-
-    Peak1_Int=result.best_values.get('lz1_amplitude')
-    # print('fwhm gauss')
-    # print(result.best_values)
-
-
-    x_lin=np.linspace(span[0], span[1], 2000)
-    y_best_fit=result.eval(x=x_lin)
-    components=result.eval_components(x=x_lin)
-
-    #
-
-    # --- Work out what peak is what
-
-    # If only 1 peak, its pretty easy.
-    if type(peak_pos_voigt) is float or type(peak_pos_voigt) is np.float64 or type(peak_pos_voigt) is int:
-
-        Peak2_Cent=None
-        Peak3_Cent=None
-        ax1_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
-        ax2_xlim=[peak_pos_voigt-15, peak_pos_voigt+15]
-
-    # If its not just a float or integer
-    if type(peak_pos_voigt) is not float and type(peak_pos_voigt) is not np.float64 and type(peak_pos_voigt) is not int:
-        if len(peak_pos_voigt)==1:
-            Peak2_Cent=None
-            Peak3_Cent=None
-            ax1_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-            ax2_xlim=[peak_pos_voigt[0]-15, peak_pos_voigt[0]+15]
-        if len(peak_pos_voigt)==2:
-            Peak2_Cent=result.best_values.get('lz2_center')
-            Peak2_Int=result.best_values.get('lz2_amplitude')
-            Peak2_Sigma=result.best_values.get('lz2_sigma')
-            # Checking parameters for hot bands
-            if Peak2_Sigma>(sigma_ini*3-0.1):
-                refit_param=str(refit_param)+' HB1_HighSigma'
-            if Peak2_Sigma<=(sigma_ini/20+0.1):
-                refit_param=str(refit_param)+' HB1_LowSigma'
-
-            if Peak2_Int>(Amplitude_ini/5-0.001):
-                refit_param=str(refit_param)+' HB1_HighAmp'
-            if Peak2_Int<=(Amplitude_ini/100+0.001):
-                refit_param=str(refit_param)+' HB1_LowAmp'
-
-
-            Peak3_Cent=None
-            ax1_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
-            ax2_xlim=[peak_pos_voigt[0]-30, peak_pos_voigt[0]+15]
-
-
-
-    if Peak2_Cent is None:
-        df_out=pd.DataFrame(data={'Diad1_Voigt_Cent': Peak1_Cent,
-                                'Diad1_Voigt_Area': Peak1_Int,
-                            'Diad1_Voigt_Sigma': Peak1_sigma,
-                            'Diad1_Voigt_Gamma': Peak1_gamma,
-
-
-        }, index=[0])
-    if Peak2_Cent is not None:
-
-
-
-
-
-        df_out=pd.DataFrame(data={'Diad1_Voigt_Cent': Peak1_Cent,
-                                'Diad1_Voigt_Area': Peak1_Int,
-                                'Diad1_Voigt_Sigma': Peak1_sigma,
-                                'Diad1_Voigt_Gamma': Peak1_gamma,
-        }, index=[0])
-
-        df_out['HB1_Cent']=Peak2_Cent
-        df_out['HB1_Area']=Peak2_Int
-        df_out['HB1_Sigma']=Peak2_Sigma
-
-
-    result_diad1_origx_all=result.eval(x=xdat)
-    # Trim to be in range
-    #print(result_diad2_origx_all)
-    result_diad1_origx=result_diad1_origx_all[(xdat>span[0]) & (xdat<span[1])]
-    ydat_inrange=ydat[(xdat>span[0]) & (xdat<span[1])]
-    xdat_inrange=xdat[(xdat>span[0]) & (xdat<span[1])]
-    residual_diad_coords=ydat_inrange-result_diad1_origx
-
-
-    x_cent_lin=np.linspace(df_out['Diad1_Voigt_Cent']-1, df_out['Diad1_Voigt_Cent']+1, 20000)
-    y_cent_best_fit=result.eval(x=x_cent_lin)
-    diad_height = np.max(y_cent_best_fit)
-    df_out['Diad1_Combofit_Height']= diad_height
-    df_out.insert(0, 'Diad1_Combofit_Cent', np.nanmean(x_cent_lin[y_cent_best_fit==diad_height]))
-
-
-    residual_diad1=np.sum(((ydat_inrange-result_diad1_origx)**2)**0.5)/(len(ydat_inrange))
-    df_out['Residual_Diad1']=residual_diad1
-    df_out['Diad1_Prop_Lor']= Peak1_Prop_Lor
-    df_out['Diad1_fwhm']=Peak1_fwhm
-
-    if peak_pos_gauss is not None:
-        df_out['Gauss_Cent']=Gauss_cent
-        df_out['Gauss_Area']=Gauss_amp
-        df_out['Gauss_Sigma']=Gauss_sigma
-
-
-
-    if plot_figure is True:
-
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
-        ax1.plot(x_lin, y_best_fit, '-g', linewidth=2, label='best fit')
-        ax1.plot(xdat, ydat,  '.k', label='data')
-        ax1.legend()
-        ax1.set_xlim(ax1_xlim)
-        ax2.set_xlim(ax2_xlim)
-
-
-
-
-
-
-        if peak_pos_gauss is not None:
-            ax2.plot(x_lin, components.get('bkg_'), '.c',linewidth=2,  label='Gaussian bck')
-        ax2.plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
-        ax2.plot(xdat, ydat, '.k')
-
-
-    #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
-
-        fitspan=max(y_best_fit)-min(y_best_fit)
-        ax2.set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
-
-
-        ax1.set_ylabel('Intensity')
-        ax1.set_xlabel('Wavenumber')
-        ax2.set_ylabel('Intensity')
-        ax2.set_xlabel('Wavenumber')
-
-
-        if len(peak_pos_voigt)>1:
-            ax2.plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
-
-        if len(peak_pos_voigt)>2:
-            ax2.plot(x_lin, components.get('lz3_'), '-m', linewidth=2, label='Peak3')
-        # if len(peak_pos_voigt)>1:
-        #     lowerpeak=np.min([Peak1_Cent, Peak2_Cent])
-        #     upperpeak=np.max([Peak1_Cent, Peak2_Cent])
-        #     ax1.set_xlim([lowerpeak-15, upperpeak+15])
-        # if len(peak_pos_voigt)>1:
-        #     ax2.set_xlim([lowerpeak-20, upperpeak+20])
-
-        ax2.legend()
-
-        path3=path+'/'+'diad_fit_images'
-        if os.path.exists(path3):
-            out='path exists'
-        else:
-            os.makedirs(path+'/'+ 'diad_fit_images', exist_ok=False)
-
-
-        file=filename.rsplit('.txt', 1)[0]
-        fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=dpi)
-
-
-
-
-    best_fit=result.best_fit
-
-    df_out['Diad1_refit']=refit_param
-
-
-
-    return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, peak_pos_gauss, residual_diad_coords, ydat_inrange,  xdat_inrange
 
