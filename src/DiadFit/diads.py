@@ -139,6 +139,7 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
     # Check if any peaks lie within the diad range.
     right_pos_diad2=df_sort_diad2_trim['pos'].between(config.approx_diad2_pos[0], config.approx_diad2_pos[1])
     if any(right_pos_diad2):
+
         manual_diad2=False
         df_sort_diad2_rightpos=df_sort_diad2_trim.loc[right_pos_diad2]
         diad_2_diad=df_sort_diad2_rightpos.loc[df_sort_diad2_rightpos['height']==np.max(df_sort_diad2_rightpos['height'])]
@@ -197,15 +198,16 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
         # Lets find the highest bit within this range
         diad2_range=(Diad[:, 0]>config.approx_diad2_pos[0]) & (Diad[:, 0]<config.approx_diad2_pos[1])
         diad2_height=np.max(Diad[:, 1][diad2_range])
-        diad2_pos=Diad[:, 0][Diad[:, 1]==diad2_height]
+        diad2_pos=Diad[:, 0][(Diad[:, 1]==diad2_height)&diad2_range]
 
         # Lets see if we can allocate a hotband at around the right position after this
 
 
         print('WARNING: Couldnt find any peaks within approx_diad2_pos+-Diad_window_width, taking the max peak positin within the window defined by' + str(config.approx_diad2_pos[0]) +'and' +  str(config.approx_diad2_pos[1]))
 
-        df_out=pd.DataFrame(data={'Diad2_pos': diad2_pos ,
-                                'Diad2_height':diad2_height})
+        df_out=pd.DataFrame(data={'filename': filename,
+                                    'Diad2_pos': diad2_pos[0] ,
+                                'Diad2_height':diad2_height}, index=[0])
 
         # Lets try to find the hotband and hope its here!
 
@@ -277,11 +279,13 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
         manual_diad1=True
         diad1_range=(Diad[:, 0]>config.approx_diad1_pos[0]) & (Diad[:, 0]<config.approx_diad1_pos[1])
         diad1_height=np.max(Diad[:, 1][diad1_range])
-        diad1_pos=Diad[:, 0][Diad[:, 1]==diad1_height]
+        diad1_pos=Diad[:, 0][(Diad[:, 1]==diad1_height)&diad1_range]
+
 
         print('WARNING: Couldnt find any peaks within approx_diad1_pos+-Diad_window_width, taking the max peak positin within the window defined by' + str(config.approx_diad1_pos[0]) +'and' +  str(config.approx_diad1_pos[1]))
 
-        df_out['Diad1_pos']= diad1_pos
+
+        df_out['Diad1_pos']= diad1_pos[0]
         df_out['Diad1_height']=diad1_height
 
         # Lets see if we can find a hotband in here now
@@ -350,11 +354,12 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
         ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
         ax0.plot(df['pos'], df['height'], '*k')
         ax1.plot(df['pos'], df['height'], '*k', label='All Scipy Peaks')
-        if manual_diad1 is True:
-            ax1.plot(diad1_pos, diad1_height, 'dk', mfc='yellow', ms=7, label='SciPyMissed')
         ax2.plot(df['pos'], df['height'], '*k')
+        if manual_diad1 is True:
+            ax1.plot(diad1_pos[0], diad1_height, 'dk', mfc='yellow', ms=7, label='SciPyMissed')
+
         if manual_diad2 is True:
-            ax1.plot(diad2_pos, diad2_height, 'dk', mfc='yellow', ms=7)
+            ax1.plot(diad2_pos[0], diad2_height, 'dk', mfc='yellow', ms=7)
         #ax0.legend()
         ax1.set_title('Diad1')
         ax1.plot(Diad[:, 0],Diad[:, 1], '-r')
@@ -985,7 +990,7 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sig
 #
 #
 #
-#     if peak_pos_gauss is not None:
+#     if config1.fit_gauss is not False:
 #
 #         model = GaussianModel(prefix='bkg_')
 #         params = model.make_params()
@@ -1072,7 +1077,7 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sig
 #
 #
 #
-#     if peak_pos_gauss is not None:
+#     if config1.fit_gauss is not False:
 #         Gauss_cent=result.best_values.get('bkg_center')
 #         Gauss_amp=result.best_values.get('bkg_amplitude')
 #         Gauss_sigma=result.best_values.get('bkg_sigma')
@@ -1181,7 +1186,7 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sig
 #         ax1.legend()
 #
 #         ax2.plot(xdat, ydat, '.k')
-#         if peak_pos_gauss is not None:
+#         if config1.fit_gauss is not False:
 #             ax2.plot(x_lin, components.get('bkg_'), '-c', label='Gaussian bck', linewidth=1)
 #         if len(peak_pos_voigt)>1:
 #             ax2.plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
@@ -1375,7 +1380,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     fwhm_ini=result_ini.params.get('fwhm')
 
     # For relatively weak peaks, you wont want a gaussian background
-    if config1.fit_gauss is None:
+    if config1.fit_gauss is False:
 
         # If there is 1 peak, e.g. if have a Nan for hotband
         if fit_peaks==1:
@@ -1472,7 +1477,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
     # Same, but also with a Gaussian Background
-    if config1.fit_gauss is not None:
+    if config1.fit_gauss is not False:
         model = GaussianModel(prefix='bkg_')
         params = model.make_params()
         params['bkg_'+'amplitude'].set(config1.gauss_amp, min=config1.gauss_amp/100, max=config1.gauss_amp*10)
@@ -1563,7 +1568,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         refit_param=str(refit_param)+' V_input_TooHighSigma'
 
 
-    if config1.fit_gauss is not None:
+    if config1.fit_gauss is not False:
         Gauss_cent=result.best_values.get('bkg_center')
         Gauss_amp=result.best_values.get('bkg_amplitude')
         Gauss_sigma=result.best_values.get('bkg_sigma')
@@ -1740,7 +1745,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         df_out['Diad2_Prop_Lor']= Peak1_Prop_Lor
         df_out['Diad2_fwhm']=Peak1_fwhm
 
-        if config1.fit_gauss is not None:
+        if config1.fit_gauss is not False:
             df_out['Gauss_Cent']=Gauss_cent
             df_out['Gauss_Area']=Gauss_amp
             df_out['Gauss_Sigma']=Gauss_sigma
@@ -1761,7 +1766,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
 
-            if config1.fit_gauss is not None:
+            if config1.fit_gauss is not False:
                 ax2.plot(x_lin, components.get('bkg_'), '.c',linewidth=2,  label='Gaussian bck')
             ax2.plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
             ax2.plot(xdat, ydat, '.k')
@@ -1882,7 +1887,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         df_out['Diad1_Prop_Lor']= Peak1_Prop_Lor
         df_out['Diad1_fwhm']=Peak1_fwhm
 
-        if config1.fit_gauss is not None:
+        if config1.fit_gauss is not False:
             df_out['Gauss_Cent']=Gauss_cent
             df_out['Gauss_Area']=Gauss_amp
             df_out['Gauss_Sigma']=Gauss_sigma
@@ -1903,7 +1908,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
 
-            if config1.fit_gauss is not None:
+            if config1.fit_gauss is not False:
                 ax2.plot(x_lin, components.get('bkg_'), '.c',linewidth=2,  label='Gaussian bck')
             ax2.plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
             ax2.plot(xdat, ydat, '.k')
@@ -2030,7 +2035,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
     if fit_peaks==2:
-        if np.isnan(HB_pos)==True:
+        if np.isnan(HB_pos)==True or config1.HB_prom<0:
             fit_peaks=1
 
     if fit_peaks==3:
@@ -2227,7 +2232,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
         axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
 
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
-    if config1.fit_gauss is not None:
+    if config1.fit_gauss is not False:
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
     #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
     axes['B'].legend()
@@ -2278,7 +2283,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     axes['C'].set_xlabel('Wavenumber')
 
 
-    if config1.fit_gauss is not None:
+    if config1.fit_gauss is not False:
 
         axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
 
@@ -2416,8 +2421,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     fit_peaks=config1.fit_peaks
 
     if fit_peaks==2:
-        if np.isnan(HB_pos)==True:
+        if np.isnan(HB_pos)==True or config1.HB_prom<-50:
             fit_peaks=1
+            print('Either no hb position, or prominence<-50, using 1 fit')
 
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
     Diad=np.array(Diad_df)
@@ -2608,7 +2614,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
         axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
 
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
-    if peak_pos_gauss is not None:
+    if config1.fit_gauss is not False:
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
     #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
     axes['B'].legend()
@@ -2660,7 +2666,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     axes['C'].set_xlabel('Wavenumber')
 
 
-    if peak_pos_gauss is not None:
+    if config1.fit_gauss is not False:
 
         axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
 
