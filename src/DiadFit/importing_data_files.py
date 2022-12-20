@@ -718,7 +718,7 @@ def extracting_filenames_generic(*, names, prefix=False,
         print('duplicates')
         print(file_m_s[file_m_s.duplicated()])
         print('OOPS. at least one of your file name is duplicated go back to your spectra, you named a file twice, this will confuse the stitching ')
-        raise Exception('Duplicate file')
+        #raise Exception('Duplicate file')
 
     return file_m
 

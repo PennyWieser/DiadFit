@@ -812,7 +812,7 @@ def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype=
 
 
 def add_peak(*, prefix=None, center=None, model_name='VoigtModel',
-min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sigma=0.2):
+min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, min_amplitude=None, max_amplitude=None, sigma=0.2):
     """
     This function iteratively adds peaks for lmfit
     """
@@ -831,7 +831,7 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, sig
         pars[prefix + 'center'].set(center)
 
 
-    pars[prefix + 'amplitude'].set(amplitude, min=0)
+    pars[prefix + 'amplitude'].set(amplitude, min=min_amplitude, max=max_amplitude)
 
     if min_sigma is not None:
         pars[prefix+'sigma'].set(sigma, max=max_sigma)
@@ -1291,6 +1291,7 @@ class diad2_fit_config:
 
 
     C13_sigma: float=0.1
+    C13_prom: float=10
     sigma_allowance: float=10
 
 
@@ -1339,6 +1340,8 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     # Calculate the amplitude from the sigma and the prominence
     calc_diad_amplitude=((config1.diad_sigma)*(config1.diad_prom))/0.3939
     calc_HB_amplitude=((config1.diad_sigma)*(config1.HB_prom))/0.3939
+    if diad2 is True and fit_peaks==3:
+        calc_C13_amplitude=(0.5*(config1.diad_sigma)*(config1.C13_prom))/0.3939
     # Gets overridden if you have triggered any of the warnings
     refit=False
     refit_param='Flagged Warnings:'
@@ -1391,40 +1394,34 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
             pars1 = model_F.make_params()
             pars1['lz1_'+ 'amplitude'].set(calc_diad_amplitude, min=0, max=calc_diad_amplitude*10)
-            pars1['lz1_'+ 'center'].set(Center_ini)
+            pars1['lz1_'+ 'center'].set(Center_ini, min=Center_ini-3*spec_res, max=Center_ini+3*spec_res)
             pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
                          max=config1.diad_sigma*config1.diad_sigma_max_allowance)
             params=pars1
 
         # If there is more than one peak
         else:
+            # Set up Lz1 the same for all situations
+            if config1.model_name=='VoigtModel':
+                model1 = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
+            if config1.model_name=='PseudoVoigtModel':
+                model1 = PseudoVoigtModel(prefix='lz1_') #+ ConstantModel(prefix='c1')
+
+            pars1 = model1.make_params()
+            pars1['lz1_'+ 'amplitude'].set(calc_diad_amplitude, min=0, max=calc_diad_amplitude*10)
+
+            pars1['lz1_'+ 'center'].set(Center_ini, min=Center_ini-3*spec_res, max=Center_ini+3*spec_res)
+
+            pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
+                        max=config1.diad_sigma*config1.diad_sigma_max_allowance)
+
+
+
             if fit_peaks>1:
-                if config1.model_name=='VoigtModel':
-                    model_F = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-                if config1.model_name=='PseudoVoigtModel':
-                    model_F = PseudoVoigtModel(prefix='lz1_') #+ ConstantModel(prefix='c1')
-
-                pars1 = model_F.make_params()
-                pars1['lz1_'+ 'amplitude'].set(calc_diad_amplitude, min=0, max=calc_diad_amplitude*10)
-
-                pars1['lz1_'+ 'center'].set(Center_ini)
-
-                pars1['lz1_'+ 'sigma'].set(sigma_ini, min=sigma_ini*config1.diad_sigma_min_allowance,
-                             max=sigma_ini*config1.diad_sigma_max_allowance)
+                model_F=model1
                 params=pars1
 
             if fit_peaks==2:
-
-
-                # Then use these to inform next peak
-                if config1.model_name=='VoigtModel':
-                    model1 = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-                if config1.model_name=='PseudoVoigtModel':
-                    model1 = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-                pars1 = model1.make_params()
-                pars1['lz1_'+ 'amplitude'].set(Amplitude_ini, min=Amplitude_ini/2, max=Amplitude_ini*2)
-                pars1['lz1_'+ 'center'].set(Center_ini, min=Center_ini-1, max=Center_ini+2)
 
                 # Second wee peak
                 prefix='lz2_'
@@ -1449,27 +1446,34 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             if fit_peaks==3:
                 if block_print is False:
                     print('Trying to iteratively fit 3 peaks')
-                low_peak=np.min(peak_pos_voigt)
-                med_peak=np.median(peak_pos_voigt)
-                high_peak=np.max(peak_pos_voigt)
+
                 peak_pos_left=np.array([HB_initial_guess, C13_initial_guess])
-
-                if config1.model_name=='VoigtModel':
-                    model = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-                if config1.model_name=='PseudoVoigtModel':
-                    model = PseudoVoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-
-                params = model.make_params()
-                params['lz1_'+ 'amplitude'].set(Amplitude_ini, min=0)
-                params['lz1_'+ 'center'].set(med_peak)
 
                 for i, cen in enumerate(peak_pos_left):
 
-                    peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
-                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini,
-                    max_sigma=sigma_ini, model_name=config1.model_name)
-                    model = peak+model
-                    params.update(pars)
+                    if i==0: # This is the hotband
+                        peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
+                        min_cent=cen-3*spec_res, max_cent=cen+3*spec_res, sigma=sigma_ini,
+                        min_sigma=sigma_ini*config1.HB_sigma_min_allowance,
+                        max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
+                        amplitude=calc_HB_amplitude,
+                        min_amplitude=Amplitude_ini*config1.HB_amp_min_allowance,
+                        max_amplitude=Amplitude_ini*config1.HB_amp_max_allowance,
+                        model_name=config1.model_name)
+                        model = peak+model1
+                        params.update(pars)
+                    if i==1: # This is c13
+                        peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
+                        min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
+                        sigma=sigma_ini,
+                        min_sigma=sigma_ini*config1.HB_sigma_min_allowance,
+                        max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
+                        amplitude=calc_C13_amplitude,
+                        min_amplitude=calc_C13_amplitude*config1.HB_amp_min_allowance,
+                        max_amplitude=calc_C13_amplitude*config1.HB_amp_max_allowance,
+                        model_name=config1.model_name)
+                        model = peak+model
+                        params.update(pars)
 
                 model_F=model
 
@@ -1478,12 +1482,13 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     # Same, but also with a Gaussian Background
     if config1.fit_gauss is not False:
-        model = GaussianModel(prefix='bkg_')
-        params = model.make_params()
+
+        # making the gaussian model
+        model1 = GaussianModel(prefix='bkg_')
+        params = model1.make_params()
         params['bkg_'+'amplitude'].set(config1.gauss_amp, min=config1.gauss_amp/100, max=config1.gauss_amp*10)
         params['bkg_'+'sigma'].set(sigma_ini*5, min=sigma_ini*3, max=sigma_ini*20)
         params['bkg_'+'center'].set(initial_guess, min=initial_guess-7, max=initial_guess+7)
-
 
         if fit_peaks==1:
             raise TypeError('Dont ask for a gaussian background and only 1 peak, youll need to add a diad and HB minimum')
@@ -1491,40 +1496,82 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
         if fit_peaks==2:
             peak_pos_voigt=np.array([initial_guess, HB_initial_guess])
-            for i, cen in enumerate(peak_pos_voigt):
-                if block_print is False:
-                    print('working on voigt peak' + str(i))
 
-                peak, pars = add_peak(prefix='lz%d_' % (i+1),  center=cen,
-                min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini, max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
-                    min_sigma=sigma_ini*config1.HB_sigma_min_allowance, model_name=config1.model_name)
-                model = peak+model
+            for i, cen in enumerate(peak_pos_voigt):
+                if i==0: # This is the Diad
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1),
+                center=Center_ini, min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
+                sigma=config1.diad_sigma,
+                max_sigma=config1.diad_sigma*config1.diad_sigma_max_allowance,
+                min_sigma=config1.diad_sigma*config1.diad_sigma_min_allowance,
+                amplitude=calc_diad_amplitude, min_amplitude=0, max_amplitude=10*calc_diad_amplitude,
+                model_name=config1.model_name)
+                model = peak+model1
                 params.update(pars)
+
+                if i==1: # This is the hotband
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
+                        min_cent=cen-3*spec_res, max_cent=cen+3*spec_res, sigma=sigma_ini,
+                        min_sigma=sigma_ini*config1.HB_sigma_min_allowance,
+                        max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
+                        amplitude=calc_HB_amplitude,
+                        min_amplitude=Amplitude_ini*config1.HB_amp_min_allowance,
+                        max_amplitude=Amplitude_ini*config1.HB_amp_max_allowance,
+                        model_name=config1.model_name)
+                    model2 = peak+model
+                    params.update(pars)
+
+
+            model_F=model2
+
 
         if fit_peaks==3:
             peak_pos_voigt=np.array([initial_guess, HB_initial_guess, C13_initial_guess])
 
             for i, cen in enumerate(peak_pos_voigt):
-                if block_print is False:
-                    print('working on voigt peak' + str(i))
-                if i==0: # Fitting diad peak
-                #peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen)
-                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                    min_cent=cen-3, max_cent=cen+3, sigma=sigma_ini,
-                    max_sigma=sigma_ini*2, min_sigma=sigma_ini/2, model_name=config1.model_name)
-                if i==1: # Fitting hotband peak
-                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                    min_cent=cen-spec_res*2, max_cent=cen+spec_res*2, sigma=sigma_ini,
-                    max_sigma=sigma_ini*5, min_sigma=sigma_ini/20, model_name=config1.model_name)
-                if i==2:
-                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
-                    min_cent=cen-spec_res*2, max_cent=cen+spec_res*2, sigma=sigma_ini/3,
-                        max_sigma=sigma_ini/2, min_sigma=sigma_ini/100, model_name=config1.model_name)
 
-                model = peak+model
+                if i==0: # This is the Diad
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1),
+                center=Center_ini, min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
+                sigma=config1.diad_sigma,
+                max_sigma=config1.diad_sigma*config1.diad_sigma_max_allowance,
+                min_sigma=config1.diad_sigma*config1.diad_sigma_min_allowance,
+                amplitude=calc_diad_amplitude, min_amplitude=0, max_amplitude=10*calc_diad_amplitude,
+                model_name=config1.model_name)
+                model = peak+model1
                 params.update(pars)
 
-        model_F=model
+                if i==1: # This is the hotband
+
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
+                        min_cent=cen-3*spec_res, max_cent=cen+3*spec_res, sigma=sigma_ini,
+                        min_sigma=sigma_ini*config1.HB_sigma_min_allowance,
+                        max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
+                        amplitude=calc_HB_amplitude,
+                        min_amplitude=Amplitude_ini*config1.HB_amp_min_allowance,
+                        max_amplitude=Amplitude_ini*config1.HB_amp_max_allowance,
+                        model_name=config1.model_name)
+                    model2 = peak+model
+                    params.update(pars)
+
+                if i==2: # This is c13
+                    peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
+                        min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
+                        sigma=sigma_ini,
+                        min_sigma=sigma_ini*config1.HB_sigma_min_allowance,
+                        max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
+                        amplitude=calc_C13_amplitude,
+                        min_amplitude=calc_C13_amplitude*config1.HB_amp_min_allowance,
+                        max_amplitude=calc_C13_amplitude*config1.HB_amp_max_allowance,
+                        model_name=config1.model_name)
+                    model3 = peak+model2
+                    params.update(pars)
+            model_F=model3
+
+
+
+
+
 
 
 
@@ -2042,7 +2089,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
         if np.isnan(HB_pos)==True and np.isnan(C13_pos)==True:
             fit_peaks=1
 
-        elif np.isnan(C13_pos)==True:
+        elif np.isnan(C13_pos)==True or config1.C13_prom<0:
             fit_peaks=2
 
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
@@ -2091,7 +2138,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
             config_tweaked.gauss_amplitude=config1.gauss_amp/factor
         if any(df_out['Diad2_refit'].str.contains('G_input_TooHighRelativeToDiad')):
             config_tweaked.gauss_amplitude=config1.gauss_amp/factor
-            config_tweaked.gauss_sigma=config1.gauss_sigma*factor
+            #config_tweaked.gauss_sigma=config1.gauss_sigma*factor
            # Hot band fit bits
         # if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
         #     config_tweaked.HB_amplitude=calc_HB_amplitude/2
@@ -2131,7 +2178,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
                 config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
             if any(df_out['Diad2_refit'].str.contains('G_input_TooHighRelativeToDiad')):
                 config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
-                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
+                #config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
         # # Hot bands bits
         #     if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
         #         config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude/2
@@ -2229,6 +2276,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     # This is for if there is more than 1 peak, this is when we want to plot the best fit
 
     if fit_peaks>1:
+
+
         axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
 
     axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
