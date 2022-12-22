@@ -84,7 +84,7 @@ def calculate_split(diad1_peaks, diad2_peaks):
     return split
 
 
-def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None, filename, filetype='Witec_ASCII',  plot_figure=True):
+def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, filename, filetype='Witec_ASCII',  plot_figure=True):
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
     Diad=np.array(Diad_df)
 
@@ -202,8 +202,8 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
 
         # Lets see if we can allocate a hotband at around the right position after this
 
-
-        print('WARNING: Couldnt find any peaks within approx_diad2_pos+-Diad_window_width, taking the max peak positin within the window defined by' + str(config.approx_diad2_pos[0]) +'and' +  str(config.approx_diad2_pos[1]))
+        #
+        # print('WARNING: Couldnt find any peaks within approx_diad2_pos+-Diad_window_width, taking the max peak positin within the window defined by' + str(config.approx_diad2_pos[0]) +'and' +  str(config.approx_diad2_pos[1]))
 
         df_out=pd.DataFrame(data={'filename': filename,
                                     'Diad2_pos': diad2_pos[0] ,
@@ -226,13 +226,16 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
 
         if any(df_sort_diad2_trim['pos'].between(df_out['Diad2_pos'].iloc[0]-diad2_C13_max_offset, df_out['Diad2_pos'].iloc[0]-diad2_C13_min_offset)):
             diad_2_C13=df_sort_diad2_trim.loc[df_sort_diad2_trim['pos'].between(df_out['Diad2_pos'].iloc[0]-diad2_C13_max_offset, df_out['Diad2_pos'].iloc[0]-diad2_C13_min_offset)]
-            print('found c13 in convoluted way')
+
             df_out['C13_pos']=diad_2_C13['pos'].iloc[0]
             df_out['C13_height']=diad_2_C13['height'].iloc[0]
         else:
-            print('didnt find C13 in convoluted way')
+
             df_out['C13_pos']=np.nan
             df_out['C13_height']=np.nan
+
+
+        df_out['Diad2_HB2_Valley_prom']=np.nan
 
 
     # Do the same for diad 1
@@ -282,7 +285,7 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
         diad1_pos=Diad[:, 0][(Diad[:, 1]==diad1_height)&diad1_range]
 
 
-        print('WARNING: Couldnt find any peaks within approx_diad1_pos+-Diad_window_width, taking the max peak positin within the window defined by' + str(config.approx_diad1_pos[0]) +'and' +  str(config.approx_diad1_pos[1]))
+        # print('WARNING: Couldnt find any peaks within approx_diad1_pos+-Diad_window_width, taking the max peak positin within the window defined by' + str(config.approx_diad1_pos[0]) +'and' +  str(config.approx_diad1_pos[1]))
 
 
         df_out['Diad1_pos']= diad1_pos[0]
@@ -298,9 +301,10 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
             df_out['HB1_pos']=np.nan
             df_out['HB1_height']=np.nan
 
+        df_out['Diad1_HB1_Valley_prom']=np.nan
 
 
-    # Now lets get approximate strength subtracting the backgrround
+
 
 
     Diad_x=Diad[:, 0]
@@ -343,9 +347,22 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
 
 
 
+    # Other useful params
+    df_out['Mean_Diad_HB_Valley_prom']=(df_out['Diad2_HB2_Valley_prom']+df_out['Diad1_HB1_Valley_prom'])
+    df_out['Mean_HB_prom']=(df_out['HB1_prom']+df_out['HB2_prom'])
+
+    df_out['Diad2_HB2_prom_ratio']=df_out['Diad2_prom']/df_out['HB2_prom']
+    df_out['Diad1_HB1_prom_ratio']=df_out['Diad1_prom']/df_out['HB1_prom']
 
 
 
+    # Lets sort based on columns we want near each other
+    cols_to_move = ['filename', 'Diad2_HB2_prom_ratio', 'Diad1_HB1_prom_ratio', 'Diad2_pos', 'Diad2_prom', 'Diad1_pos', 'Diad1_prom',
+               'HB2_pos', 'HB2_prom', 'HB1_pos', 'HB1_prom', 'C13_pos', 'C13_prom']
+
+    df_out = df_out[cols_to_move + [
+        col for col in df_out.columns if col not in cols_to_move]]
+    # Now lets get approximate strength subtracting the backgrround
 
     # Now lets make a plot
     if plot_figure is True:
@@ -388,7 +405,9 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
             df_sort_diad2_trim['height'].iloc[i]-1/7*(df_sort_diad2_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
 
 
-    return df_out, Diad
+        return df_out, Diad, fig
+    else:
+        return df_out, Diad
 
 
 
@@ -398,222 +417,249 @@ def identify_diad_peaks_2(*, config: diad_id_config=diad_id_config(), path=None,
 
 
 
-
-def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, filename, filetype='Witec_ASCII',
-    n_peaks_diad1=None, n_peaks_diad2=None, block_print=True, plot_figure=True ):
+from tqdm import tqdm
+def loop_approx_fits(*, spectra_path, config, Diad_Files, filetype, plot_figure):
+    """ Loops approx fit parameters for all files
     """
-    This function loads your file, and excludes up to 2 user-defined ranges.
-    It then uses scipy find peaks to get a first guess of peak positions to feed into later functions
+
+    # Do fit for first file to get length
+    df_peaks, Diad=identify_diad_peaks(
+    config=config, path=spectra_path, filename=Diad_Files[0],
+    filetype=filetype, plot_figure=plot_figure)
+
+    # Now do for all files
+    fit_params = pd.DataFrame([])
+    x_cord=Diad[:, 0]
+    data_y_all=np.empty([  len(x_cord), len(Diad_Files)], float)
+
+    i=0
+    for file in tqdm(Diad_Files):
+
+        df_peaks, Diad=identify_diad_peaks(
+        config=diad_id_config, path=spectra_path, filename=file,
+    filetype=filetype, plot_figure=False)
+
+        data_y_all[:, i]=Diad[:, 1]
+        #data = pd.concat([Diad, data], axis=0)
+        fit_params = pd.concat([fit_params, df_peaks], axis=0)
+        i=i+1
+
+    fit_params=fit_params.reset_index(drop=True)
+    return fit_params, data_y_all
 
 
+def plot_peak_params(fit_params,
+                     x_param='Diad1_pos',  y1_param='approx_split',
+                    y2_param='Mean_Valley_prom', y3_param='C13_prom',
+                    y4_param='HB2_prom', fill_na=-1000):
+
+    """ Filters diad files by peak params
     Parameters
     -----------
+    fit_params: Pandas DataFrame
+        dataframe of approximate fit params from function loop_approx_fits
+    x_param: str
+        parameter you want on the x axis of all plots
+    y1_param: str
+        parameter on y axis of 1st subplot (top left)
+    y2_param: str
+        parameter on y axis of 2nd subplot (top right)
+    y3_param: str
+        parameter on y axis of 3rd subplot (bottom left)
+    y4_param: str
+        parameter on y axis of 4th subplot (bottom right)
+    fill_na: int
+        The integer value to fill Nans with to show up on plots.
 
-    path: str
-        Folder user wishes to read data from
+    """
+    fit_params_nona=fit_params.fillna(fill_na)
 
-    filename: str
-        Specific file being read
-
-    filetype: str
-        Identifies type of file
-        Witec_ASCII: Datafile from WITEC with metadata for first few lines
-        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
-        head_csv: CSV with a header, wavenumber in x, intensity in y
-        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
-        Renishaw_txt: Datafile from renishaw with column headings.
-
-    n_peaks_diad1:
-        How many peaks you want the code to try to identify around the LH diad
-        1: Just the diad
-        2: Diad and Hot Band
-
-    n_peaks_diad2:
-        How many peaks you want the code to try to identify around the RH diad
-        1: Just the diad
-        2: Diad and Hot Band
-        3: Diad, Hot band and C13
-
-    approx_diad1_pos, approx_diad2_pos:
-        list, e.g., [1290, 1300], code looks for peaks in this range. needs tweaking on different instuments.
-
-    exclude_range1: None or list length 2
-        Excludes a region, e.g. a cosmic ray
-
-    exclude_range2: None or list length 2
-        Excludes a region, e.g. a cosmic ray
-
-    height, threshold, distance, prominence, width: int or float
-        parameters that can be tweaked from scipy find peaks
-
-    plot_figure: bool
-        if True, plots figure, if False, doesn't.
-
-    Returns
-    -----------
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10*0.8,8*0.8))
 
 
+    ax1.plot(fit_params_nona[x_param], fit_params_nona[y1_param],
+        'xr')
+    ax1.set_xlabel(x_param)
+    ax1.set_ylabel(y1_param)
+
+    ax2.plot(fit_params_nona[x_param], fit_params_nona[y2_param],
+        'xr')
+    ax2.set_xlabel(x_param)
+    ax2.set_ylabel(y2_param)
+    fig.tight_layout()
+
+    ax3.plot(fit_params_nona[x_param], fit_params_nona[y3_param],
+        'xr')
+    ax3.set_xlabel(x_param)
+    ax3.set_ylabel(y3_param)
+
+    ax4.plot(fit_params_nona[x_param], fit_params_nona[y4_param],
+        'xr')
+    ax4.set_xlabel(x_param)
+    ax4.set_ylabel(y4_param)
+    fig.tight_layout()
+
+    return fig
+
+
+def filter_splitting_prominence(*, fit_params, data_y_all,
+                                x_cord,
+                                splitting_limits=[100, 107],
+                                lower_diad1_prom=10):
+    """ Filters based on splitting, and reasonable height. Plots spectra that do and dont pass filter
 
     """
 
-    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+    reas_split=(fit_params['approx_split'].between(splitting_limits[0], splitting_limits[1]))
+    reas_heigh=fit_params['Diad1_prom']>lower_diad1_prom
 
-    Diad=np.array(Diad_df)
-    if config.exclude_range1 is None and config.exclude_range2 is None:
-        Discard_str=False
-    else:
-        Discard_str=True
-        if config.exclude_range1 is not None and config.exclude_range2 is None:
-            Diad_old=Diad.copy()
-            Diad=Diad[(Diad[:, 0]<config.exclude_range1[0])|(Diad[:, 0]>config.exclude_range1[1])]
-            Discard=Diad_old[(Diad_old[:, 0]>=config.exclude_range1[0]) & (Diad_old[:, 0]<=config.exclude_range1[1])]
+    fit_params_filt=fit_params.loc[(reas_split&reas_heigh)].reset_index(drop=True)
+    fit_params_disc=fit_params.loc[~(reas_split&reas_heigh)].reset_index(drop=True)
 
+    print('Keeping N='+str(len(fit_params_filt)))
+    print('Discarding N='+str(len(fit_params_disc)))
+    filt=reas_split&reas_heigh
+    data_y_filt=data_y_all[:, (filt)]
+    data_y_disc=data_y_all[:, ~(filt)]
 
-        if config.exclude_range2 is not None and config.exclude_range1 is None:
-            Diad_old=Diad.copy()
-            Diad=Diad[(Diad[:, 0]<config.exclude_range2[0])|(Diad[:, 0]>config.exclude_range2[1])]
-
-            Discard=Diad_old[(Diad_old[:, 0]>=config.exclude_range2[0]) & (Diad_old[:, 0]<=config.exclude_range2[1])]
-
-        if config.exclude_range1 is not None and config.exclude_range2 is not None:
-            Diad_old=Diad.copy()
-            Diad=Diad[
-            ((Diad[:, 0]<config.exclude_range1[0])|(Diad[:, 0]>config.exclude_range1[1]))
-            &
-            ((Diad[:, 0]<config.exclude_range2[0])|(Diad[:, 0]>config.exclude_range2[1]))
-            ]
-
-            Discard=Diad_old[
-            ((Diad_old[:, 0]>=config.exclude_range1[0]) & (Diad_old[:, 0]<=config.exclude_range1[1]))
-            |
-            ((Diad_old[:, 0]>=config.exclude_range2[0]) & (Diad_old[:, 0]<=config.exclude_range2[1]))
-            ]
-
-
-
-    # Now you have filtered out the bits you dont want to use, lets use scipy to find the peaks.
-    y=Diad[:, 1]
-    x=Diad[:, 0]
-    peaks = find_peaks(y,height = config.height, threshold = config.threshold,
-    distance = config.distance, prominence=config.prominence, width=config.width)
-
-    # This gets the list of the peak heights
-    height = peaks[1]['peak_heights']
-    # This gets the list of peak positions.
-    peak_pos = x[peaks[0]]
-    df=pd.DataFrame(data={'pos': peak_pos,
-                        'height': height})
-
-    # Here, we are looking for peaks in the diad window.
-
-    df_pks_diad1=df[(df['pos']>config.Diad1_window[0]) & (df['pos']<config.Diad1_window[1]) ]
-
-    # Find peaks within the 2nd diad window
-    df_pks_diad2=df[(df['pos']>config.Diad2_window[0]) & (df['pos']<config.Diad2_window[1]) ]
+    intc=800
+    prom_filt=0
+    prom_disc=0
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
+    ax1.set_title('Spectra to Discard')
+    ax2.set_title('Spectra to Keep')
+    if sum(~filt)>0:
+        for i in range(0, np.shape(data_y_disc)[1]):
+            av_prom_disc=np.abs(np.nanmedian(fit_params_disc['Diad1_prom'])/intc)
+            Diff=np.max(data_y_disc[:, i])-np.min(data_y_disc[:, i])
+            av_prom_Keep=fit_params_disc['Diad1_prom'].iloc[i]
+            prom_disc=prom_disc+av_prom_disc
+            ax1.plot(x_cord+i*5, (data_y_disc[:, i]-np.min(data_y_disc[:, i]))/Diff+i/3, '-r', lw=0.5)
+        ax1.set_xlim([1250, 1450+i*5])
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+    if sum(filt)>0:
+        for i in range(0, np.shape(data_y_filt)[1]):
+            Diff=np.max(data_y_filt[:, i])-np.min(data_y_filt[:, i])
+            av_prom_Keep=fit_params_filt['Diad1_prom'].iloc[i]
+            prom_filt=prom_filt+av_prom_Keep
+            ax2.plot(x_cord+i*5, (data_y_filt[:, i]-np.min(data_y_filt[:, i]))/Diff+i/3, '-b', lw=0.5)
 
 
+        ax2.set_xlim([1250, 1450+i*5])
+        ax2.set_xticks([])
+        ax2.set_yticks([])
 
-    # Find N highest peaks within range you have selected.
-    df_sort_diad1=df_pks_diad1.sort_values('height', axis=0, ascending=False)
-    df_sort_diad1_trim=df_sort_diad1[0:n_peaks_diad1]
-
-    df_sort_diad2=df_pks_diad2.sort_values('height', axis=0, ascending=False)
-    df_sort_diad2_trim=df_sort_diad2[0:n_peaks_diad2]
-
-     # Check if any of the peaks for Diad2 fall within the range
-    if any(df_sort_diad2_trim['pos'].between(config.approx_diad2_pos[0], config.approx_diad2_pos[1])):
-        diad_2_peaks=tuple(df_sort_diad2_trim['pos'].iloc[0])
-    # If literally no peaks within the range.
-    else:
-        # If you had asked for one peak, we return the average of the 2 peaks
-        if n_peaks_diad2==1:
-            if block_print is False:
-                print('WARNING: Couldnt find any peaks within approx_diad2_pos+-Diad_window_width, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad2_pos), 2)) +  'to move forwards')
-            diad_2_peaks=np.array([np.average(config.approx_diad2_pos)])
-
-        if n_peaks_diad2==2:
-            if block_print is False:
-                print('WARNING: Couldnt find diad2, ive returned approx_diad2_pos from diad_id_config. Plotted in green')
-            diad_2_peaks=config.approx_diad2_pos
+    return fit_params_filt, data_y_filt, fit_params_disc, data_y_disc
 
 
-    if n_peaks_diad2==3:
-        if len(diad_2_peaks)<3:
-            diad_2_peaks=config.approx_diad2_pos_3peaks
-            w.warn('WARNING: Couldnt find diad2, and you specified 3 peaks, ive returned the approx_diad2_pos_3peaks value from diad_id_config')
+def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool):
 
-    if any(df_sort_diad1_trim['pos'].between(config.approx_diad1_pos[0], config.approx_diad1_pos[1])):
-        diad_1_peaks=tuple(df_sort_diad1_trim['pos'].iloc[0])
-        if n_peaks_diad1==2:
-            if len(diad_1_peaks)==1:
-                print('Warning - couldnt find hotband, guessing its positoin as 20 below the peak')
-                diad_1_peaks=(diad_1_peaks[0], diad_1_peaks[0]-20)
-    else:
-        if block_print is False:
-            print('WARNING: Couldnt find diad1, ive guesed a peak position of ' + str(np.round(np.average(config.approx_diad1_pos), 2)) +  'to move forwards')
-        diad_1_peaks=np.array([np.average(config.approx_diad1_pos)])
+    """ Splits diad files up into 3 groups, weak, medium and strong
+    """
+    #fig, (ax2) = plt.subplots(1, 1, figsize=(7,3))
+    # Remember, lower Peak1 position = stronger diad
+    grp1=filter_bool
+    #ax2.ticklabel_format(useOffset=1200)
+    fit_params_notgrp1=fit_params.loc[~grp1]
+#     ax2.plot(fit_params[x_param].loc[grp1], y_cord.loc[grp1],  '.r', label='Weak Diads')
+#     ax2.plot(fit_params[x_param].loc[~grp1], y_cord.loc[~grp1],  '.b', label='Not Weak Diads')
+#     ax2.legend()
+#     print('Grp1, N=' + str(sum(grp1)))
 
+#     ax2.set_xlabel(x_param)
+#     #ax2.set_ylabel(y_cord)
+#     ax2.set_title('Selecting Weak diads')
+#     fig.tight_layout()
 
-    if block_print is False:
-        print('Initial estimates: Diad1+HB=' +str(np.round(diad_1_peaks, 1)) + ', Diad2+HB=' + str(np.round(diad_2_peaks, 1)))
+    ## Find ones in group1, in dataframe and numpy form
+    Group1_df=fit_params.loc[grp1]
+    index_Grp1=Group1_df.index
+    Group1_np_y=data_y[:, index_Grp1]
 
+    # Ones not in group1
+    Groupnot1_df=fit_params.loc[~grp1]
+    index_Grpnot1=Groupnot1_df.index
+    Groupnot1_np_y=data_y[:, index_Grpnot1]
 
-    if plot_figure is True:
-        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(12,4))
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, 0.1*len(fit_params)))
+    intc=8
+    #
+    if sum(grp1)>0:
+        for i in range(0, np.shape(Group1_np_y)[1]):
 
-        ax0.plot(Diad[:, 0], Diad[:, 1], '-r')
-        ax0.plot(df['pos'], df['height'], '*k')
-        ax1.plot(df['pos'], df['height'], '*k', label='All Scipy Peaks')
-        ax2.plot(df['pos'], df['height'], '*k')
+            av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
+            Diff=np.max(Group1_np_y[:, i])-np.min(Group1_np_y[:, i])
+            ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.min(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
+        ax0.set_xlim([1250-i*5, 1450])
+        ax0.set_xticks([])
+        ax0.set_yticks([])
 
-        if Discard_str is not False:
-            ax0.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
-            ax1.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
-            ax2.plot(Discard[:, 0], Discard[:, 1], '.c', label='Discarded')
+        # av_prom_Group1=np.abs(np.nanmedian(Group1_df[x_param])/intc)
+        # ax0.plot(x_cord, Group1_np_y[:, i]+av_prom_Group1*i, '-r')
+    if sum(~grp1)>0:
+        for j in range(0, np.shape(Groupnot1_np_y)[1]):
 
-        ax0.plot([np.average(config.approx_diad1_pos), np.average(config.approx_diad1_pos)],
-        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='Approx. D1 pos')
-        ax0.plot([np.average(config.approx_diad2_pos), np.average(config.approx_diad2_pos)],
-        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D2 pos')
-        ax1.plot([np.average(config.approx_diad1_pos), np.average(config.approx_diad1_pos)],
-        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D1 pos')
-        ax1.plot([np.average(config.approx_diad2_pos), np.average(config.approx_diad2_pos)],
-        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D2 pos')
-        ax2.plot([np.average(config.approx_diad1_pos), np.average(config.approx_diad1_pos)],
-        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx D1 pos')
-        ax2.plot([np.average(config.approx_diad2_pos), np.average(config.approx_diad2_pos)],
-        [min(Diad[:, 1]), max(Diad[:, 1])], ':k', label='approx expt. D2 pos')
+            av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+            Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
+            ax1.plot(x_cord-j*5,
+            (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+        ax1.set_xlim([1250-j*5, 1450])
+        ax1.set_xticks([])
+        ax1.set_yticks([])
 
-        ax0.legend()
-        ax1.set_title('Diad1')
-        ax1.plot(Diad[:, 0],Diad[:, 1], '-r')
-        ax1.set_xlim([config.Diad1_window[0], config.Diad1_window[1]])
-        ax2.set_title('Diad2')
-        ax2.plot(Diad[:, 0],Diad[:, 1], '-r')
-        ax2.set_xlim([config.Diad2_window[0], config.Diad2_window[1]])
-        #ax0.set_ylim[np.min(Diad[:, 1]), np.max(Diad[:, 1]) ])
-        fig.tight_layout()
-        ax2.plot(df_sort_diad2_trim['pos'], df_sort_diad2_trim['height'], '*k', mfc='yellow', ms=10)
-        ax1.plot(df_sort_diad1_trim['pos'], df_sort_diad1_trim['height'], '*k',  mfc='yellow', ms=10, label='Selected Pks')
-        ax1.legend()
-        ax0.set_xlabel('Wavenumber')
-        ax0.set_ylabel('Intensity')
-        ax1.set_xlabel('Wavenumber')
-        ax1.set_ylabel('Intensity')
-        ax2.set_xlabel('Wavenumber')
-        ax2.set_ylabel('Intensity')
+        # av_prom_Groupnot1=np.abs(np.nanmedian(Groupnot1_df[x_param])/intc)
+        # ax1.plot(x_cord, Groupnot1_np_y[:, i]+av_prom_Groupnot1*3*i, '-c')
 
-        for i in range(0, len(df_sort_diad1_trim)):
-            ax1.annotate(str(np.round(df_sort_diad1_trim['pos'].iloc[i], 1)), xy=(df_sort_diad1_trim['pos'].iloc[i]-10,
-            df_sort_diad1_trim['height'].iloc[i]-1/7*(df_sort_diad1_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
+    #ax1.set_ylim([0, av_prom*i])
+    ax0.set_title('Group segmented out')
+    ax1.set_title('Remaining ones')
 
-        for i in range(0, len(df_sort_diad2_trim)):
-            ax2.annotate(str(np.round(df_sort_diad2_trim['pos'].iloc[i], 1)), xy=(df_sort_diad2_trim['pos'].iloc[i]-10,
-            df_sort_diad2_trim['height'].iloc[i]-1/7*(df_sort_diad2_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
+    plt.subplots_adjust(wspace=0)
+
+    return Group1_df.reset_index(drop=True), Groupnot1_df.reset_index(drop=True),Group1_np_y, Groupnot1_np_y
 
 
 
-    return diad_1_peaks, diad_2_peaks
+def plot_diad_groups(*, x_cord, Weak_np=None, Medium_np=None, Strong_np=None):
+
+
+    #
+    Num_Weak=np.shape(Weak_np)[1]
+    Num_Medium=np.shape(Medium_np)[1]
+    Num_Strong=np.shape(Strong_np)[1]
+
+
+    Total=Num_Strong+Num_Medium+Num_Weak
+    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(15, 0.2*Total))
+    if Num_Weak>0:
+        for i in range(0, np.shape(Weak_np)[1]):
+            Diff=np.max(Weak_np[:, i])-np.min(Weak_np[:, i])
+            ax0.plot(x_cord-i*5, (Weak_np[:, i]-np.min(Weak_np[:, i]))/Diff+i/3, '-r', lw=0.5)
+        ax0.set_xlim([1250-i*5, 1450])
+        ax0.set_xticks([])
+        ax0.set_yticks([])
+
+    if Num_Medium>0:
+        for i in range(0, np.shape(Medium_np)[1]):
+            Diff=np.max(Medium_np[:, i])-np.min(Medium_np[:, i])
+            ax1.plot(x_cord-i*5, (Medium_np[:, i]-np.min(Medium_np[:, i]))/Diff+i/3, '-b', lw=0.5)
+        ax1.set_xlim([1250-i*5, 1450])
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+
+    if Num_Strong>0:
+        for i in range(0, np.shape(Strong_np)[1]):
+            Diff=np.max(Strong_np[:, i])-np.min(Strong_np[:, i])
+            ax2.plot(x_cord-i*5, (Strong_np[:, i]-np.min(Strong_np[:, i]))/Diff+i/3, '-g', lw=0.5)
+        ax2.set_xlim([1250-i*5, 1450])
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+
+    ax0.set_title('Weak, N='+str(Num_Weak))
+    ax1.set_title('Medium, N='+str(Num_Medium))
+    ax2.set_title('Strong, N='+str(Num_Strong))
+    plt.subplots_adjust(wspace=0)
 
 
 

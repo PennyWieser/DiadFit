@@ -60,9 +60,8 @@ def get_diad_files(path, sort=True, file_ext='txt', exclude_str=None, exclude_st
     file_ext: str
         File format. Default txt, could also enter csv etc.
     exclude_str: str
-        Excludes files with this string in their name. E.g. if exclude_str='Ne' it will exclude Ne lines
-    exclude_type: str
-        Excludes files of this type, e.g. exclude_type='png' gets rid of image files.
+        List of strings to exclude. Can be as long as you want.
+
 
     Returns
     -----------
@@ -73,24 +72,15 @@ def get_diad_files(path, sort=True, file_ext='txt', exclude_str=None, exclude_st
 
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
 
-    if exclude_str is None:
-        Diad_files=[item for item in Allfiles and exclude_type not in item]
-    if exclude_str is not None:
-        Diad_files=[item for item in Allfiles if exclude_str not in item and exclude_type not in item]
-    if exclude_str_2 is not None:
-        Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_type not in item ]
-    if exclude_str_3 is not None:
-        Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_type not in item]
-    if exclude_str_4 is not None:
-        Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_str_4 not in item and exclude_type not in item]
+    # Take only files with the right file extension
+    Allfiles_type=[item for item in Allfiles if file_ext in item]
 
-        Diad_files=[item for item in Allfiles if exclude_str not in item and file_ext in item and exclude_str_2 not in item and exclude_str_3 not in item and exclude_str_4 not in item and exclude_type not in item]
-    if sort is True:
+    files_filt=[x for x in Allfiles_type if not any(e in x for e in exclude_str)]
 
-        Diad_files2=sorted(Diad_files)
-    else:
-        Diad_files2=Diad_files
-    return Diad_files2
+
+
+    return files_filt
+
 
 
 
