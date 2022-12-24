@@ -133,9 +133,32 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     df_Ne_r=df_Ne.loc[df_Ne['Intensity']>cut_off_intensity]
     return df_Ne_r
 
-def plot_Ne_lines(*, path=None, filename=None, filetype=None, n_peaks=6,
-peak1_cent=1118, peak2_cent=1447, exclude_range_1=None, Ne_array=None,
-exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width=1, plot_figure=True, print_df=False):
+
+@dataclass
+class Neon_id_config:
+    # Exclude a range, e.g. cosmic rays
+    exclude_range_1: Optional [Tuple[float, float]] = None
+    exclude_range_2: Optional [Tuple[float, float]] = None
+
+    # Things for Scipy find peaks
+    height: tuple  = 10
+    distance: float= 1
+    prominence: float = 10
+    width: float = 1
+    threshold: float = 0.6
+    peak1_cent: float= 1117
+    peak2_cent: float=1447
+
+    # Number of peaks to look for
+    n_peaks: float = 6
+
+
+
+
+
+
+def identify_Ne_lines(*, config: Neon_id_config=Neon_id_config(), path=None, filename=None, filetype=None, plot_figure=True, print_df=False,
+Ne_array=None):
 
     """
     Loads Ne line, uses scipy find peaks to identify peaks, overlays these,
@@ -182,15 +205,27 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
 
     """
 
-
+    # This bit extracts the data, unless you already fed it in as an array
     if filename is not None and path is not None and filetype is not None:
         Ne_in=get_data(path=path, filename=filename, filetype=filetype)
     if Ne_array is not None:
         Ne_in=Ne_array
 
 
+    # This gets parameters from config file
+    exclude_range_1=config.exclude_range_1
+    exclude_range_2=config.exclude_range_2
+    height=config.height
+    distance=config.distance
+    prominence=config.prominence
+    width=config.width
+    threshold=config.threshold
+    peak1_cent=config.peak1_cent
+    peak2_cent=config.peak2_cent
+    n_peaks=config.n_peaks
 
-    # Exclude range
+
+    # This bit filters the spectra if you want to exclude a range or 2
     if exclude_range_1 is None and exclude_range_2 is None:
         Ne=Ne_in
     if exclude_range_1 is not None:
@@ -199,24 +234,25 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
     if exclude_range_2 is not None:
         Ne=Ne_in[ (Ne_in[:, 0]<exclude_range_2[0]) | (Ne_in[:, 0]>exclude_range_2[1]) ]
 
-    # Find peaks
+    # Get X and Y coords.
     y=Ne[:, 1]
     x=Ne[:, 0]
+    spec_res=np.abs(x[1]-x[0])
 
 
-
+    # Apply Scipy Find peaks using the parameters in the config file.
     peaks = find_peaks(y,height = height, threshold = threshold, distance = distance, prominence=prominence, width=width)
-    # print('Found peaks at wavenumber=')
-    # print(x[peaks[0]])
 
-    n_peaks=6
-    height = peaks[1]['peak_heights'] #list of the heights of the peaks
-    peak_pos = x[peaks[0]] #list of the peaks positions
+    # This gets a list of peak heights
+    height = peaks[1]['peak_heights']
+    # This gets a list of peak positions
+    peak_pos = x[peaks[0]]
+    # Lets combine them in a dataframe
     df=pd.DataFrame(data={'pos': peak_pos,
                         'height': height})
 
 
-    # Find bigest peaks,
+    # Find bigest peaks, and take up to n peaks
     df_sort_Ne=df.sort_values('height', axis=0, ascending=False)
     df_sort_Ne_trim=df_sort_Ne[0:n_peaks]
 
@@ -224,75 +260,91 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
         print('Biggest 6 peaks:')
         display(df_sort_Ne_trim)
 
-    df_pk1=df_sort_Ne.loc[df['pos'].between(peak1_cent-5, peak1_cent+5)]
-    df_pk2=df_sort_Ne.loc[df['pos'].between(peak2_cent-5, peak2_cent+5)]
+    # Get peak within +-5
+    df_pk1=df_sort_Ne.loc[df['pos'].between(peak1_cent-10*spec_res, peak1_cent+10*spec_res)]
+    df_pk2=df_sort_Ne.loc[df['pos'].between(peak2_cent-10*spec_res, peak2_cent+10*spec_res)]
 
     df_pk1_trim=df_pk1[0:1]
     df_pk2_trim=df_pk2[0:1]
 
+    # Lets extract spectra 10 spectral units either side of the asked for peak positions
+    Neon1_region=(x<(peak1_cent+10*spec_res)) & (x>(peak1_cent-10*spec_res))
+    Neon1_trim_y=y[Neon1_region]
+    Neon1_trim_x=x[Neon1_region]
+    Neon2_region=(x<(peak1_cent+10*spec_res)) & (x>(peak1_cent-10*spec_res))
+    Neon2_trim_y=y[Neon1_region]
+    Neon2_trim_x=x[Neon1_region]
+
+    # Take 25th quantile as representative of the background position
+    Baseline_Neon1=np.quantile(Neon1_trim_y, 0.1)
+    Baseline_Neon2=np.quantile(Neon2_trim_y, 0.1)
+
+    if len(df_pk1_trim)>0:
+        df_fit_params=pd.DataFrame(data={'Peak1_cent': df_pk1['pos'],
+                                        'Peak1_height': df_pk1['height']})
+    else:
+
+
+        Max_y_Neon1=np.max(Neon1_trim_y)
+        x_Neon_1=x[y==Max_y_Neon1][0]
+        df_fit_params=pd.DataFrame(data={'Peak1_cent': x_Neon_1,
+                                    'Peak1_height': Max_y_Neon1})
+
+    if len(df_pk2_trim)>0:
+        df_fit_params['Peak2_cent']=df_pk2['pos'].iloc[0]
+        df_fit_params['Peak2_height']=df_pk2['height'].iloc[0]
+    else:
+
+        Max_y_Neon2=np.max(Neon2_trim_y)
+        x_Neon_2=x[y==Max_y_Neon2][0]
+        df_fit_params['Peak2_cent']= x_Neon_2
+        df_fit_params['Peak2_height']=Max_y_Neon2
+
 
     if plot_figure is True:
-        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
+        fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(11, 3.5))
         ax0.plot(x, y, '-r')
         miny=np.min(y)
         maxy=np.max(y)
-        ax0.plot([1117, 1117], [miny, maxy], ':k')
-        ax0.plot([1220, 1220], [miny, maxy], ':k')
-        ax0.plot([1310, 1310], [miny, maxy], ':k')
-        ax0.plot([1398, 1398], [miny, maxy], ':k')
-        ax0.plot([1447, 1447], [miny, maxy], ':k')
-        ax0.plot([1566, 1566], [miny, maxy], ':k')
+
 
         ax0.set_ylabel('Amplitude (counts)')
         ax0.set_xlabel('Wavenumber (cm$^{-1}$)')
-        ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '-c', label='input')
-        ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '.c', label='input')
-        ax1.plot(Ne[:, 0], Ne[:, 1], '.r', label='input')
+        ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '-c')
+        ax1.plot(Ne_in[:, 0], Ne_in[:, 1], '.c')
+        ax1.plot(Ne[:, 0], Ne[:, 1], '.r')
         ax1.plot(x, y, '-r', label='filtered')
-        ax1.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*c', label='all peaks')
+        ax1.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*c', label='all pks IDed')
 
-    if len(df_pk1_trim)==0:
-        if print_df is True:
-            print('No peak found within +-5 wavenumbers of peak position 1, have returned user-entered peak')
+        ax1.plot([peak1_cent-20, peak1_cent+20], [Baseline_Neon1, Baseline_Neon1], '-g', label='approx bck' )
         #ax1.plot(peak2_cent, df_pk2_trim['height'], '*k')
-        if plot_figure is True:
-            pos_pk1=str(peak1_cent)
-            ax1.annotate(pos_pk1, xy=(peak1_cent,
-            100-10), xycoords="data", fontsize=10, rotation=90)
+
+        pos_pk1=str(np.round(df_fit_params['Peak1_cent'].iloc[0], 2))
+
         nearest_pk1=peak1_cent
 
-    else:
 
-        pos_pk1=str(np.round(df_pk1_trim['pos'].iloc[0], 1))
-        if plot_figure is True:
-            ax1.annotate(pos_pk1, xy=(df_pk1_trim['pos']-5,
-        df_pk1_trim['height']-10), xycoords="data", fontsize=10, rotation=90)
-            ax1.plot(df_pk1_trim['pos'], df_pk1_trim['height'], '*k', mfc='yellow', ms=8, label='selected peak')
-        nearest_pk1=float(df_pk1_trim['pos'])
+        ax1.annotate('peak=' + pos_pk1, xy=(df_fit_params['Peak1_cent'].iloc[0]+3,
+        Baseline_Neon1*1.5+700), xycoords="data", fontsize=10, rotation=90)
 
-    if len(df_pk2_trim)==0:
-        if print_df is True:
-            print('No peak found within +-5 wavenumbers of peak position 2, have returned user-entered peak')
-        pos_pk2=str(peak2_cent)
-        nearest_pk2=peak2_cent
-        if plot_figure is True:
-            ax2.annotate(pos_pk2, xy=(nearest_pk2,
-        200), xycoords="data", fontsize=10, rotation=90)
 
-    else:
-        pos_pk2=str(np.round(df_pk2_trim['pos'].iloc[0], 1))
-        nearest_pk2=float(df_pk2_trim['pos'])
-        if plot_figure is True:
-            ax2.plot(df_pk2_trim['pos'], df_pk2_trim['height'], '*k', mfc='yellow', ms=8,label='selected peak')
-            ax2.legend(bbox_to_anchor=(0.3,1.1))
-            ax2.annotate(pos_pk2, xy=(df_pk2_trim['pos']-5,
-        df_pk2_trim['height']/2), xycoords="data", fontsize=10, rotation=90)
+        ax1.plot(df_fit_params['Peak1_cent'], df_fit_params['Peak1_height'], '*k', mfc='yellow', ms=8, label='selected peak')
 
-    if plot_figure is True:
+        ax1.legend(loc='lower center', ncol=2, fontsize=8)
+
+
+        pos_pk2=str(np.round(df_fit_params['Peak2_cent'].iloc[0], 2))
+        ax2.plot([peak2_cent-20, peak2_cent+20], [Baseline_Neon2, Baseline_Neon2], '-g')
+
+        ax2.annotate('peak=' + pos_pk2, xy=(df_fit_params['Peak2_cent'].iloc[0]-5,
+        Baseline_Neon1*2+700), xycoords="data", fontsize=10, rotation=90)
+
+
+
         ax1.set_xlim([peak1_cent-15, peak1_cent+15])
 
         ax1.set_xlim([peak1_cent-10, peak1_cent+10])
-
+        ax2.plot(Ne[:, 0], Ne[:, 1], '.r', label='input')
         ax2.plot(x, y, '-r')
         ax2.plot(df_sort_Ne_trim['pos'], df_sort_Ne_trim['height'], '*k', mfc='yellow', ms=8)
         #print(df_pk1)
@@ -303,12 +355,15 @@ exclude_range_2=None, height=10, threshold=0.6, distance=1, prominence=10, width
         ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
         ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
 
-    if print_df is True:
-        print('selected Peak 1 Pos')
-        print(nearest_pk1)
-        print('selected Peak 2 Pos')
-        print(nearest_pk2)
-    return Ne, df_sort_Ne_trim, nearest_pk1, nearest_pk2
+        ax1.set_ylim([0, 1.5*df_fit_params['Peak1_height'].iloc[0]+100])
+        ax2.set_ylim([0, 1.5*df_fit_params['Peak2_height'].iloc[0]+100])
+        fig.tight_layout()
+
+    df_fit_params['Peak1_prom']=df_fit_params['Peak1_height']-Baseline_Neon1
+    df_fit_params['Peak2_prom']=df_fit_params['Peak2_height']-Baseline_Neon2
+
+
+    return Ne, df_fit_params
 
 
 
@@ -793,13 +848,17 @@ class Ne_peak_config:
     upper_bck1_pk2: Tuple[float, float] = (15, 50) # Background position Pk2
     upper_bck2_pk2: Tuple[float, float] = (50, 51)     # Background position Pk1
 
+    # Whether you want a secondary peak
+    peaks_1: float=2
+
+    # SPlitting
+    DeltaNe_ideal: float= 330.477634,
+
     # Things for plotting the baseline
     x_range_baseline: float=20 #  How many units outside your selected background it shows on the baseline plot
     y_range_baseline: float= 200    # Where the y axis is cut off above the minimum baseline measurement
 
-    # Things for fitting the primary peak
-    pk1_amplitude: float = 4000
-    pk2_amplitude: float = 10000
+
     # Sigma for peaks
     pk1_sigma: float = 0.4
     pk2_sigma: float = 0.4
@@ -820,10 +879,10 @@ class Ne_peak_config:
 
 
 def fit_Ne_lines(*,  config: Ne_peak_config=Ne_peak_config(),
-Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
-    Ne=None, filename=None, path=None, prefix=True,
-    plot_figure=True, loop=True,
-    DeltaNe_ideal=330.477634, save_clipboard=True,
+Ne_center_1=1117.1, Ne_center_2=1147, Ne_prom_1=100, Ne_prom_2=200,
+Ne=None, filename=None, path=None, prefix=True,
+plot_figure=True, loop=True,
+ save_clipboard=True,
     close_figure=False, const_params=True):
 
 
@@ -871,10 +930,10 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
 
     DeltaNe_ideal: float
         Theoretical distance between the two peaks you have selected. Default is 330.477634 for
-        the 1117 and 1447 diad for the Cornell Raman. You can calculate this using the calculate_Ne_line_positions
+        the 1117 and 1447 Neon for the Cornell Raman. You can calculate this using the calculate_Ne_line_positions
 
 
-    Things for Diad 1 (~1117):
+    Things for Neon 1 (~1117):
 
         N_poly_pk1_baseline: int
             Degree of polynomial used to fit the background
@@ -892,7 +951,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
 
 
         peaks_1: int
-            How many peaks to fit to the 1117 diad, if 2, tries to put a shoulder peak
+            How many peaks to fit to the 1117 Neon, if 2, tries to put a shoulder peak
 
         LH_offset_mini: list
             If peaks>1, puts second peak within this range left of the main peak
@@ -900,7 +959,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
 
 
 
-    Things for Diad 2 (~1447):
+    Things for Neon 2 (~1447):
         N_poly_pk2_baseline: int
             Degree of polynomial used to fit the background
 
@@ -915,6 +974,14 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
             Span either side of peak center used for fitting,
             e.g. by default, fits to 10 wavenumbers below peak, 8 above.
     """
+
+    # Getting things from config file
+    peaks_1=config.peaks_1
+    DeltaNe_ideal=config.DeltaNe_ideal
+
+    # Estimate amplitude from prominence and sigma you entered
+    Pk1_Amp=((config.pk1_sigma)*(Ne_prom_1))/0.3939
+    Pk2_Amp=((config.pk2_sigma)*(Ne_prom_2))/0.3939
 
 
     #Remove the baselines
@@ -943,13 +1010,13 @@ Ne_center_1=1117.1, Ne_center_2=1147, peaks_1=2,
         x_span_pk2_dist=abs(config.x_span_pk2[1]-config.x_span_pk2[0])
 
     # Fit the 1117 peak
-    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1,model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=config.pk1_amplitude, pk1_sigma=config.pk1_sigma,
+    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1,model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
     const_params=const_params)
 
 
 
     # Fit the 1447 peak
-    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, Peak2_Prop_Lor = fit_pk2( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, amplitude=config.pk2_amplitude, pk2_sigma=config.pk2_sigma, const_params=const_params)
+    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, Peak2_Prop_Lor = fit_pk2( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, amplitude=Pk2_Amp, pk2_sigma=config.pk2_sigma, const_params=const_params)
 
 
     # Calculate difference between peak centers, and Delta Ne
@@ -1207,57 +1274,43 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
 
 ## Looping Ne lines
 def loop_Ne_lines(*, files, spectra_path, filetype,
-                  config, peaks_1,
-                  DeltaNe_ideal,
-                  peak1_cent, peak2_cent, height=10,
-                threshold=0.6, distance=1, prominence=10, width=1,
-                exclude_range_1=None,
-                exclude_range_2=None,
-                 prefix=None, print_df=False,
-                  plot_figure=True, save_clipboard=True, single_acq=True):
+        config, config_ID_peaks, df_fit_params=None, prefix=False, print_df=False,
+                  plot_figure=True):
 
     df = pd.DataFrame([])
-    if single_acq is True:
-        for i in tqdm(range(0, np.shape(files)[1]-2)):
-            Ne=np.column_stack((files[:, 0], files[:, i+1]))
-            filename=str(i)
-
-            data=fit_Ne_lines(
-            config=config, peaks_1=peaks_1,
-            Ne=Ne, filename=filename, spectra_path=spectra_path, prefix=prefix,
-            Ne_center_1=nearest_pk1, Ne_center_2=nearest_pk2,
-            DeltaNe_ideal=DeltaNe_ideal, plot_figure=plot_figure,
-            save_clipboard=save_clipboard)
-            df = pd.concat([df, data], axis=0)
 
 
-    if single_acq is False:
-        for i in tqdm(range(0, len(files))):
-            filename=files[i]
 
-            Ne, df_sort_Ne_trim, nearest_pk1, nearest_pk2=plot_Ne_lines(path=spectra_path,
-                filename=filename, filetype=filetype,
-                n_peaks=6, peak1_cent=peak1_cent, peak2_cent=peak2_cent,
-                height=10, threshold=0.6, distance=1, prominence=10, width=1,
-                exclude_range_2=None, plot_figure=False, print_df=False)
+    for i in tqdm(range(0, len(files))):
+        filename=files[i]
 
-
-            data=fit_Ne_lines(
-            config=config, peaks_1=peaks_1,
-            Ne=Ne, filename=filename, path=spectra_path, prefix=prefix,
-            Ne_center_1=nearest_pk1, Ne_center_2=nearest_pk2,
-            DeltaNe_ideal=DeltaNe_ideal, plot_figure=plot_figure,
-            save_clipboard=save_clipboard)
-            df = pd.concat([df, data], axis=0)
-        #print('working on ' + str(files[i]))
+        Ne, df_fit_params=identify_Ne_lines(path=spectra_path,
+        filename=filename, filetype=filetype,
+        config=config_ID_peaks, print_df=False, plot_figure=False)
 
 
 
 
-
+        data=fit_Ne_lines(Ne=Ne, filename=filename,
+        path=spectra_path, prefix=False,
+        config=config,
+        Ne_center_1=df_fit_params['Peak1_cent'].iloc[0],
+        Ne_center_2=df_fit_params['Peak2_cent'].iloc[0],
+        Ne_prom_1=df_fit_params['Peak1_prom'].iloc[0],
+        Ne_prom_2=df_fit_params['Peak2_prom'].iloc[0],
+        plot_figure=plot_figure)
+        df = pd.concat([df, data], axis=0)
+    #print('working on ' + str(files[i]))
 
 
     df2=df.reset_index(drop=True)
+
+    # Now lets reorder some columns
+
+    cols_to_move = ['filename', 'Ne_Corr', 'deltaNe', 'pk2_peak_cent', 'pk1_peak_cent', 'pk2_amplitude', 'pk1_amplitude', 'residual_pk2', 'residual_pk1']
+    df2 = df2[cols_to_move + [
+                col for col in df2.columns if col not in cols_to_move]]
+
 
     return df2
 
@@ -1299,8 +1352,8 @@ def reg_Ne_lines_time(df, fit='poly', N_poly=None, spline_fit=None):
 
     Py=Pf(Px)
 
-    fig, (ax1) = plt.subplots(1, 1, figsize=(5, 4))
-    ax1.plot(df['sec since midnight'], df['Ne_Corr'], 'ok')
+    fig, (ax1) = plt.subplots(1, 1, figsize=(6, 3))
+    ax1.plot(df['sec since midnight'], df['Ne_Corr'], 'xk')
     ax1.plot(Px, Py, '-r')
     ax1.set_xlabel('Seconds since midnight')
     ax1.set_ylabel('Ne Correction Factor')
@@ -1308,7 +1361,7 @@ def reg_Ne_lines_time(df, fit='poly', N_poly=None, spline_fit=None):
     ax1.ticklabel_format(useOffset=False)
 
 
-    return Pf
+    return Pf, fig
 
 
 def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):

@@ -39,8 +39,17 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
     Returns file names as a list.
 
     """
+
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
-    Ne_files=[item for item in Allfiles if ID_str in item and file_ext in item and exclude_str not in item]
+
+    # Take only files with the right file extension
+    Allfiles_type=[item for item in Allfiles if file_ext in item and ID_str in item]
+
+    Ne_files=[x for x in Allfiles_type if not any(e in x for e in exclude_str)]
+
+
+    # Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
+    # Ne_files=[item for item in Allfiles if ID_str in item and file_ext in item and exclude_str not in item]
 
     if sort is True:
         Ne_files=sorted(Ne_files)
@@ -698,6 +707,7 @@ def extracting_filenames_generic(*, names, prefix=False,
             if suffix is True:
                 file_m[i]=str_nof_name.split(str_suffix, maxsplit=1)[0]
             if suffix is False:
+
                 file_m[i]=str_nof_name[0]
 
         if file_type in file_m[i]:

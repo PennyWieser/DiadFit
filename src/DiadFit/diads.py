@@ -418,7 +418,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
 
 from tqdm import tqdm
-def loop_approx_fits(*, spectra_path, config, Diad_Files, filetype, plot_figure):
+def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_figure):
     """ Loops approx fit parameters for all files
     """
 
@@ -1511,12 +1511,12 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                     if i==1: # This is c13
                         peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
                         min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
-                        sigma=sigma_ini,
-                        min_sigma=sigma_ini*config1.HB_sigma_min_allowance,
-                        max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
+                        sigma=sigma_ini/5,
+                        min_sigma=sigma_ini/20,
+                        max_sigma=sigma_ini/2,
                         amplitude=calc_C13_amplitude,
-                        min_amplitude=calc_C13_amplitude*config1.HB_amp_min_allowance,
-                        max_amplitude=calc_C13_amplitude*config1.HB_amp_max_allowance,
+                        min_amplitude=calc_C13_amplitude*(0.5*config1.HB_amp_min_allowance),
+                        max_amplitude=calc_C13_amplitude*2*(config1.HB_amp_max_allowance),
                         model_name=config1.model_name)
                         model = peak+model
                         params.update(pars)
@@ -1603,13 +1603,18 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                 if i==2: # This is c13
                     peak, pars = add_peak(prefix='lz%d_' % (i+1), center=cen,
                         min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
-                        sigma=sigma_ini,
-                        min_sigma=sigma_ini*config1.HB_sigma_min_allowance,
-                        max_sigma=sigma_ini*config1.HB_sigma_max_allowance,
+                        sigma=sigma_ini/5,
+                        min_sigma=sigma_ini/20,
+                        max_sigma=sigma_ini/2,
                         amplitude=calc_C13_amplitude,
-                        min_amplitude=calc_C13_amplitude*config1.HB_amp_min_allowance,
-                        max_amplitude=calc_C13_amplitude*config1.HB_amp_max_allowance,
+                        min_amplitude=calc_C13_amplitude*(0.5*config1.HB_amp_min_allowance),
+                        max_amplitude=calc_C13_amplitude*2*(config1.HB_amp_max_allowance),
                         model_name=config1.model_name)
+
+
+
+
+
                     model3 = peak+model2
                     params.update(pars)
             model_F=model3
@@ -2135,7 +2140,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
         if np.isnan(HB_pos)==True and np.isnan(C13_pos)==True:
             fit_peaks=1
 
-        elif np.isnan(C13_pos)==True or config1.C13_prom<0:
+        elif np.isnan(C13_pos)==True or config1.C13_prom<10:
             fit_peaks=2
 
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
@@ -2269,11 +2274,11 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     axes['X'].set_title('a) Background fit')
     axes['X'].plot(Diad[:, 0], Diad[:, 1], '-', color='grey')
-    axes['X'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '-r', label='region_2_bck_sub')
+    axes['X'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '-r', label='Spectra')
 
     #axes['X'].plot(Baseline[:, 0], Baseline[:, 1], '-b', label='Bck points')
-    axes['X'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b', label='Bck points')
-    axes['X'].plot(Diad_short_diad2[:, 0], Py_base_diad2, '-k')
+    axes['X'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b', label='bel. Bck. pts')
+    axes['X'].plot(Diad_short_diad2[:, 0], Py_base_diad2, '-k', label='bck. poly fit')
 
 
 
@@ -2285,7 +2290,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
     rect_diad2_b1=patches.Rectangle((config1.lower_bck_diad2[0], ax1_ymin),config1.lower_bck_diad2[1]-config1.lower_bck_diad2[0],ax1_ymax-ax1_ymin,
-                            linewidth=1,edgecolor='none',facecolor='cyan', label='bck', alpha=0.3, zorder=0)
+                            linewidth=1,edgecolor='none',facecolor='cyan', label='sel. bck. region', alpha=0.3, zorder=0)
     axes['X'].add_patch(rect_diad2_b1)
     rect_diad2_b2=patches.Rectangle((config1.upper_bck_diad2[0], ax1_ymin),config1.upper_bck_diad2[1]-config1.upper_bck_diad2[0],ax1_ymax-ax1_ymin,
                             linewidth=1,edgecolor='none',facecolor='cyan', alpha=0.3, zorder=0)
@@ -2308,7 +2313,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
 
-    axes['A'].plot(xdat, ydat,  '.k', label='data')
+    axes['A'].plot(xdat, ydat,  '.k', label='bck. sub. data')
     axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1, label='best fit')
     axes['A'].legend()
     axes['A'].set_ylabel('Intensity')
@@ -2324,9 +2329,9 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     if fit_peaks>1:
 
 
-        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='HB2')
 
-    axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
+    axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Diad2')
     if config1.fit_gauss is not False:
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
     #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
@@ -2370,9 +2375,10 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
     axes['C'].set_title('d) Peaks overlain on data before subtraction')
-    axes['C'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b')
+    axes['C'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '.r', label='data')
+    axes['C'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b', label='bck')
     axes['C'].plot(Diad_short_diad2[:, 0], Py_base_diad2, '-k', label='Poly bck fit')
-    axes['C'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '.r')
+
 
     axes['C'].set_ylabel('Intensity')
     axes['C'].set_xlabel('Wavenumber')
@@ -2383,13 +2389,14 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
         axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
 
     axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
-    axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
+    axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Diad2', linewidth=1)
     if fit_peaks>1:
-        axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
+        axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='HB2', linewidth=1)
     if fit_peaks>2:
-        axes['C'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-c', label='Peak3', linewidth=1)
+        axes['C'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-c', label='C13', linewidth=1)
 
-    axes['C'].legend(loc='lower left')
+    axes['C'].legend(ncol=3, loc='lower center')
+
 
 
     axes['C'].set_xlim([axc_xmin, axc_xmax])
@@ -2518,7 +2525,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     if fit_peaks==2:
         if np.isnan(HB_pos)==True or config1.HB_prom<-50:
             fit_peaks=1
-            print('Either no hb position, or prominence<-50, using 1 fit')
+            #print('Either no hb position, or prominence<-50, using 1 fit')
 
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
     Diad=np.array(Diad_df)
@@ -2653,11 +2660,11 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
     axes['X'].set_title('a) Background fit')
     axes['X'].plot(Diad[:, 0], Diad[:, 1], '-', color='grey')
-    axes['X'].plot(Diad_short_diad1[:, 0], Diad_short_diad1[:, 1], '-r', label='region_2_bck_sub')
+    axes['X'].plot(Diad_short_diad1[:, 0], Diad_short_diad1[:, 1], '-r', label='Spectra')
 
     #axes['X'].plot(Baseline[:, 0], Baseline[:, 1], '-b', label='Bck points')
-    axes['X'].plot(Baseline_diad1[:, 0], Baseline_diad1[:, 1], '.b', label='Bck points')
-    axes['X'].plot(Diad_short_diad1[:, 0], Py_base_diad1, '-k')
+    axes['X'].plot(Baseline_diad1[:, 0], Baseline_diad1[:, 1], '.b', label='Sel. bck. pts')
+    axes['X'].plot(Diad_short_diad1[:, 0], Py_base_diad1, '-k', label='bck. poly fit')
 
 
 
@@ -2669,7 +2676,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
 
     rect_diad1_b1=patches.Rectangle((config1.lower_bck_diad1[0], ax1_ymin),config1.lower_bck_diad1[1]-config1.lower_bck_diad1[0],ax1_ymax-ax1_ymin,
-                            linewidth=1,edgecolor='none',facecolor='cyan', label='bck', alpha=0.3, zorder=0)
+                            linewidth=1,edgecolor='none',facecolor='cyan', label='sel. bck. region', alpha=0.3, zorder=0)
     axes['X'].add_patch(rect_diad1_b1)
     rect_diad1_b2=patches.Rectangle((config1.upper_bck_diad1[0], ax1_ymin),config1.upper_bck_diad1[1]-config1.upper_bck_diad1[0],ax1_ymax-ax1_ymin,
                             linewidth=1,edgecolor='none',facecolor='cyan', alpha=0.3, zorder=0)
@@ -2692,7 +2699,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
 
 
-    axes['A'].plot(xdat, ydat,  '.k', label='data')
+    axes['A'].plot(xdat, ydat,  '.k', label='bck. sub. data')
     axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1, label='best fit')
     axes['A'].legend()
     axes['A'].set_ylabel('Intensity')
@@ -2706,9 +2713,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     # This is for if there is more than 1 peak, this is when we want to plot the best fit
     if fit_peaks>1:
 
-        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='Peak2')
+        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='HB1')
 
-    axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Peak1')
+    axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Diad1')
     if config1.fit_gauss is not False:
         axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
     #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
@@ -2744,18 +2751,14 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     axc_ymin=np.min(Baseline_diad1[:, 1])-config1.y_range_baseline
     axc_ymax=np.max(Baseline_diad1[:, 1])+config1.y_range_baseline
 
-    rect_diad1_b1=patches.Rectangle((config1.lower_bck_diad1[0],axc_ymin),config1.lower_bck_diad1[1]-config1.lower_bck_diad1[0],axc_ymax-axc_ymin,
-                              linewidth=1,edgecolor='none',facecolor='cyan', label='bck', alpha=0.3, zorder=0)
-    axes['C'].add_patch(rect_diad1_b1)
-    rect_diad1_b2=patches.Rectangle((config1.upper_bck_diad1[0],axc_ymin),config1.upper_bck_diad1[1]-config1.upper_bck_diad1[0],axc_ymax-axc_ymin,
-                              linewidth=1,edgecolor='none',facecolor='cyan', alpha=0.3, zorder=0)
-    axes['C'].add_patch(rect_diad1_b2)
+
 
 
     axes['C'].set_title('d) Peaks overlain on data before subtraction')
+    axes['C'].plot(Diad_short_diad1[:, 0], Diad_short_diad1[:, 1], '.r', label='Data')
     axes['C'].plot(Baseline_diad1[:, 0], Baseline_diad1[:, 1], '.b', label='bck')
     axes['C'].plot(Diad_short_diad1[:, 0], Py_base_diad1, '-k', label='Poly bck fit')
-    axes['C'].plot(Diad_short_diad1[:, 0], Diad_short_diad1[:, 1], '.r', label='Data')
+
 
     axes['C'].set_ylabel('Intensity')
     axes['C'].set_xlabel('Wavenumber')
@@ -2766,15 +2769,15 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
         axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
 
     axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
-    axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Peak1', linewidth=1)
+    axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Diad1', linewidth=1)
 
     if fit_peaks>1:
-        axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='Peak2', linewidth=1)
+        axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='HB1', linewidth=1)
 
 
 
 
-    axes['C'].legend()
+    axes['C'].legend(ncol=3, loc='lower center')
     axes['C'].set_xlim([axc_xmin, axc_xmax])
     axes['C'].set_ylim([axc_ymin, axc_ymax])
     #axes['C'].plot(Diad_short[:, 0], Diad_short[:, 1], '"r', label='Data')
