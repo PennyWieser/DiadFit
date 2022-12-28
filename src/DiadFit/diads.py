@@ -1063,7 +1063,7 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, min
 #                 else:
 #                     peak_pos_voigt2=peak_pos_voigt
 #
-#                 peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt2, min_cent=peak_pos_voigt2-5, max_cent=peak_pos_voigt2+5, model_name=model_name)
+#                 peak, pars = add_peak(prefix='lz1_', center=peak_pos_voigt2, min_cent=peak_pos_voigt2-5, max_cent=peak_pos_voigt2+0.5, model_name=model_name)
 #                 model = peak+model
 #                 params.update(pars)
 #
@@ -3331,6 +3331,9 @@ class generic_peak_config:
     lower_bck: Tuple[float, float]=(1060, 1065)
     upper_bck: Tuple[float, float]=(1120, 1130)
 
+    #
+    x_range_bck: float=10
+
     # Background degree of polynomial
     N_poly_carb_bck: float =1
     # Seletcting the amplitude
@@ -3350,7 +3353,7 @@ class generic_peak_config:
     prominence: float=5
     width: float=6
     threshold: float=0.1
-    height=100
+    height:float =100
 
     # Excluding a range for cosmic rays etc.
     exclude_range: Optional [Tuple[float, float]]=None
@@ -3457,18 +3460,20 @@ path=None, filename=None, filetype=None, model_name='VoigtModel',
     # Find peaks using Scipy find peaks
     y=Spectra_plot[:, 1]
     x=Spectra_plot[:, 0]
-    peaks = find_peaks(y,height = config.height, threshold = config.threshold,
-    distance = config.distance, prominence=config.prominence, width=config.width)
+    if find_peaks is True:
 
-    height = peaks[1]['peak_heights'] #list of the heights of the peaks
-    peak_pos = x[peaks[0]] #list of the peaks positions
-    df_sort=pd.DataFrame(data={'pos': peak_pos,
-                        'height': height})
+        peaks = find_peaks(y,height = config.height, threshold = config.threshold,
+        distance = config.distance, prominence=config.prominence, width=config.width)
 
-    df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
+        height = peaks[1]['peak_heights'] #list of the heights of the peaks
+        peak_pos = x[peaks[0]] #list of the peaks positions
+        df_sort=pd.DataFrame(data={'pos': peak_pos,
+                            'height': height})
 
-    # Trim number of peaks based on user-defined N peaks
-    df_peak_sort_short=df_peak_sort[0:config.N_peaks]
+        df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
+
+        # Trim number of peaks based on user-defined N peaks
+        df_peak_sort_short=df_peak_sort[0:config.N_peaks]
 
 
     # Get actual baseline
@@ -3510,7 +3515,7 @@ path=None, filename=None, filetype=None, model_name='VoigtModel',
 
     Baseline_ysub=Pf_baseline(Baseline[:, 0])
     Baseline_x=Baseline[:, 0]
-    y_corr= Spectra_short[:, 1]-  Py_base
+    y_corr= Spectra_short[:, 1]-Py_base
     x=Spectra_short[:, 0]
 
     # NOw into the voigt fitting
@@ -3537,49 +3542,10 @@ path=None, filename=None, filetype=None, model_name='VoigtModel',
     y_carb=result0.eval(x=xx_carb)
     height=np.max(y_carb)
 
-    # Plotting what its doing
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
-    fig.suptitle('Secondary Phase, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
-
-    # Plot the peak positions and heights
-
-
-
-    ax1.set_title('Background fit')
-    ax1.plot(Spectra_plot[:, 0], Spectra_plot[:, 1], '-r', label='Spectra')
-    ax1.plot(RH_baseline_filt[:, 0], RH_baseline_filt[:, 1], '-b',
-    lw=3,  label='bck points')
-    ax1.plot(LH_baseline_filt[:, 0], LH_baseline_filt[:, 1], '-b',
-    lw=3, label='_bck points')
-
-
-    ax2.set_title('Bkg-subtracted, ' + name + ' peak fit')
-
-    ax2.plot(xx_carb, y_carb, '-k', label='Peak fit')
-
-    ax2.plot(x, y_corr, 'ok', mfc='red', label='Bck-sub data')
-    ax2.set_ylim([min(y_carb)-0.5*(max(y_carb)-min(y_carb)),
-                max(y_carb)+0.1*max(y_carb),
-    ])
-
-    ax1.plot(Spectra_short[:, 0], Py_base, '-k')
-
-    ax1.plot(df_peak_sort_short['pos'], df_peak_sort_short['height'], '*k', mfc='yellow', label='SciPy Peaks')
-
-    ax1.set_ylabel('Intensity')
-    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
-    ax2.set_ylabel('Bck-corrected Intensity')
-    ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
-
-    ax1.legend()
-    ax2.legend()
-
-    ax1.set_ylim([
-    np.min(Spectra_plot[:, 1])-50,
-    np.max(Spectra_plot[:, 1])+50
-    ])
-
-
+    df=pd.DataFrame(data={'filename': filename,
+    'Peak_Cent_{}'.format(name): Center_p0,
+    'Peak_Area_{}'.format(name): area_p0,
+    'Peak_Height_{}'.format(name): height}, index=[0])
 
     if area_p0 is None:
         area_p0=np.nan
@@ -3587,21 +3553,75 @@ path=None, filename=None, filetype=None, model_name='VoigtModel',
             if area_p0<0:
                 area_p0=np.nan
 
-
-    file=filename.rsplit('.txt', 1)[0]
+    # Plotting what its doing
     if plot_figure is True:
-        path3=path+'/'+'{}_fit_images'.format(file)
-        if os.path.exists(path3):
-            out='path exists'
-        else:
-            os.makedirs(path3, exist_ok=False)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
+        fig.suptitle('Secondary Phase, file= '+ str(filename), fontsize=12, x=0.5, y=1.0)
+
+        # Plot the peak positions and heights
+
+
+
+        ax1.set_title('Background fit')
+
+        ax1.plot(Spectra_plot[:, 0], Spectra_plot[:, 1], '-r', label='Spectra')
+        ax1.plot(RH_baseline_filt[:, 0], RH_baseline_filt[:, 1], '-b',
+        lw=3,  label='bck points')
+        ax1.plot(LH_baseline_filt[:, 0], LH_baseline_filt[:, 1], '-b',
+        lw=3, label='_bck points')
+        ax1.plot(Spectra_short[:, 0], Py_base, '-k', label='Bck Poly')
+
+
+        ax2.set_title('Bkg-subtracted, ' + name + ' peak fit')
+
+        ax2.plot(xx_carb, y_carb, '-k', label='Peak fit')
+        ax2.plot(x, y_corr, '.r', label='Bck-sub data')
+
+
+
+        cent=df['Peak_Cent_{}'.format(name)].iloc[0]
+        ax2.set_xlim([cent-config.x_range_bck, cent+config.x_range_bck])
+        # ax2.set_ylim([min(y_carb)-0.5*(max(y_carb)-min(y_carb)),
+        #             max(y_carb)+0.1*max(y_carb),
+        # ])
+
+
+
+        if find_peaks is True:
+
+            ax1.plot(df_peak_sort_short['pos'], df_peak_sort_short['height'], '*k', mfc='yellow', label='SciPy Peaks')
+            ax1.plot(Spectra_short[:, 0], Py_base, '-k')
+
+        ax1.set_ylabel('Intensity')
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax2.set_ylabel('Bck-corrected Intensity')
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+
+        ax1.legend()
+        ax2.legend()
+
+        ax1.set_ylim([
+        np.min(Spectra_plot[:, 1])-50,
+        np.max(Spectra_plot[:, 1])+50
+        ])
+
+
+
+
+
 
         file=filename.rsplit('.txt', 1)[0]
-        fig.savefig(path3+'/'+ name +'_Fit_{}.png'.format(file), dpi=config.dpi)
+        if plot_figure is True:
+            path3=path+'/'+'Secondary_fit_Images'
+            print(path3)
+            if os.path.exists(path3):
+                out='path exists'
+            else:
+                os.makedirs(path3, exist_ok=False)
 
-    df=pd.DataFrame(data={'Peak_Cent_{}'.format(name): Center_p0,
-    'Peak_Area_{}'.format(name): area_p0,
-    'Peak_Height_{}'.format(name): height}, index=[0])
+            file=filename.rsplit('.txt', 1)[0]
+            fig.savefig(path3+'/'+ name +'_Fit_{}.png'.format(file), dpi=config.dpi)
+
 
 
     if config.return_other_params is True:
@@ -3838,5 +3858,175 @@ def plot_diad_spectra(Diad_Files_Specific=None, df_out=None, yoff=100):
     ax2.set_xlabel('Wavenumber')
     ax2.set_ylabel('Intensity')
     fig.tight_layout()
+
+# Plotting up secondary peaks
+
+from scipy.signal import find_peaks
+def plot_secondary_peaks(*, Diad_Files, path, filetype,
+        xlim=[1040, 1200], config, sigma_filter=False, sigma=3, find_peaks=False, just_plot=False, yscale=0.2):
+    fig, (ax1) = plt.subplots(1, 1, figsize=(10,yscale*len(Diad_Files)))
+
+    i=0
+    Y=0
+    peak_pos_saved=np.empty(len(Diad_Files), dtype=float)
+    peak_height_saved=np.empty(len(Diad_Files), dtype=float)
+    peak_bck=np.empty(len(Diad_Files), dtype=float)
+    y_star=np.empty(len(Diad_Files), dtype=float)
+    yplot=np.empty(len(Diad_Files), dtype=float)
+    Diad_df=get_data(path=path, filename=Diad_Files[0], filetype=filetype)
+    x_data=Diad_df[:, 0]
+    y_data=np.empty([  len(x_data), len(Diad_Files)], float)
+
+
+    for file in Diad_Files:
+
+        Diad_df=get_data(path=path, filename=file, filetype=filetype)
+        Diad=np.array(Diad_df)
+
+
+        # First lets use find peaks
+        y=Diad[:, 1]
+        x=Diad[:, 0]
+
+
+        # Region of interest
+        Region = (x>xlim[0])& (x<xlim[1])
+        x_trim=x[Region]
+        y_trim=y[Region]
+        y_data[:, i]=y
+
+        if find_peaks is True:
+            # Scipy find peaks
+            peaks = find_peaks(y_trim,height = config.height, threshold = config.threshold,
+            distance = config.distance, prominence=config.prominence, width=config.width)
+            height = peaks[1]['peak_heights'] #list of the heights of the peaks
+            peak_pos = x_trim[peaks[0]] #list of the peaks positions
+            df_sort=pd.DataFrame(data={'pos': peak_pos,
+                                'height': height})
+
+            df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
+
+            # Trim number of peaks based on user-defined N peaks
+            df_peak_sort_short=df_peak_sort[0:config.N_peaks]
+            #print(df_peak_sort_short)
+            if len(df_peak_sort_short>1):
+                peak_pos_saved[i]=df_peak_sort_short['pos'].values
+                peak_height_saved[i]=df_peak_sort_short['pos'].values
+            else:
+                peak_pos_saved[i]=np.nan
+                peak_height_saved[i]=np.nan
+
+            peak_bck=np.quantile(y_trim, 0.2)
+            av_y=np.quantile(y_trim, 0.5)
+            Diff=np.max(y_trim)-np.min(y_trim)
+            Y_sum=np.max(y_trim)/Diff
+
+            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '-r')
+            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '.k', ms=1)
+            if len(height)>0:
+
+
+                ax1.plot(df_peak_sort_short['pos'], (df_peak_sort_short['height']-np.min(y_trim))/Diff+i, '*k', mfc='yellow')
+
+            yplot[i]=np.min(((y_trim-np.min(y_trim))/Diff)+i)
+
+            ax1.annotate(str(file), xy=(xlim[1]+0.5, yplot[i]),
+                         xycoords="data", fontsize=8)
+            #ax1.set_xlim(xlim)
+            Y=Y+Y_sum
+            i=i+1
+
+        if sigma_filter is True:
+                # Find max value in region
+            maxy=np.max(y_trim)
+            xpos=x_trim[y_trim==maxy][0]
+            #print(xpos)
+            y_around_max=y_trim[(x_trim<(xpos+10))&(x_trim>(xpos-10))]
+            stdy=np.nanstd(y_around_max)
+            meany=np.nanmean(y_around_max)
+            if maxy>meany+stdy*sigma:
+                pos_x=x[y==maxy][0]
+            else:
+                pos_x=np.nan
+
+
+            if pos_x>0:
+                peak_pos_saved[i]=pos_x
+                peak_height_saved[i]=maxy
+
+            else:
+                peak_pos_saved[i]=np.nan
+                peak_height_saved[i]=np.nan
+
+            peak_bck=np.quantile(y_trim, 0.2)
+            av_y=np.quantile(y_trim, 0.5)
+            Diff=np.max(y_trim)-np.min(y_trim)
+            Y_sum=np.max(y_trim)/Diff
+            if pos_x>0:
+                y_star[i]=(peak_height_saved[i]-np.min(y_trim))/Diff+i
+            else:
+                y_star[i]=np.nan
+
+            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '-r')
+            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '.k', ms=1)
+            yplot[i]=np.min(((y_trim-np.min(y_trim))/Diff)+i)
+            ax1.annotate(str(file), xy=(xlim[1]+0.5, yplot[i]),
+                         xycoords="data", fontsize=8)
+            Y=Y+Y_sum
+            i=i+1
+
+        if just_plot is True:
+            Diff=np.max(y_trim)-np.min(y_trim)
+            Y_sum=np.max(y_trim)/Diff
+            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '-r')
+            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '.k', ms=1)
+            yplot[i]=np.min(((y_trim-np.min(y_trim))/Diff)+i)
+            ax1.annotate(str(file), xy=(xlim[1]+0.5, yplot[i]),
+                         xycoords="data", fontsize=8)
+            Y=Y+Y_sum
+            i=i+1
+
+
+
+    df_peaks=pd.DataFrame(data={'pos': peak_pos_saved,
+                                        'height': peak_height_saved,
+                                            'prom': peak_height_saved-peak_bck})
+    if sigma_filter is True:
+        ax1.plot(df_peaks['pos'][y_star>0], y_star[y_star>0], '*k', mfc='yellow')
+
+
+
+
+
+
+
+
+
+
+    ax1.plot([1078, 1078], [0, yplot[-1]+2], '-g', lw=1, label='Na$_2$CO$_3$')
+    ax1.plot([1085, 1085], [0, yplot[-1]+2], '-', color='cornflowerblue', lw=1, label='CaCO$_3$')
+
+    ax1.plot([1094, 1094], [0, yplot[-1]+2], '-c', lw=1, label='MgCO$_3$')
+    ax1.plot([1097, 1097], [0, yplot[-1]+2], '-b', lw=1, label='Dolomite')
+    ax1.plot([1131, 1131], [0, yplot[-1]+2], '-', color='grey', lw=1, label='CaSO$_4$')
+    ax1.plot([1136, 1136], [0, yplot[-1]+2], '--', color='rosybrown', lw=1, label='MgSO$_4$')
+    ax1.plot([1150, 1150], [0, yplot[-1]+2], '-k', lw=1, label='SO$_2$')
+
+
+    ax1.legend(ncol=7,loc='upper center', fontsize=10,  bbox_to_anchor=[0.5, 1.05])
+    ax1.set_ylim([-0.5, yplot[-1]+3])
+    ax1.set_xlim([xlim[0], xlim[1]+0.5])
+
+    df_peaks=pd.DataFrame(data={'pos': peak_pos_saved,
+                                'prom': peak_height_saved-peak_bck})
+
+    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+    ax1.set_yticks([])
+
+    x_data=x_trim
+
+
+    return df_peaks, x_data, y_data, fig
+
 
 

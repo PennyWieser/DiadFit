@@ -263,11 +263,14 @@ def read_witec_to_df(*,  path=None, filename):
     fw.close()
     fr.close()
     if path is None:
-        print(filename)
+
         df=pd.read_csv('pandas2_'+filename, sep="\t")
     else:
-        print(filename)
+        #print(filename)
         df=pd.read_csv(path+'/'+'Peak_fits_txt'+'/'+'pandas2_'+filename, sep="\t")
+    array=np.array(df)
+    if np.median(array[:, 1])==0:
+        raise TypeError(filename+': The median y value is 0, is it possible you stopped the acq before you got any counts? Please delete this file so it doesnt break the loops')
 
     return df
 

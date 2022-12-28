@@ -279,10 +279,15 @@ Ne_array=None):
     Baseline_Neon1=np.quantile(Neon1_trim_y, 0.1)
     Baseline_Neon2=np.quantile(Neon2_trim_y, 0.1)
 
-    if len(df_pk1_trim)>0:
-        df_fit_params=pd.DataFrame(data={'Peak1_cent': df_pk1['pos'],
-                                        'Peak1_height': df_pk1['height']})
-    else:
+    if len(df_pk1_trim)==1:
+
+        df_fit_params=pd.DataFrame(data={'Peak1_cent': df_pk1_trim['pos'],
+                                        'Peak1_height': df_pk1_trim['height']})
+    elif len(df_pk1_trim)>1:
+        df_pk1_max=df_pk1_trim.loc[df_pk1_trim['height']==np.max(df_pk1_trim['height'])]
+        df_fit_params=pd.DataFrame(data={'Peak1_cent': df_pk1_max['pos'],
+                                        'Peak1_height': df_pk1_max['height']})
+    elif len(df_pk1_trim)==0:
 
 
         Max_y_Neon1=np.max(Neon1_trim_y)
@@ -290,10 +295,17 @@ Ne_array=None):
         df_fit_params=pd.DataFrame(data={'Peak1_cent': x_Neon_1,
                                     'Peak1_height': Max_y_Neon1})
 
-    if len(df_pk2_trim)>0:
-        df_fit_params['Peak2_cent']=df_pk2['pos'].iloc[0]
-        df_fit_params['Peak2_height']=df_pk2['height'].iloc[0]
-    else:
+
+    if len(df_pk2_trim)==1:
+        df_fit_params['Peak2_cent']=df_pk2_trim['pos'].iloc[0]
+        df_fit_params['Peak2_height']=df_pk2_trim['height'].iloc[0]
+    elif len(df_pk2_trim)>1:
+        df_pk2_max=df_pk2_trim.loc[df_pk2_trim['height']==np.max(df_pk2['height'])]
+
+        df_fit_params['Peak2_cent']=df_pk2_max['pos'].iloc[0]
+        df_fit_params['Peak2_height']=df_pk2_max['height'].iloc[0]
+
+    elif len(df_pk2_trim)==0:
 
         Max_y_Neon2=np.max(Neon2_trim_y)
         x_Neon_2=x[y==Max_y_Neon2][0]
@@ -330,7 +342,7 @@ Ne_array=None):
 
         ax1.plot(df_fit_params['Peak1_cent'], df_fit_params['Peak1_height'], '*k', mfc='yellow', ms=8, label='selected peak')
 
-        ax1.legend(loc='lower center', ncol=2, fontsize=8)
+        ax1.legend(loc='upper center', ncol=2, fontsize=8)
 
 
         pos_pk2=str(np.round(df_fit_params['Peak2_cent'].iloc[0], 2))
@@ -517,7 +529,7 @@ lower_bck=None, upper_bck1=None, upper_bck2=None):
 
 def fit_pk1(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98, pk1_sigma=0.28,
 LH_offset_mini=[1.5, 3], peaks_pk1=2, model_name='PseudoVoigtModel', block_print=True,
-const_params=True) :
+const_params=True, spec_res=0.4) :
     """ This function fits the 1117 Ne line as 1 or two voigt peaks
 
     Parameters
@@ -634,19 +646,19 @@ const_params=True) :
 
 
     if peaks_pk1==1:
-        if block_print is False:
-            print('fitting a single peak, if you want the shoulder, do peaks_pk1=2')
-            if model_name == 'PseudoVoigtModel':
-                model_combo = PseudoVoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
-            if model_name=="VoigtModel":
-                model_combo= VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
+
+        if model_name == 'PseudoVoigtModel':
+            model_combo = PseudoVoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
+        if model_name=="VoigtModel":
+            model_combo= VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
 
 
 
         # create parameters with initial values
-        pars1 = model_combo.make_params(amplitude=amplitude, sigma=sigma)
-        pars1['p1_' + 'center'].set(Ne_center, min=Ne_center-2,
-        max=Ne_center+2)
+        pars1 = model_combo.make_params(amplitude=amplitude)
+        pars1['p1_' + 'center'].set(Ne_center, min=Ne_center-2*spec_res,max=Ne_center+2*spec_res)
+        pars1['p1_'+ 'sigma'].set(pk1_sigma, min=pk1_sigma*min_off, max=pk1_sigma*max_off)
+
 
 
 
@@ -817,9 +829,11 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True) :
     sigma_pk2=result.best_values.get('sigma')
     gamma_pk2=result.best_values.get('gamma')
     # Have to strip away the rest of the string, as center + error
-
-    Center_pk2_errorval=float(str(Center_pk2_error).split()[4].replace(",", ""))
-    error_pk2=Center_pk2_errorval
+    # print('debug:')
+    # print(Center_pk2_error)
+    # Center_pk2_errorval=float(str(Center_pk2_error).split()[4].replace(",", ""))
+    # error_pk2=Center_pk2_errorval
+    error_pk2=1
 
     # Evaluate the peak at 100 values for pretty plotting
     xx_pk2=np.linspace(lower_pk2, upper_pk2, 2000)
@@ -975,6 +989,8 @@ plot_figure=True, loop=True,
             e.g. by default, fits to 10 wavenumbers below peak, 8 above.
     """
 
+    x=Ne[:, 0]
+    spec_res=np.abs(x[1]-x[0])
     # Getting things from config file
     peaks_1=config.peaks_1
     DeltaNe_ideal=config.DeltaNe_ideal
@@ -1011,7 +1027,7 @@ plot_figure=True, loop=True,
 
     # Fit the 1117 peak
     cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1,model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
-    const_params=const_params)
+    const_params=const_params, spec_res=spec_res)
 
 
 
@@ -1108,10 +1124,10 @@ plot_figure=True, loop=True,
         ax1.plot([Ne_center_1, Ne_center_1], [ymin_ax1, ymax_ax1], ':k', label='Peak')
         ax0.plot([Ne_center_2, Ne_center_2], [ymin_ax1, ymax_ax1], ':k', label='Peak')
 
-        ax1.set_title('Peak1: 1117 background fitting')
+        ax1.set_title('%.0f' %Ne_center_1+'background fitting')
         ax1.set_xlabel('Wavenumber')
         ax1.set_ylabel('Intensity')
-        ax0.set_title('Peak2: 1447 background fitting')
+        ax0.set_title('%.0f' %Ne_center_2+ 'background fitting')
         ax0.set_xlabel('Wavenumber')
         ax0.set_ylabel('Intensity')
         ax1cop.set_xlabel('Offset from Pk estimate')
@@ -1275,32 +1291,52 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
 ## Looping Ne lines
 def loop_Ne_lines(*, files, spectra_path, filetype,
         config, config_ID_peaks, df_fit_params=None, prefix=False, print_df=False,
-                  plot_figure=True):
+                  plot_figure=True, single_acq=False):
 
     df = pd.DataFrame([])
+    # This is for repeated acquisition of Ne lines
+    if single_acq is True:
+
+        for i in tqdm(range(0, np.shape(files)[1]-2)):
+            Ne=np.column_stack((files[:, 0], files[:, i+1]))
+            filename=str(i)
+
+            Ne, df_fit_params=identify_Ne_lines(Ne_array=Ne,
+            config=config_ID_peaks, print_df=False, plot_figure=False)
+
+
+            data=fit_Ne_lines(Ne=Ne, path=spectra_path,
+            config=config, prefix=prefix,
+            Ne_center_1=df_fit_params['Peak1_cent'].iloc[0],
+            Ne_center_2=df_fit_params['Peak2_cent'].iloc[0],
+            Ne_prom_1=df_fit_params['Peak1_prom'].iloc[0],
+            Ne_prom_2=df_fit_params['Peak2_prom'].iloc[0],
+            plot_figure=plot_figure)
+            df = pd.concat([df, data], axis=0)
+
+    else:
+        for i in tqdm(range(0, len(files))):
+            filename=files[i]
+
+            Ne, df_fit_params=identify_Ne_lines(path=spectra_path,
+            filename=filename, filetype=filetype,
+            config=config_ID_peaks, print_df=False, plot_figure=False)
+
+            data=fit_Ne_lines(Ne=Ne, filename=filename,
+            path=spectra_path, prefix=prefix,
+            config=config,
+            Ne_center_1=df_fit_params['Peak1_cent'].iloc[0],
+            Ne_center_2=df_fit_params['Peak2_cent'].iloc[0],
+            Ne_prom_1=df_fit_params['Peak1_prom'].iloc[0],
+            Ne_prom_2=df_fit_params['Peak2_prom'].iloc[0],
+            plot_figure=plot_figure)
+            df = pd.concat([df, data], axis=0)
 
 
 
-    for i in tqdm(range(0, len(files))):
-        filename=files[i]
-
-        Ne, df_fit_params=identify_Ne_lines(path=spectra_path,
-        filename=filename, filetype=filetype,
-        config=config_ID_peaks, print_df=False, plot_figure=False)
 
 
-
-
-        data=fit_Ne_lines(Ne=Ne, filename=filename,
-        path=spectra_path, prefix=False,
-        config=config,
-        Ne_center_1=df_fit_params['Peak1_cent'].iloc[0],
-        Ne_center_2=df_fit_params['Peak2_cent'].iloc[0],
-        Ne_prom_1=df_fit_params['Peak1_prom'].iloc[0],
-        Ne_prom_2=df_fit_params['Peak2_prom'].iloc[0],
-        plot_figure=plot_figure)
-        df = pd.concat([df, data], axis=0)
-    #print('working on ' + str(files[i]))
+#print('working on ' + str(files[i]))
 
 
     df2=df.reset_index(drop=True)
