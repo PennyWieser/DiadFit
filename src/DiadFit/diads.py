@@ -15,6 +15,11 @@ from dataclasses import dataclass
 import matplotlib.patches as patches
 import warnings as w
 
+# For debuggin
+
+import warnings
+warnings.simplefilter('error')
+
 encode="ISO-8859-1"
 
 def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None, Spectra_y=None):
@@ -354,11 +359,17 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     df_out['Diad2_HB2_prom_ratio']=df_out['Diad2_prom']/df_out['HB2_prom']
     df_out['Diad1_HB1_prom_ratio']=df_out['Diad1_prom']/df_out['HB1_prom']
 
+    # Parameter for amount of noise between diads vs. height of peaks
+    between_diads_x=(x>df_out['Diad1_pos'].iloc[0]+20)&(x<df_out['Diad2_pos'].iloc[0]-30)
+    std_bet_diad=np.std(y[between_diads_x])
+    noise_vs_peak=df_out['Diad1_prom']/std_bet_diad
+    df_out['Diad1_prom/std_betweendiads']=noise_vs_peak
+
 
 
     # Lets sort based on columns we want near each other
     cols_to_move = ['filename', 'Diad2_HB2_prom_ratio', 'Diad1_HB1_prom_ratio', 'Diad2_pos', 'Diad2_prom', 'Diad1_pos', 'Diad1_prom',
-               'HB2_pos', 'HB2_prom', 'HB1_pos', 'HB1_prom', 'C13_pos', 'C13_prom']
+               'HB2_pos', 'HB2_prom', 'HB1_pos', 'HB1_prom', 'C13_pos', 'C13_prom', 'Diad1_prom/std_betweendiads']
 
     df_out = df_out[cols_to_move + [
         col for col in df_out.columns if col not in cols_to_move]]
@@ -408,7 +419,6 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
         return df_out, Diad, fig
     else:
         return df_out, Diad
-
 
 
 
@@ -553,7 +563,7 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
     return fit_params_filt, data_y_filt, fit_params_disc, data_y_disc
 
 
-def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool):
+def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=0.1, grp_filter='Weak'):
 
     """ Splits diad files up into 3 groups, weak, medium and strong
     """
@@ -572,7 +582,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool):
 #     ax2.set_title('Selecting Weak diads')
 #     fig.tight_layout()
 
-    ## Find ones in group1, in dataframe and numpy form
+    # Find ones in group1, in dataframe and numpy form
     Group1_df=fit_params.loc[grp1]
     index_Grp1=Group1_df.index
     Group1_np_y=data_y[:, index_Grp1]
@@ -582,7 +592,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool):
     index_Grpnot1=Groupnot1_df.index
     Groupnot1_np_y=data_y[:, index_Grpnot1]
 
-    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, 0.1*len(fit_params)))
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, y_fig_scale*len(fit_params)))
     intc=8
     #
     if sum(grp1)>0:
@@ -612,8 +622,12 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool):
         # ax1.plot(x_cord, Groupnot1_np_y[:, i]+av_prom_Groupnot1*3*i, '-c')
 
     #ax1.set_ylim([0, av_prom*i])
-    ax0.set_title('Group segmented out')
-    ax1.set_title('Remaining ones')
+    if grp_filter=='Medium-Strong':
+        ax0.set_title('Ones filtered out (Strong)')
+        ax1.set_title('Ones left (Medium)')
+    if grp_filter=='Weak':
+        ax0.set_title('Ones filtered out (Weak)')
+        ax1.set_title('Ones left (not classified yet)')
 
     plt.subplots_adjust(wspace=0)
 
@@ -809,8 +823,6 @@ def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype=
 
      # Plotting what its doing
     if plot_figure is True:
-        if block_print is False:
-            print('Plotting baselines here for easier inspection and tweaking')
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
         ax1.set_title('Background fit')
@@ -1287,8 +1299,6 @@ class diad1_fit_config:
     fit_gauss: Optional [bool] =False
     gauss_amp: Optional [float]=1000
 
-
-
     diad_sigma: float=0.2
     diad_sigma_min_allowance: float=0.2
     diad_sigma_max_allowance: float=5
@@ -1723,8 +1733,8 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             Peak2_Int=result.best_values.get('lz2_amplitude')
             Peak2_Sigma=result.best_values.get('lz2_sigma')
             Peak3_Cent=None
-            ax1_xlim=[Center_ini-30, Center_ini+15]
-            ax2_xlim=[Center_ini-30, Center_ini+15]
+            ax1_xlim=[Center_ini-15, Center_ini+30]
+            ax2_xlim=[Center_ini-15, Center_ini+30]
 
         if fit_peaks==3:
 
@@ -1839,14 +1849,14 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
         residual_diad2=np.sum(((ydat_inrange-result_diad2_origx)**2)**0.5)/(len(ydat_inrange))
-        df_out['Residual_Diad2']=residual_diad2
+        df_out['Diad2_Residual']=residual_diad2
         df_out['Diad2_Prop_Lor']= Peak1_Prop_Lor
         df_out['Diad2_fwhm']=Peak1_fwhm
 
         if config1.fit_gauss is not False:
-            df_out['Gauss_Cent']=Gauss_cent
-            df_out['Gauss_Area']=Gauss_amp
-            df_out['Gauss_Sigma']=Gauss_sigma
+            df_out['Diad2_Gauss_Cent']=Gauss_cent
+            df_out['Diad2_Gauss_Area']=Gauss_amp
+            df_out['Diad2_Gauss_Sigma']=Gauss_sigma
 
 
 
@@ -1981,14 +1991,14 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
         residual_diad1=np.sum(((ydat_inrange-result_diad1_origx)**2)**0.5)/(len(ydat_inrange))
-        df_out['Residual_Diad1']=residual_diad1
+        df_out['Diad1_Residual']=residual_diad1
         df_out['Diad1_Prop_Lor']= Peak1_Prop_Lor
         df_out['Diad1_fwhm']=Peak1_fwhm
 
         if config1.fit_gauss is not False:
-            df_out['Gauss_Cent']=Gauss_cent
-            df_out['Gauss_Area']=Gauss_amp
-            df_out['Gauss_Sigma']=Gauss_sigma
+            df_out['Diad1_Gauss_Cent']=Gauss_cent
+            df_out['Diad1_Gauss_Area']=Gauss_amp
+            df_out['Diad1_Gauss_Sigma']=Gauss_sigma
 
 
 
@@ -2066,7 +2076,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: diad_id_config=diad_id_config(),
     path=None, filename=None, peak_pos_voigt=None,filetype=None,
-    close_figure=True, Diad_pos=None, HB_pos=None, C13_pos=None, fit_peaks=None):
+    plot_figure=True, close_figure=False, Diad_pos=None, HB_pos=None, C13_pos=None, fit_peaks=None):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -2366,7 +2376,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     else:
         axc_xmin=config1.lower_bck_diad2[0]
         axc_xmax=config1.upper_bck_diad2[1]
-    axc_ymin=np.min(Baseline_diad2[:, 1])-config1.y_range_baseline
+    axc_ymin=np.min(Baseline_diad2[:, 1])-config1.y_range_baseline/3
     axc_ymax=np.max(Baseline_diad2[:, 1])+config1.y_range_baseline
 
     rect_diad2_b1=patches.Rectangle((config1.lower_bck_diad2[0],axc_ymin),config1.lower_bck_diad2[1]-config1.lower_bck_diad2[0],axc_ymax-axc_ymin,
@@ -2462,7 +2472,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
 def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: diad_id_config=diad_id_config(),
-    path=None, filename=None, filetype=None,  close_figure=True, Diad_pos=None, HB_pos=None, fit_peaks=None):
+    path=None, filename=None, filetype=None,  plot_figure=True, close_figure=True, Diad_pos=None, HB_pos=None, fit_peaks=None):
     """ This function fits the background, then the diad + nearby peaks for Diad 2 @1389
 
     Parameters
@@ -2643,192 +2653,193 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
 
     # Make nice figure
+    if plot_figure is True:
 
-    figure_mosaic="""
-    XY
-    AB
-    CD
-    EE
-    """
+        figure_mosaic="""
+        XY
+        AB
+        CD
+        EE
+        """
 
-    fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
-    fig.suptitle('Diad 1, file= '+ str(filename) + ' \n' + str(df_out['Diad1_refit'].iloc[0]), fontsize=16, x=0.5, y=1.0)
+        fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
+        fig.suptitle('Diad 1, file= '+ str(filename) + ' \n' + str(df_out['Diad1_refit'].iloc[0]), fontsize=16, x=0.5, y=1.0)
 
-    # Background plot for rea
+        # Background plot for rea
 
-    # Plot best fit on the LHS, and individual fits on the RHS at the top
+        # Plot best fit on the LHS, and individual fits on the RHS at the top
 
-    axes['X'].set_title('a) Background fit')
-    axes['X'].plot(Diad[:, 0], Diad[:, 1], '-', color='grey')
-    axes['X'].plot(Diad_short_diad1[:, 0], Diad_short_diad1[:, 1], '-r', label='Spectra')
+        axes['X'].set_title('a) Background fit')
+        axes['X'].plot(Diad[:, 0], Diad[:, 1], '-', color='grey')
+        axes['X'].plot(Diad_short_diad1[:, 0], Diad_short_diad1[:, 1], '-r', label='Spectra')
 
-    #axes['X'].plot(Baseline[:, 0], Baseline[:, 1], '-b', label='Bck points')
-    axes['X'].plot(Baseline_diad1[:, 0], Baseline_diad1[:, 1], '.b', label='Sel. bck. pts')
-    axes['X'].plot(Diad_short_diad1[:, 0], Py_base_diad1, '-k', label='bck. poly fit')
-
-
-
-    ax1_ymin=np.min(Baseline_diad1[:, 1])-10*np.std(Baseline_diad1[:, 1])
-    ax1_ymax=np.max(Baseline_diad1[:, 1])+10*np.std(Baseline_diad1[:, 1])
-    ax1_xmin=config1.lower_bck_diad1[0]-30
-    ax1_xmax=config1.upper_bck_diad1[1]+30
-    # Adding patches
-
-
-    rect_diad1_b1=patches.Rectangle((config1.lower_bck_diad1[0], ax1_ymin),config1.lower_bck_diad1[1]-config1.lower_bck_diad1[0],ax1_ymax-ax1_ymin,
-                            linewidth=1,edgecolor='none',facecolor='cyan', label='sel. bck. region', alpha=0.3, zorder=0)
-    axes['X'].add_patch(rect_diad1_b1)
-    rect_diad1_b2=patches.Rectangle((config1.upper_bck_diad1[0], ax1_ymin),config1.upper_bck_diad1[1]-config1.upper_bck_diad1[0],ax1_ymax-ax1_ymin,
-                            linewidth=1,edgecolor='none',facecolor='cyan', alpha=0.3, zorder=0)
-    axes['X'].add_patch(rect_diad1_b2)
-    axes['X'].set_xlim([ax1_xmin, ax1_xmax])
-    axes['X'].set_ylim([ax1_ymin, ax1_ymax])
-
-    axes['X'].set_ylabel('Intensity')
-    axes['Y'].set_ylabel('Intensity')
-    axes['Y'].set_xlabel('Wavenumber')
-    axes['X'].legend()
+        #axes['X'].plot(Baseline[:, 0], Baseline[:, 1], '-b', label='Bck points')
+        axes['X'].plot(Baseline_diad1[:, 0], Baseline_diad1[:, 1], '.b', label='Sel. bck. pts')
+        axes['X'].plot(Diad_short_diad1[:, 0], Py_base_diad1, '-k', label='bck. poly fit')
 
 
 
-    axes['Y'].set_title('b) Background subtracted spectra')
-    axes['Y'].plot(x_diad1, y_corr_diad1, '-r')
-    height_p=np.max(Diad_short_diad1[:, 1])-np.min(Diad_short_diad1[:, 1])
-    axes['Y'].set_ylim([np.min(y_corr_diad1), 1.2*height_p ])
-    axes['X'].set_xlabel('Wavenumber')
+        ax1_ymin=np.min(Baseline_diad1[:, 1])-10*np.std(Baseline_diad1[:, 1])
+        ax1_ymax=np.max(Baseline_diad1[:, 1])+10*np.std(Baseline_diad1[:, 1])
+        ax1_xmin=config1.lower_bck_diad1[0]-30
+        ax1_xmax=config1.upper_bck_diad1[1]+30
+        # Adding patches
+
+
+        rect_diad1_b1=patches.Rectangle((config1.lower_bck_diad1[0], ax1_ymin),config1.lower_bck_diad1[1]-config1.lower_bck_diad1[0],ax1_ymax-ax1_ymin,
+                                linewidth=1,edgecolor='none',facecolor='cyan', label='sel. bck. region', alpha=0.3, zorder=0)
+        axes['X'].add_patch(rect_diad1_b1)
+        rect_diad1_b2=patches.Rectangle((config1.upper_bck_diad1[0], ax1_ymin),config1.upper_bck_diad1[1]-config1.upper_bck_diad1[0],ax1_ymax-ax1_ymin,
+                                linewidth=1,edgecolor='none',facecolor='cyan', alpha=0.3, zorder=0)
+        axes['X'].add_patch(rect_diad1_b2)
+        axes['X'].set_xlim([ax1_xmin, ax1_xmax])
+        axes['X'].set_ylim([ax1_ymin, ax1_ymax])
+
+        axes['X'].set_ylabel('Intensity')
+        axes['Y'].set_ylabel('Intensity')
+        axes['Y'].set_xlabel('Wavenumber')
+        axes['X'].legend()
 
 
 
-    axes['A'].plot(xdat, ydat,  '.k', label='bck. sub. data')
-    axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1, label='best fit')
-    axes['A'].legend()
-    axes['A'].set_ylabel('Intensity')
-    axes['A'].set_xlabel('Wavenumber')
-    axes['A'].set_xlim(ax1_xlim)
-    axes['A'].set_title('c) Overall Best Fit')
-
-   # individual fits
-    axes['B'].plot(xdat, ydat, '.k')
-
-    # This is for if there is more than 1 peak, this is when we want to plot the best fit
-    if fit_peaks>1:
-
-        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='HB1')
-
-    axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Diad1')
-    if config1.fit_gauss is not False:
-        axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
-    #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
-    axes['B'].legend()
-
-    fitspan=max(y_best_fit)-min(y_best_fit)
-    axes['B'].set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
-
-    axes['B'].set_ylabel('Intensity')
-    axes['B'].set_xlabel('Wavenumber')
-
-
-    axes['B'].set_xlim(ax2_xlim)
-
-    # Dashed lines so matches part D
-    axes['B'].plot([df_out['Diad1_Voigt_Cent'], df_out['Diad1_Voigt_Cent']], [np.min(ydat), np.max(ydat)], ':b')
-
-    if fit_peaks>2:
-        axes['B'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(ydat), np.max(ydat)], ':r')
-
-    axes['B'].set_title('c) Fit Components')
-
-    # Background fit
-
-    # First, set up x and y limits on axis
-
-    if config1.x_range_baseline is not None:
-        axc_xmin=df_out['Diad1_Voigt_Cent'][0]-config1.x_range_baseline
-        axc_xmax=df_out['Diad1_Voigt_Cent'][0]+config1.x_range_baseline
-    else:
-        axc_xmin=config1.lower_bck_diad1[0]
-        axc_xmax=config1.upper_bck_diad1[1]
-    axc_ymin=np.min(Baseline_diad1[:, 1])-config1.y_range_baseline
-    axc_ymax=np.max(Baseline_diad1[:, 1])+config1.y_range_baseline
+        axes['Y'].set_title('b) Background subtracted spectra')
+        axes['Y'].plot(x_diad1, y_corr_diad1, '-r')
+        height_p=np.max(Diad_short_diad1[:, 1])-np.min(Diad_short_diad1[:, 1])
+        axes['Y'].set_ylim([np.min(y_corr_diad1), 1.2*height_p ])
+        axes['X'].set_xlabel('Wavenumber')
 
 
 
+        axes['A'].plot(xdat, ydat,  '.k', label='bck. sub. data')
+        axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1, label='best fit')
+        axes['A'].legend()
+        axes['A'].set_ylabel('Intensity')
+        axes['A'].set_xlabel('Wavenumber')
+        axes['A'].set_xlim(ax1_xlim)
+        axes['A'].set_title('c) Overall Best Fit')
 
-    axes['C'].set_title('d) Peaks overlain on data before subtraction')
-    axes['C'].plot(Diad_short_diad1[:, 0], Diad_short_diad1[:, 1], '.r', label='Data')
-    axes['C'].plot(Baseline_diad1[:, 0], Baseline_diad1[:, 1], '.b', label='bck')
-    axes['C'].plot(Diad_short_diad1[:, 0], Py_base_diad1, '-k', label='Poly bck fit')
+    # individual fits
+        axes['B'].plot(xdat, ydat, '.k')
+
+        # This is for if there is more than 1 peak, this is when we want to plot the best fit
+        if fit_peaks>1:
+
+            axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='HB1')
+
+        axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Diad1')
+        if config1.fit_gauss is not False:
+            axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
+        #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
+        axes['B'].legend()
+
+        fitspan=max(y_best_fit)-min(y_best_fit)
+        axes['B'].set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
+
+        axes['B'].set_ylabel('Intensity')
+        axes['B'].set_xlabel('Wavenumber')
 
 
-    axes['C'].set_ylabel('Intensity')
-    axes['C'].set_xlabel('Wavenumber')
+        axes['B'].set_xlim(ax2_xlim)
 
+        # Dashed lines so matches part D
+        axes['B'].plot([df_out['Diad1_Voigt_Cent'], df_out['Diad1_Voigt_Cent']], [np.min(ydat), np.max(ydat)], ':b')
 
-    if config1.fit_gauss is not False:
+        if fit_peaks>2:
+            axes['B'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(ydat), np.max(ydat)], ':r')
 
-        axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
+        axes['B'].set_title('c) Fit Components')
 
-    axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
-    axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Diad1', linewidth=1)
+        # Background fit
 
-    if fit_peaks>1:
-        axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='HB1', linewidth=1)
+        # First, set up x and y limits on axis
+
+        if config1.x_range_baseline is not None:
+            axc_xmin=df_out['Diad1_Voigt_Cent'][0]-config1.x_range_baseline
+            axc_xmax=df_out['Diad1_Voigt_Cent'][0]+config1.x_range_baseline
+        else:
+            axc_xmin=config1.lower_bck_diad1[0]
+            axc_xmax=config1.upper_bck_diad1[1]
+        axc_ymin=np.min(Baseline_diad1[:, 1])-config1.y_range_baseline
+        axc_ymax=np.max(Baseline_diad1[:, 1])+config1.y_range_baseline
 
 
 
 
-    axes['C'].legend(ncol=3, loc='lower center')
-    axes['C'].set_xlim([axc_xmin, axc_xmax])
-    axes['C'].set_ylim([axc_ymin, axc_ymax])
-    #axes['C'].plot(Diad_short[:, 0], Diad_short[:, 1], '"r', label='Data')
+        axes['C'].set_title('d) Peaks overlain on data before subtraction')
+        axes['C'].plot(Diad_short_diad1[:, 0], Diad_short_diad1[:, 1], '.r', label='Data')
+        axes['C'].plot(Baseline_diad1[:, 0], Baseline_diad1[:, 1], '.b', label='bck')
+        axes['C'].plot(Diad_short_diad1[:, 0], Py_base_diad1, '-k', label='Poly bck fit')
 
 
-    # Residual on plot D
-    axes['D'].set_title('f) Residuals')
-    axes['D'].plot([df_out['Diad1_Voigt_Cent'], df_out['Diad1_Voigt_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':b')
-    if fit_peaks>2:
-        axes['D'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':r')
-
-    axes['D'].plot(xdat_inrange, residual_diad_coords, 'ok', mfc='c' )
-    axes['D'].plot(xdat_inrange, residual_diad_coords, '-c' )
-    axes['D'].set_ylabel('Residual')
-    axes['D'].set_xlabel('Wavenumber')
-    # axes['D'].set_xlim(ax1_xlim)
-    # axes['D'].set_xlim(ax2_xlim)
-    Local_Residual_diad1=residual_diad_coords[((xdat_inrange>(df_out['Diad1_Voigt_Cent'][0]-config1.x_range_residual))
-                                            &(xdat_inrange<df_out['Diad1_Voigt_Cent'][0]+config1.x_range_residual))]
-    axes['D'].set_xlim([df_out['Diad1_Voigt_Cent'][0]-config1.x_range_residual,
-                df_out['Diad1_Voigt_Cent'][0]+config1.x_range_residual])
-    #ax5.plot([cent_1117, cent_1117 ], [np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10], ':k')
+        axes['C'].set_ylabel('Intensity')
+        axes['C'].set_xlabel('Wavenumber')
 
 
+        if config1.fit_gauss is not False:
 
-    axes['D'].set_ylim([np.min(Local_Residual_diad1)-10, np.max(Local_Residual_diad1)+10])
+            axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
+
+        axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
+        axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Diad1', linewidth=1)
+
+        if fit_peaks>1:
+            axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='HB1', linewidth=1)
 
 
 
 
-
-    # Overal spectra
-    axes['E'].set_title('g) Summary plot of raw spectra for file = ' + filename)
-    axes['E'].plot(Spectra[:, 0], Spectra[:, 1], '-r')
-    axes['E'].set_ylabel('Intensity')
-    axes['E'].set_xlabel('Wavenumber')
+        axes['C'].legend(ncol=3, loc='lower center')
+        axes['C'].set_xlim([axc_xmin, axc_xmax])
+        axes['C'].set_ylim([axc_ymin, axc_ymax])
+        #axes['C'].plot(Diad_short[:, 0], Diad_short[:, 1], '"r', label='Data')
 
 
-    path3=path+'/'+'diad_fit_images'
-    if os.path.exists(path3):
-        out='path exists'
-    else:
-        os.makedirs(path+'/'+ 'diad_fit_images', exist_ok=False)
+        # Residual on plot D
+        axes['D'].set_title('f) Residuals')
+        axes['D'].plot([df_out['Diad1_Voigt_Cent'], df_out['Diad1_Voigt_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':b')
+        if fit_peaks>2:
+            axes['D'].plot([df_out['HB1_Cent'], df_out['HB1_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':r')
 
-    fig.tight_layout()
+        axes['D'].plot(xdat_inrange, residual_diad_coords, 'ok', mfc='c' )
+        axes['D'].plot(xdat_inrange, residual_diad_coords, '-c' )
+        axes['D'].set_ylabel('Residual')
+        axes['D'].set_xlabel('Wavenumber')
+        # axes['D'].set_xlim(ax1_xlim)
+        # axes['D'].set_xlim(ax2_xlim)
+        Local_Residual_diad1=residual_diad_coords[((xdat_inrange>(df_out['Diad1_Voigt_Cent'][0]-config1.x_range_residual))
+                                                &(xdat_inrange<df_out['Diad1_Voigt_Cent'][0]+config1.x_range_residual))]
+        axes['D'].set_xlim([df_out['Diad1_Voigt_Cent'][0]-config1.x_range_residual,
+                    df_out['Diad1_Voigt_Cent'][0]+config1.x_range_residual])
+        #ax5.plot([cent_1117, cent_1117 ], [np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10], ':k')
 
-    file=filename.rsplit('.txt', 1)[0]
-    fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=config1.dpi)
 
-    if close_figure is True:
-        plt.close(fig)
+
+        axes['D'].set_ylim([np.min(Local_Residual_diad1)-10, np.max(Local_Residual_diad1)+10])
+
+
+
+
+
+        # Overal spectra
+        axes['E'].set_title('g) Summary plot of raw spectra for file = ' + filename)
+        axes['E'].plot(Spectra[:, 0], Spectra[:, 1], '-r')
+        axes['E'].set_ylabel('Intensity')
+        axes['E'].set_xlabel('Wavenumber')
+
+
+        path3=path+'/'+'diad_fit_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'diad_fit_images', exist_ok=False)
+
+        fig.tight_layout()
+
+        file=filename.rsplit('.txt', 1)[0]
+        fig.savefig(path3+'/'+'Diad1_Fit_{}.png'.format(file), dpi=config1.dpi)
+
+        if close_figure is True:
+            plt.close(fig)
 
     if  config1.return_other_params is False:
         return df_out
@@ -2859,10 +2870,19 @@ to_clipboard=True, path=None):
             combo['C13_Cent']=np.nan
             combo['C13_Area']=np.nan
             combo['C13_Sigma']=np.nan
+        if 'Diad1_Gauss_Cent' not in combo.columns:
+            combo['Diad1_Gauss_Cent']=np.nan
+            combo['Diad1_Gauss_Area']=np.nan
+            combo['Diad1_Gauss_Sigma']=np.nan
+        if 'Diad2_Gauss_Cent' not in combo.columns:
+            combo['Diad2_Gauss_Cent']=np.nan
+            combo['Diad2_Gauss_Area']=np.nan
+            combo['Diad2_Gauss_Sigma']=np.nan
 
         combo['Splitting']=combo['Diad2_Voigt_Cent']-combo['Diad1_Voigt_Cent']
-        cols_to_move = ['Splitting', 'Diad1_Combofit_Cent', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma',  'Residual_Diad1', 'Diad1_Prop_Lor', 'Diad1_fwhm', 'Diad1_refit','Diad2_Combofit_Cent', 'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Residual_Diad2', 'Diad2_Prop_Lor', 'Diad2_fwhm', 'Diad2_refit',
-                    'HB1_Cent', 'HB1_Area', 'HB1_Sigma', 'HB2_Cent', 'HB2_Area', 'HB2_Sigma', 'C13_Cent', 'C13_Area', 'C13_Sigma']
+        cols_to_move = ['Splitting', 'Diad1_Combofit_Cent', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma',  'Diad1_Residual', 'Diad1_Prop_Lor', 'Diad1_fwhm', 'Diad1_refit','Diad2_Combofit_Cent', 'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Diad2_Residual', 'Diad2_Prop_Lor', 'Diad2_fwhm', 'Diad2_refit',
+                    'HB1_Cent', 'HB1_Area', 'HB1_Sigma', 'HB2_Cent', 'HB2_Area', 'HB2_Sigma', 'C13_Cent', 'C13_Area', 'C13_Sigma',
+                    'Diad2_Gauss_Cent', 'Diad2_Gauss_Area','Diad2_Gauss_Sigma', 'Diad1_Gauss_Cent', 'Diad1_Gauss_Area','Diad1_Gauss_Sigma',]
         combo_f = combo[cols_to_move + [
                 col for col in combo.columns if col not in cols_to_move]]
         combo_f=combo_f.iloc[:, 0:len(cols_to_move)]
@@ -4027,6 +4047,580 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
 
     return df_peaks, x_data, y_data, fig
+
+
+## Diad Skewness from DeVitre et al.
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+# New things needed here
+from scipy.interpolate import interp1d
+from scipy.signal import find_peaks
+import os
+from os import listdir
+from os.path import isfile, join
+from DiadFit.importing_data_files import *
+from DiadFit.diads import *
+
+np.seterr (invalid='raise')
+
+encode="ISO-8859-1"
+
+
+
+
+
+
+def assess_diad1_skewness(*,  config1: diad1_fit_config=diad1_fit_config(), int_cut_off=0.3, path=None, filename=None, filetype=None, Diad_files=None,
+exclude_range1=None, exclude_range2=None, dpi=300, skewness='abs'):
+    """ Assesses Skewness of Diad peaks. Useful for identifying mixed L + V phases
+    (see DeVitre et al. in review)
+
+
+    Parameters
+    -----------
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
+
+    OR
+
+    Diad_files:str
+        File name
+
+    filetype: str
+        Identifies type of file
+        Witec_ASCII: Datafile from WITEC with metadata for first few lines
+        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
+        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
+        Renishaw_txt: Datafile from renishaw with column headings.
+
+
+    lower_baseline_diad1: list
+        Region of spectra to use a baseline (LHS)
+
+    config1.upper_bck_diad1: list
+        Region of spectra to use a baseline (RHS)
+
+    N_poly_bck_diad1: int
+        Degree of polynomial for background fitting
+
+    skewness: 'abs' or 'dir'
+        If 'abs', gives absolute skewness (e.g., largest possible number regardless of direction)
+        if 'dir' does skewness as one side over the other
+
+    int_cut_off: float
+        Value of intensity at which to calculate the skewness (e.g. 0.15X the peak height).
+
+
+    Returns
+    -----------
+    pd.DataFrame wtih filename, skewness of Diad 1,
+    the x position of the LH and RH tie point at intensity=int_cut_off
+
+    """
+
+    # if Diad_files is not None:
+    #     y_corr_diad1, Py_base_diad1, x_diad1,  Diad_short, Py_base_diad1, Pf_baseline,  Baseline_ysub_diad1, Baseline_x_diad1, Baseline, span=remove_diad_baseline(
+    #     Diad_files=Diad_files, exclude_range1=exclude_range1, exclude_range2=exclude_range2, N_poly=config1.N_poly_bck_diad1,
+    #     lower_bck=config1.lower_bck_diad1, upper_bck=config1.upper_bck_diad1, plot_figure=False)
+    #
+    # else:
+
+    # First, do the background subtraction around the diad
+
+    y_corr_diad1, Py_base_diad1, x_diad1,  Diad_short, Py_base_diad1, Pf_baseline,  Baseline_ysub_diad1, Baseline_x_diad1, Baseline, span=remove_diad_baseline(
+    path=path, filename=filename, filetype=filetype, exclude_range1=exclude_range1, exclude_range2=exclude_range2, N_poly=config1.N_poly_bck_diad1,
+    lower_bck=config1.lower_bck_diad1, upper_bck=config1.upper_bck_diad1, plot_figure=False)
+
+
+
+    x_lin_baseline=np.linspace(config1.lower_bck_diad1[0], config1.upper_bck_diad1[1], 100000)
+    ybase_xlin=Pf_baseline(x_lin_baseline)
+
+
+
+    # Get x and y ready to make a cubic spline through data
+    x=x_diad1
+    y=y_corr_diad1
+
+    # Fit a  cubic spline
+    f2 = interp1d(x, y, kind='cubic')
+    x_new=np.linspace(np.min(x), np.max(x), 100000)
+
+    y_cub=f2(x_new)
+
+
+
+    # Use Scipy find peaks to get the biggest peak
+    height=1
+    peaks = find_peaks(y_cub, height)
+    peak_height=peaks[1]['peak_heights']
+    peak_pos = x_new[peaks[0]]
+
+    # find max peak.  put into df because i'm lazy
+    peak_df=pd.DataFrame(data={'pos': peak_pos,
+                        'height': peak_height})
+
+    # Find bigest peaks,
+    df_peak_sort=peak_df.sort_values('height', axis=0, ascending=False)
+    df_peak_sort_trim=df_peak_sort[0:1]
+    Peak_Center=df_peak_sort_trim['pos']
+    Peak_Height=df_peak_sort_trim['height']
+
+
+    # Find intensity cut off
+    y_int_cut=Peak_Height.iloc[0]*int_cut_off
+
+    # Split the array into a LHS and a RHS
+
+    LHS_y=y_cub[x_new<=Peak_Center.values]
+    RHS_y=y_cub[x_new>Peak_Center.values]
+
+    LHS_x=x_new[x_new<=Peak_Center.values]
+    RHS_x=x_new[x_new>Peak_Center.values]
+
+    # Need to flip LHS to put into the find closest function
+    LHS_y_flip=np.flip(LHS_y)
+    LHS_x_flip=np.flip(LHS_x)
+
+    val=np.argmax(LHS_y_flip<y_int_cut)
+
+    val2=np.argmax(RHS_y<y_int_cut)
+
+
+    # Find nearest x unit to this value
+    y_nearest_LHS=LHS_y_flip[val]
+    x_nearest_LHS=LHS_x_flip[val]
+
+    y_nearest_RHS=RHS_y[val2]
+    x_nearest_RHS=RHS_x[val2]
+
+
+    # Return Skewness
+    LHS_Center=abs(x_nearest_LHS-Peak_Center)
+    RHS_Center=abs(x_nearest_RHS-Peak_Center)
+
+
+   #Also get option to always take biggest value of skewness
+    if skewness=='abs':
+        if LHS_Center.values>RHS_Center.values:
+            AS=LHS_Center.values/RHS_Center.values
+        else:
+            AS=RHS_Center.values/LHS_Center.values
+    elif skewness=='dir':
+        AS=RHS_Center.values/LHS_Center.values
+
+
+    if config1.plot_figure is True:
+
+        # Make pretty figure showing background subtractoin routine
+        fig, ((ax2, ax1), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10,10))
+        fig.suptitle('Diad 1 Skewness file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
+
+        ax2.set_title('a) Spectra')
+        ax2.plot(Diad_short[:, 0], Diad_short[:, 1], '-r', label='Data')
+        ax2.set_xlim([config1.lower_bck_diad1[0]+40, config1.upper_bck_diad1[1]-40])
+        ax1.set_title('b) Background fit')
+        ax1.plot(Diad_short[:, 0], Diad_short[:, 1], '.-c', label='Data')
+
+        ax1.plot(Baseline[:, 0], Baseline[:, 1], '.b', label='bck')
+        ax1.plot(Diad_short[:, 0], Py_base_diad1, '-k', label='bck fit')
+        ax3.set_title('c) Background subtracted')
+        ax3.plot(x_diad1,y_corr_diad1, '-r', label='Bck sub')
+
+    # Adds cubic interpoloation for inspection
+
+        ax4.set_title('d) Cubic Spline')
+
+
+
+
+        ax4.plot([x_nearest_LHS, Peak_Center.iloc[0]], [y_int_cut, y_int_cut], '-g')
+
+        ax4.annotate(str(np.round(LHS_Center.values[0], 2)),
+                     xy=(x_nearest_LHS-3, y_int_cut+(Peak_Height-y_int_cut)/10), xycoords="data",
+                     fontsize=12, color='green')
+        ax4.plot(x_nearest_LHS, y_nearest_LHS, '*k', mfc='green',ms=15, label='RH tie')
+
+
+
+        ax4.plot([Peak_Center.iloc[0], x_nearest_RHS], [y_int_cut, y_int_cut], '-', color='grey')
+        ax4.annotate(str(np.round(RHS_Center.values[0], 2)),
+                     xy=(x_nearest_RHS+3, y_int_cut+(Peak_Height.iloc[0]-y_int_cut)/10), xycoords="data",
+                      fontsize=12, color='grey')
+        ax4.plot(x_nearest_RHS, y_nearest_RHS, '*k', mfc='grey', ms=15, label='LH tie')
+
+
+
+
+        ax4.plot(x, y, '.r')
+        ax4.plot(x_new, y_cub, '-k')
+
+        ax4.plot([Peak_Center.iloc[0], Peak_Center.iloc[0]], [Peak_Height.iloc[0], Peak_Height.iloc[0]],
+             '*k', mfc='blue', ms=15, label='Scipy Center')
+
+
+        # Add to plot
+
+        ax4.plot(config1.lower_bck_diad1[0], config1.upper_bck_diad1[1], [y_int_cut, y_int_cut], ':r')
+
+
+
+
+        ax4.set_xlim([x_nearest_LHS-10, x_nearest_RHS+10])
+        ax4.set_ylim([0-10, Peak_Height.iloc[0]*1.2])
+        ax4.plot([Peak_Center.iloc[0], Peak_Center.iloc[0]], [0, Peak_Height.iloc[0]], ':b')
+
+
+
+        ax4.annotate('Skewness='+str(np.round(AS[0], 2)),
+                     xy=(x_nearest_RHS+2, y_int_cut+y_int_cut+(Peak_Height.iloc[0]-y_int_cut)/10), xycoords="data",
+                      fontsize=12)
+
+        ax2.legend()
+        ax1.legend()
+        ax3.legend()
+        ax4.legend()
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax3.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax4.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax1.set_ylabel('Intensity')
+        ax2.set_ylabel('Intensity')
+        ax3.set_ylabel('Intensity')
+        ax4.set_ylabel('Intensity')
+        fig.tight_layout()
+
+
+
+        path3=path+'/'+'Skewness_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'Skewness_images', exist_ok=False)
+
+
+        file=filename.rsplit('.txt', 1)[0]
+        fig.savefig(path3+'/'+'Diad1_skewness_{}.png'.format(file), dpi=config1.dpi)
+
+    df_out=pd.DataFrame(data={'filename':filename,
+                              'Skewness_diad1': AS,
+                              'LHS_tie_diad1': x_nearest_LHS,
+                              'RHS_tie_diad1': x_nearest_RHS})
+
+    return df_out
+
+
+
+
+def assess_diad2_skewness(*, config1: diad2_fit_config=diad2_fit_config(), int_cut_off=0.3, skewness='dir',path=None, filename=None, filetype=None,
+                        exclude_range1=None, exclude_range2=None):
+
+    """ Assesses Skewness of Diad peaks. Useful for identifying mixed L + V phases
+    (see DeVitre et al. in review)
+
+
+    Parameters
+    -----------
+    path: str
+        Folder user wishes to read data from
+
+    filename: str
+        Specific file being read
+
+    filetype: str
+        Identifies type of file
+        Witec_ASCII: Datafile from WITEC with metadata for first few lines
+        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
+        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
+        Renishaw_txt: Datafile from renishaw with column headings.
+
+
+    lower_baseline_diad1: list
+        Region of spectra to use a baseline (LHS)
+
+    config1.upper_bck_diad1: list
+        Region of spectra to use a baseline (RHS)
+
+    N_poly_bck_diad1: int
+        Degree of polynomial for background fitting
+
+    skewness: 'abs' or 'dir'
+        If 'abs', gives absolute skewness (e.g., largest possible number regardless of direction)
+        if 'dir' does skewness as one side over the other
+
+    int_int_cut_off: float
+        Value of intensity at which to calculate the skewness (e.g. 0.15X the peak height).
+
+
+    Returns
+    -----------
+    pd.DataFrame wtih filename, skewness of Diad 1,
+    the x position of the LH and RH tie point at intensity=int_int_cut_off
+
+    """
+
+
+# First, do the background subtraction
+    y_corr_diad2, Py_base_diad2, x_diad2,  Diad_short, Py_base_diad2, Pf_baseline,  Baseline_ysub_diad2, Baseline_x_diad2, Baseline, span=remove_diad_baseline(
+    path=path, filename=filename, filetype=filetype, exclude_range1=exclude_range1, exclude_range2=exclude_range2, N_poly=config1.N_poly_bck_diad2,
+    lower_bck=config1.lower_bck_diad2, upper_bck=config1.upper_bck_diad2, plot_figure=config1.plot_figure)
+
+
+
+    x_lin_baseline=np.linspace(config1.lower_bck_diad2[0], config1.upper_bck_diad2[1], 100000)
+    ybase_xlin=Pf_baseline(x_lin_baseline)
+
+
+
+# Get x and y for cubic spline
+    x=x_diad2
+    y=y_corr_diad2
+
+# Fits a  cubic spline
+    f2 = interp1d(x, y, kind='cubic')
+    x_new=np.linspace(np.min(x), np.max(x), 100000)
+
+    y_cub=f2(x_new)
+
+
+
+# Use Scipy find peaks to get that cubic peak
+    height=1
+    peaks = find_peaks(y_cub, height)
+    peak_height=peaks[1]['peak_heights']
+    peak_pos = x_new[peaks[0]]
+
+    # find max peak.  put into df because i'm lazy
+    peak_df=pd.DataFrame(data={'pos': peak_pos,
+                        'height': peak_height})
+
+    df_peak_sort=peak_df.sort_values('height', axis=0, ascending=False)
+    df_peak_sort_trim=df_peak_sort[0:1]
+    Peak_Center=df_peak_sort_trim['pos'].iloc[0]
+    Peak_Height=df_peak_sort_trim['height'].iloc[0]
+
+
+
+
+
+# Find intensity cut off
+    y_int_cut=Peak_Height*int_cut_off
+
+    # Split the array into a LHS and a RHS
+    LHS_y=y_cub[x_new<=Peak_Center]
+    RHS_y=y_cub[x_new>Peak_Center]
+
+    LHS_x=x_new[x_new<=Peak_Center]
+    RHS_x=x_new[x_new>Peak_Center]
+
+    # Need to flip LHS to put into the find closest function
+    LHS_y_flip=np.flip(LHS_y)
+    LHS_x_flip=np.flip(LHS_x)
+
+    val=np.argmax(LHS_y_flip<y_int_cut)
+
+    val2=np.argmax(RHS_y<y_int_cut)
+
+
+    # Find nearest x unit to this value
+    y_nearest_LHS=LHS_y_flip[val]
+    x_nearest_LHS=LHS_x_flip[val]
+
+    y_nearest_RHS=RHS_y[val2]
+    x_nearest_RHS=RHS_x[val2]
+
+    # Return Skewness
+    LHS_Center=abs(x_nearest_LHS-Peak_Center)
+    RHS_Center=abs(x_nearest_RHS-Peak_Center)
+
+    #Added conditional to always have a ratio of the high/low
+    if skewness=='abs':
+        if LHS_Center>RHS_Center:
+            AS=LHS_Center/RHS_Center
+        else:
+            AS=RHS_Center/LHS_Center
+    elif skewness=='dir':
+        AS=RHS_Center/LHS_Center
+
+
+    if config1.plot_figure is True:
+
+        # Make pretty figure showing background subtractoin routine
+        fig, ((ax2, ax1), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10,10))
+        fig.suptitle('Diad 2 Skewness file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
+
+        ax2.set_title('a) Spectra')
+        ax2.plot(Diad_short[:, 0], Diad_short[:, 1], '-r', label='Data')
+        ax2.set_xlim([config1.lower_bck_diad2[0]+40, config1.upper_bck_diad2[1]-40])
+        ax1.set_title('b) Background fit')
+        ax1.plot(Diad_short[:, 0], Diad_short[:, 1], '.-r', label='Data')
+
+        ax1.plot(Baseline[:, 0], Baseline[:, 1], '.b', label='bck')
+        ax1.plot(Diad_short[:, 0], Py_base_diad2, '-k', label='bck fit')
+        ax3.set_title('c) Background subtracted')
+        ax3.plot( x_diad2,y_corr_diad2, '-r', label='Bck sub')
+
+    # Adds cubic interpoloation for inspection
+
+        ax4.set_title('d) Cubic Spline')
+        ax4.plot([x_nearest_LHS, Peak_Center], [y_int_cut, y_int_cut], '-g')
+        ax4.annotate(str(np.round(LHS_Center, 2)),
+                     xy=(x_nearest_LHS-3, y_int_cut+(Peak_Height-y_int_cut)/10), xycoords="data",
+                     fontsize=12, color='green')
+        ax4.plot(x_nearest_LHS, y_nearest_LHS, '*k', mfc='green',ms=15, label='RH tie')
+
+
+
+        ax4.plot([Peak_Center, x_nearest_RHS], [y_int_cut, y_int_cut], '-', color='grey')
+        ax4.annotate(str(np.round(RHS_Center, 2)),
+                     xy=(x_nearest_RHS+3, y_int_cut+(Peak_Height-y_int_cut)/10), xycoords="data",
+                      fontsize=12, color='grey')
+        ax4.plot(x_nearest_RHS, y_nearest_RHS, '*k', mfc='grey', ms=15, label='LH tie')
+
+
+
+
+        ax4.plot(x, y, '.r')
+        ax4.plot(x_new, y_cub, '-k')
+
+        ax4.plot([Peak_Center, Peak_Center], [Peak_Height, Peak_Height],
+             '*k', mfc='blue', ms=15, label='Scipy Center')
+
+
+        # Add to plot
+
+        ax4.plot(config1.lower_bck_diad2[0], config1.upper_bck_diad2[1], [y_int_cut, y_int_cut], ':r')
+
+
+
+
+        ax4.set_xlim([x_nearest_LHS-10, x_nearest_RHS+10])
+        ax4.set_ylim([0-10, Peak_Height*1.2])
+        ax4.plot([Peak_Center, Peak_Center], [0, Peak_Height], ':b')
+
+
+
+        ax4.annotate('Skewness='+str(np.round(AS, 2)),
+                     xy=(x_nearest_RHS+2, y_int_cut+y_int_cut+(Peak_Height-y_int_cut)/10), xycoords="data",
+                      fontsize=10)
+
+        ax2.legend()
+        ax1.legend()
+        ax3.legend()
+        ax4.legend()
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax3.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax4.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax1.set_ylabel('Intensity')
+        ax2.set_ylabel('Intensity')
+        ax3.set_ylabel('Intensity')
+        ax4.set_ylabel('Intensity')
+        fig.tight_layout()
+
+
+        path3=path+'/'+'Skewness_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'Skewness_images', exist_ok=False)
+
+
+        file=filename.rsplit('.txt', 1)[0]
+        fig.savefig(path3+'/'+'Diad2_skewness_{}.png'.format(file), dpi=config1.dpi)
+
+
+    df_out=pd.DataFrame(data={
+                              'Skewness_diad2': AS,
+                              'LHS_tie_diad2': x_nearest_LHS,
+                              'RHS_tie_diad2': x_nearest_RHS}, index=[0])
+
+    return df_out
+
+
+def loop_diad_skewness(*, Diad_files, path=None, filetype=None, file_ext='.txt', skewness='abs', sort=False, int_cut_off=0.15,
+config_diad1: diad1_fit_config=diad1_fit_config(), config_diad2: diad2_fit_config=diad2_fit_config()):
+    """ Loops over all supplied files to calculate skewness for multiple spectra.
+
+
+    Parameters
+    -----------
+    path: str
+        Folder user wishes to read data from
+    sort: bool
+        If true, sorts files alphabetically
+    file_ext: str
+        File format. Default txt, could also enter csv etc.
+    exclude_str: str
+        Excludes files with this string in their name. E.g. if exclude_str='Ne' it will exclude Ne lines
+    exclude_type: str
+        Excludes files of this type, e.g. exclude_type='png' gets rid of image files.
+
+
+    lower_baseline_diad1, lower_baseline_diad2: list
+        Region of spectra to use a baseline (LHS) for diad 1 and diad2
+
+    upper_baseline_diad1, upper_baseline_diad2: list
+        Region of spectra to use a baseline (RHS) for diad 1 and diad 2
+
+    N_poly_bck_diad1, N_poly_bck_diad2: int
+        Degree of polynomial for background fitting
+
+    skewness: 'abs' or 'dir'
+        If 'abs', gives absolute skewness (e.g., largest possible number regardless of direction)
+        if 'dir' does skewness as one side over the other
+
+    int_cut_off: float
+        Value of intensity at which to calculate the skewness (e.g. 0.15X the peak height).
+
+
+    Returns
+    -----------
+    pd.DataFrame wtih filename, skewness of Diad 1,
+    the x position of the LH and RH tie point at intensity=int_int_cut_off
+
+
+
+    """
+
+
+
+    df_diad1 = pd.DataFrame([])
+    df_diad2 = pd.DataFrame([])
+    df_merged=pd.DataFrame([])
+    for i in range(0, len(Diad_files)):
+
+        filename=Diad_files[i]
+        print('working on file #'+str(i))
+
+        data_diad1=assess_diad1_skewness(config1=config_diad1,
+        int_cut_off=int_cut_off,
+        skewness=skewness, path=path, filename=filename,
+        filetype=filetype)
+
+        data_diad2=assess_diad2_skewness(config1=config_diad2,
+        int_cut_off=int_cut_off,
+        skewness=skewness, path=path, filename=filename,
+        filetype=filetype)
+
+
+        df_diad1 = pd.concat([df_diad1, data_diad1], axis=1)
+        df_diad2 =  pd.concat([df_diad2, data_diad2], axis=1)
+    df_combo=pd.concat([df_diad1, df_diad2], axis=1)
+
+
+
+
+    return df_combo
+
+
+
 
 
 

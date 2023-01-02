@@ -14,6 +14,7 @@ Welcome to DiadFits documentation!
    installation
    importing_data
    available_functions
+   Worked examples
 
 .. toctree::
    :maxdepth: 2
@@ -21,6 +22,23 @@ Welcome to DiadFits documentation!
 
    youtube
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Workflow 1+2: Fitting Diads + applying a Neon correction
+
+   Examples/Example1_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
+   Examples/Example1_Gas_Cell_Calibration/v38+_Filtering_Numerical
+   Examples/Example1_Gas_Cell_Calibration/v38+_FitAll_Together
+   Examples/Example1_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
+   %
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Workflow 3: Assesing Peak Asymmetry
+
+   Examples/Example3_Peak_Assymetry/Asessing_Diad_Skewness
+   
+   %
 
 Indices and tables
 ==================

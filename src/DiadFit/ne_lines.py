@@ -866,7 +866,7 @@ class Ne_peak_config:
     peaks_1: float=2
 
     # SPlitting
-    DeltaNe_ideal: float= 330.477634,
+    DeltaNe_ideal: float= 330.477634
 
     # Things for plotting the baseline
     x_range_baseline: float=20 #  How many units outside your selected background it shows on the baseline plot
@@ -896,7 +896,7 @@ def fit_Ne_lines(*,  config: Ne_peak_config=Ne_peak_config(),
 Ne_center_1=1117.1, Ne_center_2=1147, Ne_prom_1=100, Ne_prom_2=200,
 Ne=None, filename=None, path=None, prefix=True,
 plot_figure=True, loop=True,
- save_clipboard=True,
+ save_clipboard=False,
     close_figure=False, const_params=True):
 
 
