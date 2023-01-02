@@ -17,8 +17,8 @@ import warnings as w
 
 # For debuggin
 
-import warnings
-warnings.simplefilter('error')
+#import warnings
+#warnings.simplefilter('error')
 
 encode="ISO-8859-1"
 
