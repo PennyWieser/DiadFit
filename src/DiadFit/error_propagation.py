@@ -11,9 +11,9 @@ from DiadFit.density_depth_crustal_profiles import *
 
 def calculate_temperature_density_MC(sample_i=1,  N_dup=1000, T_K=None, CO2_density_gcm3=None,
 crust_dens_kgm3=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
-error_T_K=30, error_type_T_K='Abs', error_dist_T_K='normal',
-error_CO2_dens=0.01, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
-error_crust_dens=0.1, error_type_crust_dens='Abs', error_dist_crust_dens='normal',
+error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
+error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
+error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='normal',
 plot_figure=True):
 
 
@@ -100,12 +100,14 @@ plot_figure=True):
         if error_type_crust_dens=='Abs':
             error_crust_dens=error_crust_dens
         if error_type_crust_dens =='Perc':
-            error_crust_dens=crust_dens_kgm3.iloc[sample_i]*error_crust_dens/100
+            error_crust_dens=crust_dens_kgm3*error_crust_dens/100
         if error_dist_crust_dens=='normal':
             Noise_to_add_crust_dens = np.random.normal(0, error_crust_dens, N_dup)
         if error_dist_crust_dens=='uniform':
             Noise_to_add_crust_dens = np.random.uniform(- error_crust_dens, +
                                                         error_crust_dens, N_dup)
+
+
 
         crust_dens_with_noise=Noise_to_add_crust_dens+crust_dens_kgm3
         crust_dens_with_noise[crust_dens_with_noise < 0.0001] = 0.0001
@@ -124,7 +126,7 @@ plot_figure=True):
                                 'error_CO2_dens': error_CO2_dens,
                                 'error_type_CO2_dens': error_type_CO2_dens,
                                 'error_dist_CO2_dens': error_dist_CO2_dens,
-                                'error_crust_dens': error_crust_dens,
+                                'error_crust_dens_kgm3': error_crust_dens,
                                 'error_type_crust_dens': error_type_crust_dens,
                                 'error_dist_crust_dens': error_dist_crust_dens,
                                 })
@@ -154,7 +156,7 @@ plot_figure=True):
                                 'error_CO2_dens': error_CO2_dens,
                                 'error_type_CO2_dens': error_type_CO2_dens,
                                 'error_dist_CO2_dens': error_dist_CO2_dens,
-                                'error_crust_dens': error_crust_dens,
+                                'error_crust_dens_kgm3': error_crust_dens,
                                 'error_type_crust_dens': error_type_crust_dens,
                                 'error_dist_crust_dens': error_dist_crust_dens,
                                 })
@@ -220,9 +222,9 @@ plot_figure=True):
 
 def loop_all_FI_MC(df=None, sample_ID=None, N_dup=1000, T_K=None, CO2_density_gcm3=None,
 crust_dens_kgm3=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
-error_crust_dens=0.1, error_type_crust_dens='Abs', error_dist_crust_dens='uniform',
-error_T_K=30, error_type_T_K='Abs', error_dist_T_K='normal',
-error_CO2_dens=0.005, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
+error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='uniform',
+error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
+error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
                 plot_figure=False):
 
     """ This function propagates errors in CO2 density, temperature and crustal density into pressure and depth distributions
@@ -239,9 +241,12 @@ error_CO2_dens=0.005, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
     mean_D_km = np.empty(len(CO2_density_gcm3), dtype=float)
     med_D_km = np.empty(len(CO2_density_gcm3), dtype=float)
     std_D_km = np.empty(len(CO2_density_gcm3), dtype=float)
+    CO2_density_input=np.empty(len(CO2_density_gcm3), dtype=float)
+    error_crust_dens_loop=np.empty(len(CO2_density_gcm3), dtype=float)
+    error_crust_dens2_loop=np.empty(len(CO2_density_gcm3), dtype=float)
     Sample=np.empty(len(CO2_density_gcm3),  dtype=np.dtype('U100') )
 
-
+    All_outputs=pd.DataFrame([])
 
 
     #This loops through each fluid inclusion
@@ -303,13 +308,21 @@ error_CO2_dens=0.005, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
                                        crust_dens_kgm3=crust_dens_kgm3,
                     CO2_dens_gcm3=CO2_density_gcm3_i, output='df', d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
 
+
+
         # Check of
         if sample_ID is None:
             Sample[i]=i
+            MC_T.insert(0, 'Filename', i)
         else:
             Sample[i]=sample_ID.iloc[i]
+            MC_T.insert(0, 'Filename',sample_ID.iloc[i])
+
+        CO2_density_input[i]=CO2_density_gcm3.iloc[i]
         SingleCalc_D_km[i]=Densities['Depth (km)']
         SingleCalc_Press_kbar[i]=Densities['Pressure (kbar)']
+
+        All_outputs=pd.concat([All_outputs, MC_T], axis=0)
 
 
         mean_Press_kbar[i]=np.nanmean(MC_T['Pressure (kbar)'])
@@ -320,19 +333,24 @@ error_CO2_dens=0.005, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
         med_D_km[i]=np.nanmedian(MC_T['Depth (km)'])
         std_D_km[i]=np.nanstd(MC_T['Depth (km)'])
 
+        error_crust_dens_loop[i]=np.nanmean(df_synthetic['error_crust_dens_kgm3'])
+        error_crust_dens2_loop[i]=np.nanstd(df_synthetic['error_crust_dens_kgm3'])
+
     df_step=pd.DataFrame(data={'Filename': Sample,
+                        'CO2_density_gcm3': CO2_density_input,
                          'SingleFI_D_km': SingleCalc_D_km,
-                        'std_dev_MC_D_km': std_D_km,
                          'SingleFI_P_kbar': SingleCalc_Press_kbar,
-                            'std_dev_MC_P_kbar': std_Press_kbar,
+
                              'Mean_MC_P_kbar': mean_Press_kbar,
                          'Med_MC_P_kbar': med_Press_kbar,
+                            'std_dev_MC_P_kbar': std_Press_kbar,
 
                           'Mean_MC_D_km': mean_D_km,
                          'Med_MC_D_km': med_D_km,
+                        'std_dev_MC_D_km': std_D_km,
                          'error_T_K': error_T_K,
-                         'error_CO2_dens': error_CO2_dens,
-                         'error_crust_dens': error_crust_dens
+                         'error_CO2_dens_gcm3': error_CO2_dens,
+                         'error_crust_dens_kgm3': error_crust_dens_loop,
 
                          })
-    return df_step
+    return df_step, All_outputs

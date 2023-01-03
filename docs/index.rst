@@ -24,13 +24,25 @@ Welcome to DiadFits documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflow 1+2: Fitting Diads + applying a Neon correction
+   :caption: Workflow 1+2: Fitting Diads + applying a Neon correction (WITec instruments)
 
-   Examples/Example1_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
-   Examples/Example1_Gas_Cell_Calibration/v38+_Filtering_Numerical
-   Examples/Example1_Gas_Cell_Calibration/v38+_FitAll_Together
-   Examples/Example1_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
+   Examples/Example1a_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
+   Examples/Example1a_Gas_Cell_Calibration/v38+_Filtering_Numerical
+   Examples/Example1a_Gas_Cell_Calibration/v38+_FitAll_Together
+   Examples/Example1a_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
    %
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Workflow 1+2: Fitting Diads + applying a Neon correction (HORIBA ~pre2010)
+
+   Examples/Example1b_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
+   Examples/Example1b_Gas_Cell_Calibration/v38+_Filtering_Numerical
+   Examples/Example1b_Gas_Cell_Calibration/v38+_FitAll_Together
+   Examples/Example1b_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
+   %
+
 
 .. toctree::
    :maxdepth: 2
@@ -39,6 +51,16 @@ Welcome to DiadFits documentation!
    Examples/Example3_Peak_Assymetry/Asessing_Diad_Skewness
    
    %
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Workflow 5: Converting CO$_2$ densities to pressures and depths
+
+   Examples/Example5_FI_density_to_depth/Fluid_Inclusion_Density_to_Depth
+   Examples/Example5_FI_density_to_depth/Different_Crustal_Density_Profiles
+   Examples/Example5_FI_density_to_depth/Monte_Carlo_Simulations
+   
+   %   
 
 Indices and tables
 ==================
