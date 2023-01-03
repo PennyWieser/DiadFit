@@ -638,7 +638,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
 
 
-def plot_diad_groups(*, x_cord, Weak_np=None, Medium_np=None, Strong_np=None):
+def plot_diad_groups(*, x_cord,  Weak_np=None, Medium_np=None, Strong_np=None, y_fig_scale=0.5,):
 
 
     #
@@ -657,7 +657,7 @@ def plot_diad_groups(*, x_cord, Weak_np=None, Medium_np=None, Strong_np=None):
 
 
     Total=Num_Strong+Num_Medium+Num_Weak
-    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(15, 0.2*Total))
+    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(15,y_fig_scale*Total))
     if Num_Weak>0:
         for i in range(0, np.shape(Weak_np)[1]):
             Diff=np.max(Weak_np[:, i])-np.min(Weak_np[:, i])
@@ -1555,7 +1555,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         model1 = GaussianModel(prefix='bkg_')
         params = model1.make_params()
         params['bkg_'+'amplitude'].set(config1.gauss_amp, min=config1.gauss_amp/100, max=config1.gauss_amp*10)
-        params['bkg_'+'sigma'].set(sigma_ini*5, min=sigma_ini*3, max=sigma_ini*20)
+        params['bkg_'+'sigma'].set(sigma_ini*15, min=sigma_ini*10, max=sigma_ini*25)
         params['bkg_'+'center'].set(initial_guess, min=initial_guess-7, max=initial_guess+7)
 
         if fit_peaks==1:
