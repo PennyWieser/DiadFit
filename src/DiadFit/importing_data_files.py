@@ -10,6 +10,8 @@ import re
 from os import listdir
 from os.path import isfile, join
 from tqdm import tqdm
+import datetime
+import calendar
 
 encode="ISO-8859-1"
 
@@ -276,7 +278,63 @@ def read_witec_to_df(*,  path=None, filename):
 
 
 
-## Instrument specific metadata things
+## Function to extract metadata based on creation or modification of file
+
+
+def convert_datastamp_to_metadata(path, filename, creation=True, modification=False):
+    """ Gets file modification or creation time, outputs as metadata like for WITEC"
+    """
+    if creation is True and modification is True:
+        raise Exception('select either Creation=True or modification=True, not both')
+    if creation is False and modification is False:
+        raise Exception('select one of Creation=True or modification=True')
+
+    path2=path+'\\'+filename
+    m_time=os.path.getmtime(path2)
+    dt_m = datetime.datetime.fromtimestamp(m_time)
+    # Creation time
+    c_time = os.path.getctime(path2)
+    dt_c = datetime.datetime.fromtimestamp(c_time)
+    if creation is True:
+        df_time=dt_c
+    if modification is True:
+        df_time=dt_m
+    #date
+
+    month=calendar.month_name[df_time.month]
+    Day=df_time.day
+    Year=df_time.year
+    date_str=month+' ' + str(Day)+', '+str(Year)
+    time_str=str(df_time.hour) + ':' + str(df_time.minute) + ':' +str(df_time.second)
+    time=df_time.hour*60*60+df_time.minute*60+df_time.second
+
+    Time_Df=pd.DataFrame(data={'filename': filename,
+                               'date': date_str,
+                               'Month': month,
+                               'Day': Day,
+                               'power (mW)': np.nan,
+                               'Int_time (s)': np.nan,
+                               'accumulations': np.nan,
+                               'Mag (X)': np.nan,
+                               'duration': np.nan,
+                   '24hr_time': time_str,
+    'sec since midnight': time,
+    'Spectral Center': np.nan
+                              }, index=[0])
+    return Time_Df
+
+def loop_convert_datastamp_to_metadata(path, files, creation=True, modification=False):
+    """ Loops over multiple files to get timestamp the file was created or modified"""
+    df_meta=pd.DataFrame([])
+    for file in files:
+        df_loop=convert_datastamp_to_metadata(path=path, filename=file,
+creation=creation, modification=modification)
+        df_meta=pd.concat([df_meta, df_loop], axis=0)
+        df_meta=df_meta.sort_values(by='24hr_time')
+    return df_meta
+
+
+
 ## Functions to extract metadata from WITEC files (v instrument specific)
 
 def extract_time_stamp_witec(*, path, filename):

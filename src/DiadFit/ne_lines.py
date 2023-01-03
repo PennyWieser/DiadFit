@@ -869,8 +869,10 @@ class Ne_peak_config:
     DeltaNe_ideal: float= 330.477634
 
     # Things for plotting the baseline
-    x_range_baseline: float=20 #  How many units outside your selected background it shows on the baseline plot
-    y_range_baseline: float= 200    # Where the y axis is cut off above the minimum baseline measurement
+    x_range_baseline_pk1: float=20 #  How many units outside your selected background it shows on the baseline plot
+    y_range_baseline_pk1: float= 200    # Where the y axis is cut off above the minimum baseline measurement
+    x_range_baseline_pk2: float=20 #  How many units outside your selected background it shows on the baseline plot
+    y_range_baseline_pk2: float= 200    # Where the y axis is cut off above the minimum baseline measurement
 
 
     # Sigma for peaks
@@ -1057,18 +1059,18 @@ plot_figure=True, loop=True,
 
         # Setting y limits of axis
         ymin_ax1=min(Ne_short_pk1[:,1])-10
-        ymax_ax1=min(Ne_short_pk1[:,1])+config.y_range_baseline
+        ymax_ax1=min(Ne_short_pk1[:,1])+config.y_range_baseline_pk1
         ymin_ax0=min(Ne_short_pk2[:,1])-10
-        ymax_ax0=min(Ne_short_pk2[:,1])+config.y_range_baseline
+        ymax_ax0=min(Ne_short_pk2[:,1])+config.y_range_baseline_pk2
         ax1.set_ylim([ymin_ax1, ymax_ax1])
-        ax0.set_ylim([ymin_ax1, ymax_ax1])
+        ax0.set_ylim([ymin_ax0, ymax_ax0])
 
         # Setting x limits of axis
 
-        ax1_xmin=min(Ne_short_pk1[:,0])-config.x_range_baseline
-        ax1_xmax=max(Ne_short_pk1[:,0])+config.x_range_baseline
-        ax0_xmin=min(Ne_short_pk2[:,0])-config.x_range_baseline
-        ax0_xmax=max(Ne_short_pk2[:,0])+config.x_range_baseline
+        ax1_xmin=min(Ne_short_pk1[:,0])-config.x_range_baseline_pk1
+        ax1_xmax=max(Ne_short_pk1[:,0])+config.x_range_baseline_pk1
+        ax0_xmin=min(Ne_short_pk2[:,0])-config.x_range_baseline_pk2
+        ax0_xmax=max(Ne_short_pk2[:,0])+config.x_range_baseline_pk2
         ax0.set_xlim([ax0_xmin, ax0_xmax])
         ax1.set_xlim([ax1_xmin, ax1_xmax])
 
@@ -1122,12 +1124,12 @@ plot_figure=True, loop=True,
 
 
         ax1.plot([Ne_center_1, Ne_center_1], [ymin_ax1, ymax_ax1], ':k', label='Peak')
-        ax0.plot([Ne_center_2, Ne_center_2], [ymin_ax1, ymax_ax1], ':k', label='Peak')
+        ax0.plot([Ne_center_2, Ne_center_2], [ymin_ax0, ymax_ax0], ':k', label='Peak')
 
-        ax1.set_title('%.0f' %Ne_center_1+'background fitting')
+        ax1.set_title('%.0f' %Ne_center_1+': background fitting')
         ax1.set_xlabel('Wavenumber')
         ax1.set_ylabel('Intensity')
-        ax0.set_title('%.0f' %Ne_center_2+ 'background fitting')
+        ax0.set_title('%.0f' %Ne_center_2+ ': background fitting')
         ax0.set_xlabel('Wavenumber')
         ax0.set_ylabel('Intensity')
         ax1cop.set_xlabel('Offset from Pk estimate')

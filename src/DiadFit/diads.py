@@ -567,71 +567,74 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
     """ Splits diad files up into 3 groups, weak, medium and strong
     """
-    #fig, (ax2) = plt.subplots(1, 1, figsize=(7,3))
-    # Remember, lower Peak1 position = stronger diad
-    grp1=filter_bool
-    #ax2.ticklabel_format(useOffset=1200)
-    fit_params_notgrp1=fit_params.loc[~grp1]
-#     ax2.plot(fit_params[x_param].loc[grp1], y_cord.loc[grp1],  '.r', label='Weak Diads')
-#     ax2.plot(fit_params[x_param].loc[~grp1], y_cord.loc[~grp1],  '.b', label='Not Weak Diads')
-#     ax2.legend()
-#     print('Grp1, N=' + str(sum(grp1)))
 
-#     ax2.set_xlabel(x_param)
-#     #ax2.set_ylabel(y_cord)
-#     ax2.set_title('Selecting Weak diads')
-#     fig.tight_layout()
+    if np.shape(data_y)[1]==0:
+        Group1_df=pd.DataFrame().reindex_like(fit_params)
+        Groupnot1_df=pd.DataFrame().reindex_like(fit_params)
+        Group1_np_y=np.empty(0, dtype='float')
+        Groupnot1_np_y=np.empty(0, dtype='float')
 
-    # Find ones in group1, in dataframe and numpy form
-    Group1_df=fit_params.loc[grp1]
-    index_Grp1=Group1_df.index
-    Group1_np_y=data_y[:, index_Grp1]
 
-    # Ones not in group1
-    Groupnot1_df=fit_params.loc[~grp1]
-    index_Grpnot1=Groupnot1_df.index
-    Groupnot1_np_y=data_y[:, index_Grpnot1]
 
-    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, y_fig_scale*len(fit_params)))
-    intc=8
-    #
-    if sum(grp1)>0:
-        for i in range(0, np.shape(Group1_np_y)[1]):
 
-            av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
-            Diff=np.max(Group1_np_y[:, i])-np.min(Group1_np_y[:, i])
-            ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.min(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
-        ax0.set_xlim([1250-i*5, 1450])
-        ax0.set_xticks([])
-        ax0.set_yticks([])
+        return Group1_df, Groupnot1_df, Group1_np_y, Groupnot1_np_y
+    else:
 
-        # av_prom_Group1=np.abs(np.nanmedian(Group1_df[x_param])/intc)
-        # ax0.plot(x_cord, Group1_np_y[:, i]+av_prom_Group1*i, '-r')
-    if sum(~grp1)>0:
-        for j in range(0, np.shape(Groupnot1_np_y)[1]):
+        grp1=filter_bool
 
-            av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
-            Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
-            ax1.plot(x_cord-j*5,
-            (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
-        ax1.set_xlim([1250-j*5, 1450])
-        ax1.set_xticks([])
-        ax1.set_yticks([])
+        fit_params_notgrp1=fit_params.loc[~grp1]
 
-        # av_prom_Groupnot1=np.abs(np.nanmedian(Groupnot1_df[x_param])/intc)
-        # ax1.plot(x_cord, Groupnot1_np_y[:, i]+av_prom_Groupnot1*3*i, '-c')
 
-    #ax1.set_ylim([0, av_prom*i])
-    if grp_filter=='Medium-Strong':
-        ax0.set_title('Ones filtered out (Strong)')
-        ax1.set_title('Ones left (Medium)')
-    if grp_filter=='Weak':
-        ax0.set_title('Ones filtered out (Weak)')
-        ax1.set_title('Ones left (not classified yet)')
+        # Find ones in group1, in dataframe and numpy form
+        Group1_df=fit_params.loc[grp1]
+        index_Grp1=Group1_df.index
+        Group1_np_y=data_y[:, index_Grp1]
 
-    plt.subplots_adjust(wspace=0)
+        # Ones not in group1
+        Groupnot1_df=fit_params.loc[~grp1]
+        index_Grpnot1=Groupnot1_df.index
+        Groupnot1_np_y=data_y[:, index_Grpnot1]
 
-    return Group1_df.reset_index(drop=True), Groupnot1_df.reset_index(drop=True),Group1_np_y, Groupnot1_np_y
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, y_fig_scale*len(fit_params)))
+        intc=8
+        #
+        if sum(grp1)>0:
+            for i in range(0, np.shape(Group1_np_y)[1]):
+
+                av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
+                Diff=np.max(Group1_np_y[:, i])-np.min(Group1_np_y[:, i])
+                ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.min(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
+            ax0.set_xlim([1250-i*5, 1450])
+            ax0.set_xticks([])
+            ax0.set_yticks([])
+
+            # av_prom_Group1=np.abs(np.nanmedian(Group1_df[x_param])/intc)
+            # ax0.plot(x_cord, Group1_np_y[:, i]+av_prom_Group1*i, '-r')
+        if sum(~grp1)>0:
+            for j in range(0, np.shape(Groupnot1_np_y)[1]):
+
+                av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+                Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
+                ax1.plot(x_cord-j*5,
+                (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+            ax1.set_xlim([1250-j*5, 1450])
+            ax1.set_xticks([])
+            ax1.set_yticks([])
+
+            # av_prom_Groupnot1=np.abs(np.nanmedian(Groupnot1_df[x_param])/intc)
+            # ax1.plot(x_cord, Groupnot1_np_y[:, i]+av_prom_Groupnot1*3*i, '-c')
+
+        #ax1.set_ylim([0, av_prom*i])
+        if grp_filter=='Medium-Strong':
+            ax0.set_title('Ones filtered out (Strong)')
+            ax1.set_title('Ones left (Medium)')
+        if grp_filter=='Weak':
+            ax0.set_title('Ones filtered out (Weak)')
+            ax1.set_title('Ones left (not classified yet)')
+
+        plt.subplots_adjust(wspace=0)
+
+        return Group1_df.reset_index(drop=True), Groupnot1_df.reset_index(drop=True),Group1_np_y, Groupnot1_np_y
 
 
 
@@ -639,9 +642,18 @@ def plot_diad_groups(*, x_cord, Weak_np=None, Medium_np=None, Strong_np=None):
 
 
     #
-    Num_Weak=np.shape(Weak_np)[1]
-    Num_Medium=np.shape(Medium_np)[1]
-    Num_Strong=np.shape(Strong_np)[1]
+    if len(Weak_np)>0:
+        Num_Weak=np.shape(Weak_np)[1]
+    else:
+        Num_Weak=0
+    if len(Medium_np)>0:
+        Num_Medium=np.shape(Medium_np)[1]
+    else:
+        Num_Medium=0
+    if len(Strong_np)>0:
+        Num_Strong=np.shape(Strong_np)[1]
+    else:
+        Num_Strong=0
 
 
     Total=Num_Strong+Num_Medium+Num_Weak
