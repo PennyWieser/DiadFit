@@ -24,7 +24,7 @@ Welcome to DiadFits documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflow 1+2: Fitting Diads + applying a Neon correction (WITec instruments)
+   :caption: Workflow 1+2: Fitting Diads from a CO$_2$ Gas cell + applying a Neon correction (WITec instrument, ~2020)
 
    Examples/Example1a_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
    Examples/Example1a_Gas_Cell_Calibration/v38+_Filtering_Numerical
@@ -35,13 +35,24 @@ Welcome to DiadFits documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflow 1+2: Fitting Diads + applying a Neon correction (HORIBA ~pre2010)
+   :caption: Workflow 1+2: Fitting Diads from FI with secondary phases and  applying a Neon correction (WITec instrument, ~2022)
 
    Examples/Example1b_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
    Examples/Example1b_Gas_Cell_Calibration/v38+_Filtering_Numerical
    Examples/Example1b_Gas_Cell_Calibration/v38+_FitAll_Together
    Examples/Example1b_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
    %
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Workflow 1+2: Fitting Diads from natural CO$_2$ standards + applying a Neon correction (HORIBA ~pre2010)
+
+   Examples/Example1c_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
+   Examples/Example1c_Gas_Cell_Calibration/v38+_Filtering_Numerical
+   Examples/Example1c_Gas_Cell_Calibration/v38+_FitAll_Together
+   Examples/Example1c_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
+   %   
 
 
 .. toctree::
