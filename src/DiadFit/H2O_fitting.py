@@ -9,6 +9,25 @@ from scipy import stats
 
 from DiadFit.importing_data_files import *
 
+##
+def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
+                         prefix=True, str_prefix=" ", file_type='.txt'):
+    file_simple=pf.extracting_filenames_generic(names=files,
+    prefix=prefix, str_prefix=str_prefix,
+   file_type=file_type)
+    xstal=np.empty(len(file_simple), dtype=object)
+    MI=np.empty(len(file_simple), dtype=object)
+    for i in range(0, len(file_simple)):
+        name=file_simple[i]
+        xstal[i]=name.split(char_xstal)[pos_xstal]
+        MI[i]=name.split(char_MI)[pos_MI]
+    df_out=pd.DataFrame(data={'filename': files,
+                         'crystal_name': xstal,
+                         'MI_name': MI})
+    return df_out
+
+
+
 def find_olivine_peak_trough_pos(smoothed_ol_y, x_new, height=1):
 
     """" This function identifies the peaks and troughs in the Olivine spectra
