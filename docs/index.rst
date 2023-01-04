@@ -24,7 +24,7 @@ Welcome to DiadFits documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflow 1+2: Fitting Diads from a CO$_2$ Gas cell + applying a Neon correction (WITec instrument, ~2020)
+   :caption: Fitting Diads from CO2 gas cell (+ Ne correction) WITEC
 
    Examples/Example1a_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
    Examples/Example1a_Gas_Cell_Calibration/v38+_Filtering_Numerical
@@ -35,18 +35,19 @@ Welcome to DiadFits documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflow 1+2: Fitting Diads from FI with secondary phases and  applying a Neon correction (WITec instrument, ~2022)
+   :caption: Fitting Diads from natural FI with secondary phases (+ Ne correction) WITEC
 
    Examples/Example1b_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
    Examples/Example1b_Gas_Cell_Calibration/v38+_Filtering_Numerical
    Examples/Example1b_Gas_Cell_Calibration/v38+_FitAll_Together
+   Examples/Example1b_Gas_Cell_Calibration/Secondary_Peaks
    Examples/Example1b_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
    %
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflow 1+2: Fitting Diads from natural CO$_2$ standards + applying a Neon correction (HORIBA ~pre2010)
+   :caption: Fitting Diads from MI VB (HORIBA ~pre2010)
 
    Examples/Example1c_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
    Examples/Example1c_Gas_Cell_Calibration/v38+_Filtering_Numerical
@@ -57,7 +58,7 @@ Welcome to DiadFits documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflow 3: Assesing Peak Asymmetry
+   :caption: Diad peak asymmetry
 
    Examples/Example3_Peak_Assymetry/Asessing_Diad_Skewness
    
@@ -65,13 +66,24 @@ Welcome to DiadFits documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Workflow 5: Converting CO$_2$ densities to pressures and depths
+   :caption: CO2 density to P and depth 
 
    Examples/Example5_FI_density_to_depth/Fluid_Inclusion_Density_to_Depth
    Examples/Example5_FI_density_to_depth/Different_Crustal_Density_Profiles
    Examples/Example5_FI_density_to_depth/Monte_Carlo_Simulations
    
    %   
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Quantifying H2O:Silicate proportions in MI VB 
+
+   Examples/Example4_H2OQuant/H2O_Fitting
+
+   
+   %   
+
 
 Indices and tables
 ==================
