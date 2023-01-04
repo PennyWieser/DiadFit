@@ -52,4 +52,4 @@ For maximum reproducability, you should state which version of DiadFit you are u
 
 .. code-block:: python
 
-    pt.__version__
+    pf.__version__

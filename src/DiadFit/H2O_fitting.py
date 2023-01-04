@@ -238,10 +238,10 @@ def trough_or_peak_higher(spectra_x, spectra_y, peak_pos_x,
 
 
 # Now lets mix up spectra
-def make_evaluate_mixed_spectra(smoothed_Ol_y, smoothed_MI_y,
+def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
                                 Ol_spectra, MI_spectra, x_new, peak_pos_Ol,
                       trough_x, trough_y, N_steps=20, av_width=2,
-                               X_min=0, X_max=1):
+                               X_min=0, X_max=1, plot_figure=True, dpi=200):
 
     """
     Makes mixed spectra from  measured MI  - measured Ol * X, where X
@@ -325,39 +325,49 @@ def make_evaluate_mixed_spectra(smoothed_Ol_y, smoothed_MI_y,
     MI_Mix_Best_syn=(smoothed_MI_y-smoothed_Ol_y*ideal_mix)/(1-ideal_mix)
     MI_Mix_Best=(MI_spectra- Ol_spectra*ideal_mix)/(1-ideal_mix)
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12,10))
+    if plot_figure is True:
 
-    for i in range(0, N_steps):
-        ax1.plot(x_new, MI_Mix[i, :], '-k')
-        ax1.plot([peak_pos_Ol[0], peak_pos_Ol[0]], [0.7, 1.5], '-', color='yellow')
-        ax1.plot([peak_pos_Ol[1], peak_pos_Ol[1]], [0.7, 1.5], '-', color='yellow')
-        ax1.plot([trough_x, trough_x], [0.7, 1.5], '-', color='cyan')
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12,10))
 
-
-    ax1.set_xlabel('Wavenumber (cm$^{-1}$')
-    ax1.set_ylabel('Intensity ratioed to 1st coordinate')
-
-    ax2.plot(X, Dist, 'or')
-    ax2.plot([min(X), max(X)], [0, 0], '-k')
-    ax2.set_xlabel('Mixing Proportion of Olivine')
-    ax2.set_ylabel('Vert. Dist. between peaks reg & troughs')
-    ax2.plot(x_new_mix, y_cub_mix, '-r')
-
-    ax3.plot(MI_spectra[:, 0],MI_Mix_Best[:, 1], '-k')
-    ax3.plot(MI_spectra[:, 0],MI_spectra[:, 1], '-', color='salmon')
-    ax3.plot(Ol_spectra[:, 0],Ol_spectra[:, 1], '-', color='g')
-    ax3.set_xlim([775, 900])
+        for i in range(0, N_steps):
+            ax1.plot(x_new, MI_Mix[i, :], '-k')
+            ax1.plot([peak_pos_Ol[0], peak_pos_Ol[0]], [0.7, 1.5], '-', color='yellow')
+            ax1.plot([peak_pos_Ol[1], peak_pos_Ol[1]], [0.7, 1.5], '-', color='yellow')
+            ax1.plot([trough_x, trough_x], [0.7, 1.5], '-', color='cyan')
 
 
-    ax4.plot(MI_spectra[:, 0],MI_Mix_Best[:, 1], '-k', label='Umixed glass')
-    ax4.plot(MI_spectra[:, 0],MI_spectra[:, 1],  '-', color='salmon',label='Measured MI')
-    ax4.plot(Ol_spectra[:, 0],Ol_spectra[:, 1], '-', color='g', label='Measured Ol')
-    ax4.legend()
-    ax3.set_xlabel('Wavenumber (cm$^{-1}$')
-    ax4.set_xlabel('Wavenumber (cm$^{-1}$')
-    ax3.set_ylabel('Intensity')
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$')
+        ax1.set_ylabel('Intensity ratioed to 1st coordinate')
+
+        ax2.plot(X, Dist, 'or')
+        ax2.plot([min(X), max(X)], [0, 0], '-k')
+        ax2.set_xlabel('Mixing Proportion of Olivine')
+        ax2.set_ylabel('Vert. Dist. between peaks reg & troughs')
+        ax2.plot(x_new_mix, y_cub_mix, '-r')
+
+        ax3.plot(MI_spectra[:, 0],MI_Mix_Best[:, 1], '-k')
+        ax3.plot(MI_spectra[:, 0],MI_spectra[:, 1], '-', color='salmon')
+        ax3.plot(Ol_spectra[:, 0],Ol_spectra[:, 1], '-', color='g')
+        ax3.set_xlim([775, 900])
 
 
+        ax4.plot(MI_spectra[:, 0],MI_Mix_Best[:, 1], '-k', label='Umixed glass')
+        ax4.plot(MI_spectra[:, 0],MI_spectra[:, 1],  '-', color='salmon',label='Measured MI')
+        ax4.plot(Ol_spectra[:, 0],Ol_spectra[:, 1], '-', color='g', label='Measured Ol')
+        ax4.legend()
+        ax3.set_xlabel('Wavenumber (cm$^{-1}$')
+        ax4.set_xlabel('Wavenumber (cm$^{-1}$')
+        ax3.set_ylabel('Intensity')
+
+        path3=path+'/'+'H2O_Silicate_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'H2O_Silicate_images', exist_ok=False)
+
+
+        file=filename
+        fig.savefig(path3+'/'+'Ol_Glass_Umixing_{}.png'.format(filename), dpi=dpi)
 
     return MI_Mix_Best, ideal_mix, Dist, MI_Mix, X
 
@@ -462,9 +472,9 @@ def check_if_spectra_negative(Spectra=None, peak_pos_Ol=None, tie_x_cord=2000, o
 
 
 
-def fit_area_for_silicate_region(Spectra=None, lower_range_sil=[200, 300], upper_range_sil=[1240, 1500],
-sigma_sil=5, exclude_range1_sil=None, exclude_range2_sil=None, N_poly_sil=2, plot_figure=True,
-fit_sil='poly'):
+def fit_area_for_silicate_region(*, path, filename, Spectra=None, lower_range_sil=[200, 300], upper_range_sil=[1240, 1500],
+sigma_sil=5, exclude_range1_sil=None, exclude_range2_sil=None, N_poly_sil=2, plot_figure=True, save_fig=True,
+fit_sil='poly', dpi=200):
 
     """
     Fits background polynomial or spline. Integrates under curve, returns trapezoid and
@@ -634,6 +644,18 @@ fit_sil='poly'):
         #ax2.set_ylim([np.min(y_corr), 1.2*height_p ])
         ax1.set_xlabel('Wavenumber')
 
+        path3=path+'/'+'H2O_Silicate_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'H2O_Silicate_images', exist_ok=False)
+
+
+        file=filename
+        fig.savefig(path3+'/'+'Silicate_fit_{}.png'.format(filename), dpi=dpi)
+
+
+
 
     from numpy import trapz
     from scipy.integrate import simps
@@ -643,20 +665,20 @@ fit_sil='poly'):
 
 
 
-    df_sil=pd.DataFrame(data={'Sil_LHS_Back1':lower_range_sil[0],
-                          'Sil_LHS_Back2':lower_range_sil[1],
-                          'Sil_RHS_Back1':upper_range_sil[0],
-                          'Sil_RHS_Back2':upper_range_sil[1],
-                          'Sil_N_Poly': N_poly_sil,
-                          'Sil_Trapezoid_Area':area_trap,
-                          'Sil_Simpson_Area': area_simps}, index=[0])
+    df_sil=pd.DataFrame(data={'Silicate_LHS_Back1':lower_range_sil[0],
+                          'Silicate_LHS_Back2':lower_range_sil[1],
+                          'Silicate_RHS_Back1':upper_range_sil[0],
+                          'Silicate_RHS_Back2':upper_range_sil[1],
+                          'Silicate_N_Poly': N_poly_sil,
+                          'Silicate_Trapezoid_Area':area_trap,
+                          'Silicate_Simpson_Area': area_simps}, index=[0])
     return df_sil
 
 
 
-def fit_area_for_water_region(Spectra=None, lower_range_water=[2750, 3100], upper_range_water=[3750, 4100],
+def fit_area_for_water_region(*, path, filename, Spectra=None, lower_range_water=[2750, 3100], upper_range_water=[3750, 4100],
 sigma_water=5, exclude_range1_water=None, exclude_range2_water=None,
-N_poly_water=2, plot_figure=True, fit_water='poly'):
+N_poly_water=2, plot_figure=True, fit_water='poly', dpi=200):
 
 
     """
@@ -827,6 +849,18 @@ N_poly_water=2, plot_figure=True, fit_water='poly'):
 
         ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
 
+        path3=path+'/'+'H2O_Silicate_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'H2O_Silicate_images', exist_ok=False)
+
+
+        file=filename.rsplit('.txt', 1)[0]
+        fig.savefig(path3+'/'+'Water_fit_{}.png'.format(filename), dpi=dpi)
+
+
+
 
     from numpy import trapz
     from scipy.integrate import simps
@@ -876,9 +910,16 @@ def stitch_dataframes_together(df_sil=None, df_water=None, Ol_file=None, MI_file
     Combo_Area=pd.concat([df_sil, df_water], axis=1)
     Combo_Area.insert(0, 'Olivine filename', Ol_file)
     Combo_Area.insert(1, 'MI filename', MI_file)
-    Combo_Area.insert(2, 'Trap_H2O_Sil',
-                      Combo_Area['Water_Trapezoid_Area']/Combo_Area['Sil_Trapezoid_Area'])
-    Combo_Area.insert(3, 'Simp_H2O_Sil',
-                      Combo_Area['Water_Simpson_Area']/Combo_Area['Sil_Simpson_Area'])
+    Combo_Area.insert(2, 'H2O_vs_Silicate_Area_Trapezoid',
+                      Combo_Area['Water_Trapezoid_Area']/Combo_Area['Silicate_Trapezoid_Area'])
+    Combo_Area.insert(3, 'H2O_vs_Silicate_Area_Simpson',
+                      Combo_Area['Water_Simpson_Area']/Combo_Area['Silicate_Simpson_Area'])
+
+    cols_to_move=['Olivine filename', 'MI filename', 'H2O_vs_Silicate_Area_Trapezoid', 'H2O_vs_Silicate_Area_Simpson',
+     'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
+
+
+    Combo_Area = Combo_Area[cols_to_move + [
+        col for col in Combo_Area.columns if col not in cols_to_move]]
 
     return Combo_Area

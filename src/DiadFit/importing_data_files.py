@@ -47,7 +47,10 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
     # Take only files with the right file extension
     Allfiles_type=[item for item in Allfiles if file_ext in item and ID_str in item]
 
-    Ne_files=[x for x in Allfiles_type if not any(e in x for e in exclude_str)]
+    if exclude_str is None:
+        Ne_files=Allfiles_type
+    else:
+        Ne_files=[x for x in Allfiles_type if not any(e in x for e in exclude_str)]
 
 
     # Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
@@ -58,7 +61,7 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
     return Ne_files
 
 
-def get_diad_files(path, sort=True, file_ext='txt', exclude_str=None, exclude_str_2=None, exclude_str_3=None, exclude_str_4=None, exclude_type='.png'):
+def get_diad_files(path, sort=True, file_ext='txt', exclude_str=None, exclude_type='.png'):
     """ This function takes a user path, and extracts all files which dont contain the excluded string and type
 
     Parameters
@@ -85,8 +88,10 @@ def get_diad_files(path, sort=True, file_ext='txt', exclude_str=None, exclude_st
 
     # Take only files with the right file extension
     Allfiles_type=[item for item in Allfiles if file_ext in item]
-
-    files_filt=[x for x in Allfiles_type if not any(e in x for e in exclude_str)]
+    if exclude_str is None:
+        files_filt=Allfiles_type
+    else:
+        files_filt=[x for x in Allfiles_type if not any(e in x for e in exclude_str)]
 
 
 
@@ -748,6 +753,9 @@ def extracting_filenames_generic(*, names, prefix=False,
         The file extension, e.g., '.csv'
 
     """
+    if isinstance(names, list):
+        names_df=pd.DataFrame(data={'name': names})
+        names=names_df['name']
 
 
     file_m=np.empty(len(names), dtype=object)
