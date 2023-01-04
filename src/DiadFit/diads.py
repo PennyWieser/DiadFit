@@ -3645,7 +3645,7 @@ path=None, filename=None, filetype=None, model_name='VoigtModel',
         file=filename.rsplit('.txt', 1)[0]
         if plot_figure is True:
             path3=path+'/'+'Secondary_fit_Images'
-            print(path3)
+
             if os.path.exists(path3):
                 out='path exists'
             else:
@@ -3895,7 +3895,7 @@ def plot_diad_spectra(Diad_Files_Specific=None, df_out=None, yoff=100):
 
 from scipy.signal import find_peaks
 def plot_secondary_peaks(*, Diad_Files, path, filetype,
-        xlim=[1040, 1200], config, sigma_filter=False, sigma=3, find_peaks=False, just_plot=False, yscale=0.2):
+        xlim=[1040, 1200], config=None, sigma_filter=False, sigma=3, find_peaks_filter=False, just_plot=False, yscale=0.2):
     fig, (ax1) = plt.subplots(1, 1, figsize=(10,yscale*len(Diad_Files)))
 
     i=0
@@ -3927,7 +3927,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
         y_trim=y[Region]
         y_data[:, i]=y
 
-        if find_peaks is True:
+        if find_peaks_filter is True:
             # Scipy find peaks
             peaks = find_peaks(y_trim,height = config.height, threshold = config.threshold,
             distance = config.distance, prominence=config.prominence, width=config.width)
@@ -3958,7 +3958,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             if len(height)>0:
 
 
-                ax1.plot(df_peak_sort_short['pos'], (df_peak_sort_short['height']-np.min(y_trim))/Diff+i, '*k', mfc='yellow')
+                ax1.plot(df_peak_sort_short['pos'], (df_peak_sort_short['height']-np.min(y_trim))/Diff+i, '*k', mfc='yellow', ms=10)
 
             yplot[i]=np.min(((y_trim-np.min(y_trim))/Diff)+i)
 
@@ -3975,8 +3975,8 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             #print(xpos)
             y_around_max=y_trim[(x_trim<(xpos+10))&(x_trim>(xpos-10))]
             stdy=np.nanstd(y_around_max)
-            meany=np.nanmean(y_around_max)
-            if maxy>meany+stdy*sigma:
+            mediany=np.nanmedian(y_around_max)
+            if maxy>mediany+stdy*sigma:
                 pos_x=x[y==maxy][0]
             else:
                 pos_x=np.nan
@@ -4024,7 +4024,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
                                         'height': peak_height_saved,
                                             'prom': peak_height_saved-peak_bck})
     if sigma_filter is True:
-        ax1.plot(df_peaks['pos'][y_star>0], y_star[y_star>0], '*k', mfc='yellow')
+        ax1.plot(df_peaks['pos'][y_star>0], y_star[y_star>0], '*k', mfc='yellow', ms=10)
 
 
 
@@ -4042,7 +4042,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
     ax1.plot([1097, 1097], [0, yplot[-1]+2], '-b', lw=1, label='Dolomite')
     ax1.plot([1131, 1131], [0, yplot[-1]+2], '-', color='grey', lw=1, label='CaSO$_4$')
     ax1.plot([1136, 1136], [0, yplot[-1]+2], '--', color='rosybrown', lw=1, label='MgSO$_4$')
-    ax1.plot([1150, 1150], [0, yplot[-1]+2], '-k', lw=1, label='SO$_2$')
+    ax1.plot([1151, 1151], [0, yplot[-1]+2], '-k', lw=1, label='SO$_2$')
 
 
     ax1.legend(ncol=7,loc='upper center', fontsize=10,  bbox_to_anchor=[0.5, 1.05])
