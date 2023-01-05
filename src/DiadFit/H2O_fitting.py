@@ -139,24 +139,25 @@ def smooth_and_trim_around_olivine(x_range=[800,900], x_max=900, Ol_spectra=None
         smoothed_ol_y=y_cub_Ol, x_new=x_new, height=1)
 
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,3.5))
     ax1.plot(Ol_spectra[:, 0], Ol_spectra[:, 1], '-g', label='Ol Spectra')
     ax1.plot(MI_spectra[:, 0], MI_spectra[:, 1], '-',
              color='salmon', label='MI Spectra')
 
     ax2.plot(Filt_MI[:, 0], Filt_MI[:, 1], '+', color='salmon')
     ax2.plot(Filt_Ol[:, 0], Filt_Ol[:, 1], '+g')
-    ax2.plot(x_new, y_cub_MI, '-', color='salmon')
-    ax2.plot(x_new, y_cub_Ol, '-g')
+    ax2.plot(x_new, y_cub_MI, '-', color='salmon', label='MI Spectra')
+    ax2.plot(x_new, y_cub_Ol, '-g', label='Ol Spectra')
     ax2.plot(peak_pos_Ol, peak_height_Ol, '*k',mfc='yellow', ms=10, label='Peaks')
     ax2.plot(trough_x, trough_y, 'dk', mfc='cyan', ms=10, label='Trough')
-    ax1.legend()
-    ax2.legend()
+
     ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
     ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
     ax1.set_ylabel('Intensity')
+    ax2.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+                      ncol=2, mode="expand", borderaxespad=0.)
 
-    return x_new, y_cub_MI, y_cub_Ol, peak_pos_Ol, peak_height_Ol, trough_x, trough_y
+    return x_new, y_cub_MI, y_cub_Ol, peak_pos_Ol, peak_height_Ol, trough_x, trough_y, fig
 
 
 
@@ -379,6 +380,7 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
         ax3.set_ylabel('Intensity')
 
         path3=path+'/'+'H2O_Silicate_images'
+
         if os.path.exists(path3):
             out='path exists'
         else:
@@ -392,7 +394,8 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
 
 
 ## Fitting silica and water peak areas
-def check_if_spectra_negative(Spectra=None, peak_pos_Ol=None, tie_x_cord=2000, override=False, flip=False):
+def check_if_spectra_negative(*, path, filename, Spectra=None, peak_pos_Ol=None, tie_x_cord=2000,
+override=False, flip=False, plot_figure=True, dpi=200):
     """
     Checks if spectra is negative, e.g. if the spectra N units in is higher or lower
     than the peak position of the olivine. This may depend on your Raman system, so you can always adjust
@@ -435,16 +438,19 @@ def check_if_spectra_negative(Spectra=None, peak_pos_Ol=None, tie_x_cord=2000, o
             )
 
 
-    print('y coordinate of tie coordinate')
-    print(tie_y_cord)
-    print('mean y coordinate around peak')
-    print(mean_around_peak)
+
     x=Spectra[:, 0]
     y_init=Spectra[:, 1]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5), sharey=True)
+
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,3.5))
     ax1.set_title('Entered Spectra')
     ax2.set_title('Returned Spectra')
+    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+    ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+    ax1.set_ylabel('Intensity')
+    ax2.set_ylabel('Intensity')
     ax1.plot(x, y_init, '-r')
     ax1.plot(tie_x_cord, tie_y_cord, '*k',  ms=10,  label='tie_cord')
     ax1.plot(peak_pos_Ol[0], mean_around_peak, '*k', mfc='yellow', ms=15,label='Av Ol coordinate')
@@ -461,7 +467,6 @@ def check_if_spectra_negative(Spectra=None, peak_pos_Ol=None, tie_x_cord=2000, o
             ax2.plot(peak_pos_Ol[0], mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
             ax2.legend()
 
-            return Spectra
         else:
             print('Peak negative, spectra inverted')
 
@@ -471,8 +476,10 @@ def check_if_spectra_negative(Spectra=None, peak_pos_Ol=None, tie_x_cord=2000, o
             ax2.plot(peak_pos_Ol[0], -mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
 
             ax2.legend()
-            Spectra2=np.column_stack((x, y))
-            return Spectra2
+            Spectra=np.column_stack((x, y))
+
+
+
 
     if override is True:
         print('Youve choosen to override the default')
@@ -484,9 +491,20 @@ def check_if_spectra_negative(Spectra=None, peak_pos_Ol=None, tie_x_cord=2000, o
             x=Spectra[:, 0]
             y=-Spectra[:, 1]
             plt.plot(x, y, '-r')
-            Spectra2=np.column_stack((x, y))
+            Spectra=np.column_stack((x, y))
 
-            return Spectra2
+    fig.tight_layout()
+    path3=path+'/'+'H2O_Silicate_images'
+    if os.path.exists(path3):
+        out='path exists'
+    else:
+        os.makedirs(path+'/'+ 'H2O_Silicate_images', exist_ok=False)
+
+
+    file=filename
+    fig.savefig(path3+'/'+'Check_if_negative_{}.png'.format(filename), dpi=dpi)
+
+    return Spectra
 
 
 
@@ -929,12 +947,12 @@ def stitch_dataframes_together(df_sil=None, df_water=None, Ol_file=None, MI_file
     Combo_Area=pd.concat([df_sil, df_water], axis=1)
     Combo_Area.insert(0, 'Olivine filename', Ol_file)
     Combo_Area.insert(1, 'MI filename', MI_file)
-    Combo_Area.insert(2, 'H2O_vs_Silicate_Area_Trapezoid',
+    Combo_Area.insert(2, 'HW:LW_Trapezoid',
                       Combo_Area['Water_Trapezoid_Area']/Combo_Area['Silicate_Trapezoid_Area'])
-    Combo_Area.insert(3, 'H2O_vs_Silicate_Area_Simpson',
+    Combo_Area.insert(3, 'HW:LW_Simpson',
                       Combo_Area['Water_Simpson_Area']/Combo_Area['Silicate_Simpson_Area'])
 
-    cols_to_move=['Olivine filename', 'MI filename', 'H2O_vs_Silicate_Area_Trapezoid', 'H2O_vs_Silicate_Area_Simpson',
+    cols_to_move=['Olivine filename', 'MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
      'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
 
 

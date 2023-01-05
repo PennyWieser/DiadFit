@@ -18,7 +18,7 @@ encode="ISO-8859-1"
 ## Functions for getting file names
 
 
-def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True):
+def get_files(path, ID_str=None, file_ext='txt', exclude_str=None, sort=True):
     """ This function takes a user path, and extracts all files which contain the ID_str
 
     Parameters
@@ -28,8 +28,8 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
         Folder user wishes to read data from
     sort: bool
         If true, sorts files alphabetically
-    ID_str: str
-        Finds all files containing this string (e.g. Ne, NE)
+    ID_str: list
+        Finds all files containing this string (e.g. ['Ne', 'NE']
     exclude_str: str
         Excludes files with this string in the name
     file_ext: str
@@ -45,7 +45,11 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
     Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
 
     # Take only files with the right file extension
-    Allfiles_type=[item for item in Allfiles if file_ext in item and ID_str in item]
+    if ID_str is not None:
+        Allfiles_type=[item for item in Allfiles if file_ext in item and ID_str in item]
+    else:
+        Allfiles_type=[item for item in Allfiles if file_ext in item]
+
 
     if exclude_str is None:
         Ne_files=Allfiles_type
@@ -61,41 +65,7 @@ def get_Ne_files(path, ID_str='Ne', file_ext='txt', exclude_str=None, sort=True)
     return Ne_files
 
 
-def get_diad_files(path, sort=True, file_ext='txt', exclude_str=None, exclude_type='.png'):
-    """ This function takes a user path, and extracts all files which dont contain the excluded string and type
 
-    Parameters
-    -----------
-
-    path: str
-        Folder user wishes to read data from
-    sort: bool
-        If true, sorts files alphabetically
-    file_ext: str
-        File format. Default txt, could also enter csv etc.
-    exclude_str: str
-        List of strings to exclude. Can be as long as you want.
-
-
-    Returns
-    -----------
-    Returns file names as a list.
-
-    """
-
-
-    Allfiles = [f for f in listdir(path) if isfile(join(path, f))]
-
-    # Take only files with the right file extension
-    Allfiles_type=[item for item in Allfiles if file_ext in item]
-    if exclude_str is None:
-        files_filt=Allfiles_type
-    else:
-        files_filt=[x for x in Allfiles_type if not any(e in x for e in exclude_str)]
-
-
-
-    return files_filt
 
 
 

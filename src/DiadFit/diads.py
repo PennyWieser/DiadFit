@@ -52,6 +52,8 @@ def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None
 
 
 
+
+
 @dataclass
 class diad_id_config:
     # Exclude a range, e.g. cosmic rays
@@ -687,6 +689,7 @@ def plot_diad_groups(*, x_cord,  Weak_np=None, Medium_np=None, Strong_np=None, y
     ax2.set_title('Strong, N='+str(Num_Strong))
     plt.subplots_adjust(wspace=0)
 
+    return fig
 
 
 def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII',
@@ -4086,7 +4089,7 @@ encode="ISO-8859-1"
 
 
 def assess_diad1_skewness(*,  config1: diad1_fit_config=diad1_fit_config(), int_cut_off=0.3, path=None, filename=None, filetype=None, Diad_files=None,
-exclude_range1=None, exclude_range2=None, dpi=300, skewness='abs'):
+exclude_range1=None, exclude_range2=None, dpi=300, skewness='abs', height=1, prominence=5, width=0.5):
     """ Assesses Skewness of Diad peaks. Useful for identifying mixed L + V phases
     (see DeVitre et al. in review)
 
@@ -4170,7 +4173,7 @@ exclude_range1=None, exclude_range2=None, dpi=300, skewness='abs'):
 
     # Use Scipy find peaks to get the biggest peak
     height=1
-    peaks = find_peaks(y_cub, height)
+    peaks = find_peaks(y_cub, height=height, prominence=prominence, width=width)
     peak_height=peaks[1]['peak_heights']
     peak_pos = x_new[peaks[0]]
 
@@ -4331,7 +4334,7 @@ exclude_range1=None, exclude_range2=None, dpi=300, skewness='abs'):
 
 
 def assess_diad2_skewness(*, config1: diad2_fit_config=diad2_fit_config(), int_cut_off=0.3, skewness='dir',path=None, filename=None, filetype=None,
-                        exclude_range1=None, exclude_range2=None):
+                        exclude_range1=None, exclude_range2=None, height=1, prominence=5, width=0.5):
 
     """ Assesses Skewness of Diad peaks. Useful for identifying mixed L + V phases
     (see DeVitre et al. in review)
@@ -4381,7 +4384,7 @@ def assess_diad2_skewness(*, config1: diad2_fit_config=diad2_fit_config(), int_c
 # First, do the background subtraction
     y_corr_diad2, Py_base_diad2, x_diad2,  Diad_short, Py_base_diad2, Pf_baseline,  Baseline_ysub_diad2, Baseline_x_diad2, Baseline, span=remove_diad_baseline(
     path=path, filename=filename, filetype=filetype, exclude_range1=exclude_range1, exclude_range2=exclude_range2, N_poly=config1.N_poly_bck_diad2,
-    lower_bck=config1.lower_bck_diad2, upper_bck=config1.upper_bck_diad2, plot_figure=config1.plot_figure)
+    lower_bck=config1.lower_bck_diad2, upper_bck=config1.upper_bck_diad2, plot_figure=False)
 
 
 
@@ -4403,8 +4406,7 @@ def assess_diad2_skewness(*, config1: diad2_fit_config=diad2_fit_config(), int_c
 
 
 # Use Scipy find peaks to get that cubic peak
-    height=1
-    peaks = find_peaks(y_cub, height)
+    peaks = find_peaks(y_cub, height=height, prominence=prominence, width=width)
     peak_height=peaks[1]['peak_heights']
     peak_pos = x_new[peaks[0]]
 
@@ -4557,7 +4559,7 @@ def assess_diad2_skewness(*, config1: diad2_fit_config=diad2_fit_config(), int_c
 
 
 def loop_diad_skewness(*, Diad_files, path=None, filetype=None, file_ext='.txt', skewness='abs', sort=False, int_cut_off=0.15,
-config_diad1: diad1_fit_config=diad1_fit_config(), config_diad2: diad2_fit_config=diad2_fit_config()):
+config_diad1: diad1_fit_config=diad1_fit_config(), config_diad2: diad2_fit_config=diad2_fit_config(), prominence=10, width=1, height=1):
     """ Loops over all supplied files to calculate skewness for multiple spectra.
 
 
@@ -4612,19 +4614,27 @@ config_diad1: diad1_fit_config=diad1_fit_config(), config_diad2: diad2_fit_confi
         print('working on file #'+str(i))
 
         data_diad1=assess_diad1_skewness(config1=config_diad1,
-        int_cut_off=int_cut_off,
+        int_cut_off=int_cut_off, prominence=prominence, height=height, width=width,
         skewness=skewness, path=path, filename=filename,
         filetype=filetype)
 
         data_diad2=assess_diad2_skewness(config1=config_diad2,
-        int_cut_off=int_cut_off,
+        int_cut_off=int_cut_off, prominence=prominence, height=height, width=width,
         skewness=skewness, path=path, filename=filename,
         filetype=filetype)
 
 
-        df_diad1 = pd.concat([df_diad1, data_diad1], axis=1)
-        df_diad2 =  pd.concat([df_diad2, data_diad2], axis=1)
+        df_diad1 = pd.concat([df_diad1, data_diad1], axis=0)
+        df_diad2 =  pd.concat([df_diad2, data_diad2], axis=0)
+
+
+
     df_combo=pd.concat([df_diad1, df_diad2], axis=1)
+
+    cols_to_move=['filename', 'Skewness_diad1', 'Skewness_diad2']
+
+    df_combo = df_combo[cols_to_move + [
+        col for col in df_combo.columns if col not in cols_to_move]]
 
 
 
