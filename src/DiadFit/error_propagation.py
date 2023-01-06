@@ -294,7 +294,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
         # Convert to densities for MC
 
 
-        MC_T=convert_co2_density_depth_Coolprop(T_K=df_synthetic['T_K_with_noise'],
+        MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
                                         CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
                                        crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
                                        d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
@@ -304,7 +304,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
         # Singular density calculation
 
-        Densities=convert_co2_density_depth_Coolprop(T_K=T_K_i,
+        Densities=convert_co2_dens_press_depth(T_K=T_K_i,
                                        crust_dens_kgm3=crust_dens_kgm3,
                     CO2_dens_gcm3=CO2_density_gcm3_i, output='df', d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
 

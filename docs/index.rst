@@ -66,6 +66,19 @@ Welcome to DiadFits documentation!
 
 .. toctree::
    :maxdepth: 2
+   :caption: Quantifying H2O:Silicate areas in glasses
+
+   Examples/Example4_H2OQuant_Glass/H2O_Fitting
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Quantifying H2O:Silicate areas in Ol MIs
+
+   Examples/Example4b_H2OQuant_MI/H2O_Fitting_MI
+   
+
+.. toctree::
+   :maxdepth: 2
    :caption: CO2 density to P and depth 
 
    Examples/Example5_FI_density_to_depth/Fluid_Inclusion_Density_to_Depth
@@ -75,11 +88,6 @@ Welcome to DiadFits documentation!
    %   
 
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Quantifying H2O:Silicate proportions in MI VB 
-
-   Examples/Example4_H2OQuant/H2O_Fitting
 
    
    %   

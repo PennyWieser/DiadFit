@@ -364,8 +364,12 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     # Parameter for amount of noise between diads vs. height of peaks
     between_diads_x=(x>df_out['Diad1_pos'].iloc[0]+20)&(x<df_out['Diad2_pos'].iloc[0]-30)
     std_bet_diad=np.std(y[between_diads_x])
-    noise_vs_peak=df_out['Diad1_prom']/std_bet_diad
-    df_out['Diad1_prom/std_betweendiads']=noise_vs_peak
+    noise_vs_peak_Diad1=df_out['Diad1_prom']/std_bet_diad
+    noise_vs_peak_Diad2=df_out['Diad2_prom']/std_bet_diad
+    df_out['Diad1_prom/std_betweendiads']=noise_vs_peak_Diad1
+    df_out['Diad2_prom/std_betweendiads']=noise_vs_peak_Diad2
+
+    df_out['Left_vs_Right']=Med_LHS_diad1/Med_RHS_diad2
 
 
 

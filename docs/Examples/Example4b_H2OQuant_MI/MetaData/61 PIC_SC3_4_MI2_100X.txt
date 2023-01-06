@@ -1,0 +1,25 @@
+Video Image--071
+
+General:
+System ID: 	100-1200-1896
+Start Time: 	1:36:06 PM
+Start Date: 	Wednesday, March 9, 2022
+Duration: 	0h 0m 0s
+User Name: 	Witec
+
+Video System:
+Objective Name: 	Zeiss LD EC Epiplan-Neofluar Dic 100x / 0.75
+Objective Magnification: 	100
+Image Width [µm]: 	109.794
+Image Height [µm]: 	68.622
+Camera Exposure [s]: 	1/25
+Camera Gain [dB]: 	11.50
+
+Illumination:
+Reflection Light [%]: 	Off
+Transmission Light [%]: 	100.00
+
+Sample Location (global position):
+Position X [µm]: 	2085.000
+Position Y [µm]: 	-4490.500
+Position Z [µm]: 	0.000

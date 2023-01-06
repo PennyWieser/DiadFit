@@ -394,7 +394,7 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
 ## Actual functions doing the conversions
 
-def convert_co2_density_depth_Coolprop(T_K=None,
+def convert_co2_dens_press_depth(T_K=None,
     CO2_dens_gcm3=None,
     crust_dens_kgm3=None, output='kbar',
     g=9.81, model=None,

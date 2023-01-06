@@ -1,0 +1,2 @@
+,Olivine filename,MI filename,H2O_vs_Silicate_Area_Trapezoid,H2O_vs_Silicate_Area_Simpson,Water_Trapezoid_Area,Water_Simpson_Area,Silicate_Trapezoid_Area,Silicate_Simpson_Area,Silicate_LHS_Back1,Silicate_LHS_Back2,Silicate_RHS_Back1,Silicate_RHS_Back2,Silicate_N_Poly,Water_LHS_Back1,Water_LHS_Back2,Water_RHS_Back1,Water_RHS_Back2,Water_N_Poly
+0,03 CC14_MI2_Ol_96mw.txt,02 CC14_MI2_H2O_96mw.txt,0.38503327652345093,0.38490047208797334,211040.0550439209,210927.01505060337,548108.6127138085,548004.0435034686,200,300,1240,1500,2,2600,2750,3750,4100,2

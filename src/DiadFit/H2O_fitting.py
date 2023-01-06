@@ -6,7 +6,8 @@ from scipy.interpolate import interp1d
 from scipy.signal import find_peaks
 import scipy
 from scipy import stats
-
+from dataclasses import dataclass
+from typing import Tuple, Optional
 from DiadFit.importing_data_files import *
 
 ##
@@ -507,9 +508,91 @@ override=False, flip=False, plot_figure=True, dpi=200):
     return Spectra
 
 
+def schiavi_bck_pos(comp):
+    """ Peak positions from Shiavi et al.
+    """
+    if comp=='basanite':
+        lower_range_sil=[340, 360]
+        mid_range1_sil=[630, 640]
+        mid_range2_sil=[np.nan, np.nan]
+        upper_range_sil=[1190, 1200]
+    if comp=='basalt':
+        lower_range_sil=[300, 340]
+        mid_range1_sil=[630, 640]
+        mid_range2_sil=[800,830]
+        upper_range_sil=[1200, 1250]
+    if comp=='andesite':
+        lower_range_sil=[230,250]
+        mid_range1_sil=[645, 700]
+        mid_range2_sil=[825, 840]
+        upper_range_sil=[1230, 1250]
+    if comp=='rhyolites':
+        lower_range_sil=[190, 210]
+        mid_range1_sil=[670, 710]
+        mid_range2_sil=[840, 845]
+        upper_range_sil=[1250, 1260]
+
+    return lower_range_sil, mid_range1_sil, mid_range2_sil, upper_range_sil
 
 
-def fit_area_for_silicate_region(*, path, filename, Spectra=None, lower_range_sil=[200, 300], upper_range_sil=[1240, 1500],
+@dataclass
+class Sil_bck_pos_Schiavis_rhyolite:
+    """
+    Testing the documentation for these
+    """
+    # What model to use
+
+    lower_range_sil: [Tuple[float, float]]=(190, 210)
+    mid_range1_sil: [Tuple[float, float]]=(670, 710)
+    mid_range2_sil: [Tuple[float, float]]=(840, 845)
+    upper_range_sil: [Tuple[float, float]]=(1250, 1260)
+
+
+@dataclass
+class Sil_bck_pos_Schiavis_andesite:
+    """
+    Testing the documentation for these
+    """
+    # What model to use
+
+    lower_range_sil: [Tuple[float, float]]=(230,250)
+    mid_range1_sil: [Tuple[float, float]]=(645, 700)
+    mid_range2_sil: [Tuple[float, float]]=(825, 840)
+    upper_range_sil: [Tuple[float, float]]=(1230, 1250)
+
+
+
+@dataclass
+class Sil_bck_pos_Schiavis_basalt:
+    """
+    Testing the documentation for these
+    """
+    # What model to use
+
+    lower_range_sil: [Tuple[float, float]]=(300, 340)
+    mid_range1_sil: [Tuple[float, float]]=(630, 640)
+    mid_range2_sil: [Tuple[float, float]]=(800,830)
+    upper_range_sil: [Tuple[float, float]]=(1200, 1250)
+
+
+@dataclass
+class Sil_bck_pos_Schiavis_basanite:
+    """
+    Testing the documentation for these
+    """
+    # What model to use
+
+    lower_range_sil: [Tuple[float, float]]=(340, 360)
+    mid_range1_sil: [Tuple[float, float]]=(630, 640)
+    mid_range2_sil: [Tuple[float, float]]=(np.nan, np.nan)
+    upper_range_sil: [Tuple[float, float]]=(1190, 1200)
+
+
+
+
+
+def fit_area_for_silicate_region(*, path, filename, Spectra=None,
+config1: Sil_bck_pos_Schiavis_basalt(),
 sigma_sil=5, exclude_range1_sil=None, exclude_range2_sil=None, N_poly_sil=2, plot_figure=True, save_fig=True,
 fit_sil='poly', dpi=200):
 
@@ -584,11 +667,17 @@ fit_sil='poly', dpi=200):
         ((Sil_old[:, 0]>=exclude_range2_sil[0]) & (Sil_old[:, 0]<=exclude_range2_sil[1]))
         ]
 
+    lower_range_sil=config1.lower_range_sil
+    upper_range_sil=config1.upper_range_sil
+    mid_range1_sil= config1.mid_range1_sil
+    mid_range2_sil=config1.mid_range2_sil
+
 
 
     # Now we calculate the edge of the baseline
     lower_0baseline_sil=lower_range_sil[0]
     upper_0baseline_sil=lower_range_sil[1]
+
     lower_1baseline_sil=upper_range_sil[0]
     upper_1baseline_sil=upper_range_sil[1]
 
@@ -610,6 +699,10 @@ fit_sil='poly', dpi=200):
     Baseline_with_outl_sil=Sil_short[
     ((Sil_short[:, 0]<upper_0baseline_sil) &(Sil_short[:, 0]>lower_0baseline_sil))
          |
+    ((Sil_short[:, 0]<mid_range1_sil[1]) &(Sil_short[:, 0]>mid_range1_sil[0]))
+         |
+    ((Sil_short[:, 0]<mid_range2_sil[1]) &(Sil_short[:, 0]>mid_range2_sil[0]))
+    |
     ((Sil_short[:, 0]<upper_1baseline_sil) &(Sil_short[:, 0]>lower_1baseline_sil))]
 
     # Calculates the median for the baseline and the standard deviation
@@ -945,15 +1038,20 @@ def stitch_dataframes_together(df_sil=None, df_water=None, Ol_file=None, MI_file
 
     """
     Combo_Area=pd.concat([df_sil, df_water], axis=1)
-    Combo_Area.insert(0, 'Olivine filename', Ol_file)
+    if Ol_file is not None:
+        Combo_Area.insert(0, 'Olivine filename', Ol_file)
     Combo_Area.insert(1, 'MI filename', MI_file)
     Combo_Area.insert(2, 'HW:LW_Trapezoid',
                       Combo_Area['Water_Trapezoid_Area']/Combo_Area['Silicate_Trapezoid_Area'])
     Combo_Area.insert(3, 'HW:LW_Simpson',
                       Combo_Area['Water_Simpson_Area']/Combo_Area['Silicate_Simpson_Area'])
-
-    cols_to_move=['Olivine filename', 'MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
+    if Ol_file is not None:
+        cols_to_move=['Olivine filename', 'MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
      'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
+    else:
+        cols_to_move=['MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
+     'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
+
 
 
     Combo_Area = Combo_Area[cols_to_move + [
