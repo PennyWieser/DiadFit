@@ -22,7 +22,7 @@ def rasmussen(P_kbar):
 
 def hill_zucca(P_kbar):
     """ Parameterization of Hill and Zucca (1987),
-    as given in Putirka (2017) Down the Crater Elements supplement
+    as given in Putirka (2017) Down the Crater Elements supplement for Hawaii
     """
     P=P_kbar
 
