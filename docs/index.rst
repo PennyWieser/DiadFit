@@ -70,11 +70,14 @@ Welcome to DiadFits documentation!
 
    Examples/Example4_H2OQuant_Glass/H2O_Fitting
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Quantifying H2O:Silicate areas in Ol MIs
 
    Examples/Example4b_H2OQuant_MI/H2O_Fitting_MI
+   Examples/Example4b_H2OQuant_MI/H2O_Fitting_MI_AutoLoop
+   
    
 
 .. toctree::

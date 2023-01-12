@@ -431,13 +431,17 @@ def convert_co2_dens_press_depth(T_K=None,
             Depth_km=convert_pressure_to_depth(P_kbar=P_kbar, model=model)
 
 
-        if isinstance(CO2_dens_gcm3, np.float64):
+        if isinstance(CO2_dens_gcm3, np.float64) or isinstance(CO2_dens_gcm3, np.float):
             length=1
+        elif isinstance(CO2_dens_gcm3, pd.Series):
+            length=len(CO2_dens_gcm3)
         else:
-            if np.shape(CO2_dens_gcm3)[0]==1:
-                length=1
-            else:
-                length=2
+            print(type(CO2_dens_gcm3))
+        # else:
+        #     if np.shape(CO2_dens_gcm3)[0]==1:
+        #         length=1
+        #     else:
+        #         length=2
 
         if length==1:
 

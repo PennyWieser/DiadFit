@@ -18,7 +18,7 @@ encode="ISO-8859-1"
 ## Functions for getting file names
 
 
-def get_files(path, ID_str=None, file_ext='txt', exclude_str=None, sort=True):
+def get_files(path, ID_str=None, file_ext='txt', exclude_str=None, exclude_type=None, sort=True):
     """ This function takes a user path, and extracts all files which contain the ID_str
 
     Parameters

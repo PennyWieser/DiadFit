@@ -9,10 +9,39 @@ from scipy import stats
 from dataclasses import dataclass
 from typing import Tuple, Optional
 from DiadFit.importing_data_files import *
-
+from numpy import trapz
+from scipy.integrate import simps
 ##
 def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
                          prefix=True, str_prefix=" ", file_type='.txt'):
+
+    """ Extracts the names of the crystal and MI samples from a list of filenames
+
+    Parameters
+    ------------
+    files (list): A list of filenames.
+
+    char_xstal (str), char_MI (str):
+        The character or string used to split the filenames into parts. E.g. '_' if the filename is of the form 'FM_7_MI'.
+
+    pos_xstal (int): The index of the part of the split filename that corresponds to the crystal sample name.
+
+
+
+    pos_MI (int): The index of the part of the split filename that corresponds to the MI sample name.
+
+    prefix (bool, optional):
+        If True, removes prefix. E.g. WITEC instruments where 01 is appended onto the first file.
+
+    str_prefix (str, optional): The prefix that the filenames should have if `prefix` is True. Default is " ".
+
+    file_type (str, optional): The file extension of the filenames. Default is ".txt".
+
+    Returns:
+        df_out (pandas DataFrame): A dataframe with columns "filename", "crystal_name", and "MI_name", containing the input filenames, the extracted crystal sample names, and the extracted MI sample names, respectively.
+
+    """
+
     file_simple=pf.extracting_filenames_generic(names=files,
     prefix=prefix, str_prefix=str_prefix,
    file_type=file_type)
@@ -32,7 +61,6 @@ def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
 def find_olivine_peak_trough_pos(smoothed_ol_y, x_new, height=1):
 
     """" This function identifies the peaks and troughs in the Olivine spectra
-
 
     Parameters
     -----------
@@ -77,8 +105,8 @@ def find_olivine_peak_trough_pos(smoothed_ol_y, x_new, height=1):
 
     return peak_pos_Ol, peak_height_Ol, trough_y, trough_x
 
-def smooth_and_trim_around_olivine(x_range=[800,900], x_max=900, Ol_spectra=None,
-                                   MI_spectra=None):
+def smooth_and_trim_around_olivine(filename, x_range=[800,900], x_max=900, Ol_spectra=None,
+                                   MI_spectra=None, plot_figure=True):
     """
     Takes melt inclusion and olivine spectra, and trims into the region around the olivine peaks,
     and fits a cubic spline (used for unmixing spectra)
@@ -87,8 +115,10 @@ def smooth_and_trim_around_olivine(x_range=[800,900], x_max=900, Ol_spectra=None
     -----------
     x_range: list
         range of x coordinates to smooth between (e.g. [800, 900] by default
+
     Ol_spectra: nd.array
         numpy array of olivine spectra (x is wavenumber, y is intensity)
+
     MI_spectra: nd.array
         numpy array of melt inclusion spectra (x is wavenumber, y is intensity)
 
@@ -140,25 +170,29 @@ def smooth_and_trim_around_olivine(x_range=[800,900], x_max=900, Ol_spectra=None
         smoothed_ol_y=y_cub_Ol, x_new=x_new, height=1)
 
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,3.5))
-    ax1.plot(Ol_spectra[:, 0], Ol_spectra[:, 1], '-g', label='Ol Spectra')
-    ax1.plot(MI_spectra[:, 0], MI_spectra[:, 1], '-',
-             color='salmon', label='MI Spectra')
+    if plot_figure is True:
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,3.5))
+        fig.suptitle('file='+filename)
+        ax1.plot(Ol_spectra[:, 0], Ol_spectra[:, 1], '-g', label='Ol Spectra')
+        ax1.plot(MI_spectra[:, 0], MI_spectra[:, 1], '-',
+                color='salmon', label='MI Spectra')
 
-    ax2.plot(Filt_MI[:, 0], Filt_MI[:, 1], '+', color='salmon')
-    ax2.plot(Filt_Ol[:, 0], Filt_Ol[:, 1], '+g')
-    ax2.plot(x_new, y_cub_MI, '-', color='salmon', label='MI Spectra')
-    ax2.plot(x_new, y_cub_Ol, '-g', label='Ol Spectra')
-    ax2.plot(peak_pos_Ol, peak_height_Ol, '*k',mfc='yellow', ms=10, label='Peaks')
-    ax2.plot(trough_x, trough_y, 'dk', mfc='cyan', ms=10, label='Trough')
+        ax2.plot(Filt_MI[:, 0], Filt_MI[:, 1], '+', color='salmon')
+        ax2.plot(Filt_Ol[:, 0], Filt_Ol[:, 1], '+g')
+        ax2.plot(x_new, y_cub_MI, '-', color='salmon', label='MI Spectra')
+        ax2.plot(x_new, y_cub_Ol, '-g', label='Ol Spectra')
+        ax2.plot(peak_pos_Ol, peak_height_Ol, '*k',mfc='yellow', ms=10, label='Peaks')
+        ax2.plot(trough_x, trough_y, 'dk', mfc='cyan', ms=10, label='Trough')
 
-    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
-    ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
-    ax1.set_ylabel('Intensity')
-    ax2.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
-                      ncol=2, mode="expand", borderaxespad=0.)
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax1.set_ylabel('Intensity')
+        ax2.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+                        ncol=2, mode="expand", borderaxespad=0.)
 
-    return x_new, y_cub_MI, y_cub_Ol, peak_pos_Ol, peak_height_Ol, trough_x, trough_y, fig
+        return x_new, y_cub_MI, y_cub_Ol, peak_pos_Ol, peak_height_Ol, trough_x, trough_y, fig
+    else:
+        return x_new, y_cub_MI, y_cub_Ol, peak_pos_Ol, peak_height_Ol, trough_x, trough_y
 
 
 
@@ -177,11 +211,11 @@ def trough_or_peak_higher(spectra_x, spectra_y, peak_pos_x,
 
     spectra_y: y coordinates of spectra to test
 
-    peak_pos_x: x positions of 2 olivine peaks
+    peak_pos_x: x positions of 2 olivine peaks (from find_olivne_peak_trough_pos)
 
-    trough_pos_x: x position of trough
+    trough_pos_x: x position of trough (from find_olivne_peak_trough_pos)
 
-    trough_pos_y: y position of trough
+    trough_pos_y: y position of trough (from find_olivne_peak_trough_pos)
 
     av_width: averages +- 1 width either side of the peak and troughs when doing assesment and regression
 
@@ -265,45 +299,56 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
                                X_min=0, X_max=1, plot_figure=True, dpi=200):
 
     """
-    Makes mixed spectra from  measured MI  - measured Ol * X, where X
-    is a factor the user can set determining the mixing proportions to test
+    This function unmixes glass and olivine spectra, and fits the best fit proportion where the olivine peak and trough disapears. Specifically, it calculates the mixed spectra by taking the measured MI spectra and subtracting X*Ol spectra, where X is the mixing proportions
 
     Parameters
     -----------
     smoothed_Ol_y: np.array
-        y coordinates of olivine around peak region after fitting cubic spline
+        y coordinates of olivine around peak region (from the function smooth_and_trim_around_olivine)
 
     smoothed_MI_y: np.array
-        y coordinates of melt inclusion around peak region after fitting cubic spline
+        y coordinates of melt inclusion around peak region (from the function smooth_and_trim_around_olivine)
 
     x_new: np.array
-        x coordinates from smoothed Ol and MI curves
+        x coordinates from smoothed Ol and MI curves (from the function smooth_and_trim_around_olivine)
 
     Ol_Spectra: np.array
-        Full olivine spectra, not trimmed or smoothed
+        Full olivine spectra, not trimmed or smoothed (from the function get_data)
 
     MI_Spectra: np.array
-        Full MI spectra, not trimmed or smoothed
+        Full MI spectra, not trimmed or smoothed  (from the function get_data)
 
     peak_pos_Ol: list
-        Peak positions (x) of Olivine peaks
+        Peak positions (x) of Olivine peaks (from the function smooth_and_trim_around_olivine)
 
     trough_x: float, int
-        Peak position (x) of olivine trough
+        Peak position (x) of Olivine trough (from the function smooth_and_trim_around_olivine)
 
     x_min:  float or int
-        Minimum x for unmixing
+        Minimum mixing proportion allowed
 
     x_max:  float or int
-        Maximum x for unmixing
+        Maximum mixing proportion allowed
 
     N_steps: int
-        Number of mixing steps to use between X_min and X_max
+        Number of mixing steps to use between X_Max and X_Max. E.g. Precisoin of mixed value.
 
 
 
     Returns:
     -----------
+    MI_Mix_Best: np.array
+        Spectra of best-fit unmixed spectra (e.g. where olivine peak and trough the smallest)
+    ideal_mix: float
+        Best fit mixing proportion (i.e. X)
+    Dist: float
+        Vertical distance between the olivine peak and trough (in intensity units)
+    MI_Mix: np.array
+        Umixed spectra for each of the N_steps
+    X: np.array
+        X coordinates of unmixed spectra (along with MI_Mix and X allows plots of unmixing)
+
+    if plot_figure is True, also returns a plot showing the unmixing process
 
 
     """
@@ -340,8 +385,8 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
     # Closest point to zero
     val=np.argmax(y_cub_mix>0)
     ideal_mix=x_new_mix[val]
-    print('best fit proportion')
-    print(ideal_mix)
+    #print('best fit proportion')
+    #print(ideal_mix)
 
     MI_Mix_Best_syn=(smoothed_MI_y-smoothed_Ol_y*ideal_mix)/(1-ideal_mix)
     MI_Mix_Best=(MI_spectra- Ol_spectra*ideal_mix)/(1-ideal_mix)
@@ -349,7 +394,7 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
     if plot_figure is True:
 
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12,10))
-
+        fig.suptitle('file='+filename)
         for i in range(0, N_steps):
             ax1.plot(x_new, MI_Mix[i, :], '-k')
             ax1.plot([peak_pos_Ol[0], peak_pos_Ol[0]], [0.7, 1.5], '-', color='yellow')
@@ -398,24 +443,25 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
 def check_if_spectra_negative(*, path, filename, Spectra=None, peak_pos_Ol=None, tie_x_cord=2000,
 override=False, flip=False, plot_figure=True, dpi=200):
     """
-    Checks if spectra is negative, e.g. if the spectra N units in is higher or lower
-    than the peak position of the olivine. This may depend on your Raman system, so you can always adjust
+    This function checks if the unmixed specta is negative, based on two tie points.
+    The first tie point is the mean y coordinate of the peak position of olivine +5 wavenumbers,
+    and the second tie point (tie_x_cord) is an optional input. If the specta is inverte, this function inverts it.
 
 
     Parameters
     -----------
     Spectra: np.array
-        Spectra from the unmixing function
+        Spectra from the function make_evaluate_mixed_spectra
 
     peak_pos_Ol: list
-        Olivine peak positions
+        Olivine peak positions from the function find_olivine_peak_trough_pos
 
     tie_x_cord: int or float
-        Coordinate to use as a tie point, e.g. is olivine peak higher or lower than this?
+        X cooordinate to use as a tie point to ask whether the olivine peak's y coordinate is higher or lower than this.
 
     override: bool
-        If False, function determins if it wants to invert the spectra,
-        if true you can override
+        if False, function flips the spectra if its upsideown,
+        if True, you can use the input 'flip' to manually flip the spectra
     flip: bool
         If override is true, flip=False leaves spectra how it is, True flips the y axis.
 
@@ -423,6 +469,7 @@ override=False, flip=False, plot_figure=True, dpi=200):
     -----------
 
     Spectra: np.array
+        Flipped or unflipped spectra
 
 
     """
@@ -444,40 +491,45 @@ override=False, flip=False, plot_figure=True, dpi=200):
     y_init=Spectra[:, 1]
 
 
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,3.5))
-    ax1.set_title('Entered Spectra')
-    ax2.set_title('Returned Spectra')
-    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
-    ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
-    ax1.set_ylabel('Intensity')
-    ax2.set_ylabel('Intensity')
-    ax1.plot(x, y_init, '-r')
-    ax1.plot(tie_x_cord, tie_y_cord, '*k',  ms=10,  label='tie_cord')
-    ax1.plot(peak_pos_Ol[0], mean_around_peak, '*k', mfc='yellow', ms=15,label='Av Ol coordinate')
+    if plot_figure is True:
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,3.5))
+        fig.suptitle('file='+filename)
+        ax1.set_title('Entered Spectra')
+        ax2.set_title('Returned Spectra')
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax1.set_ylabel('Intensity')
+        ax2.set_ylabel('Intensity')
+        ax1.plot(x, y_init, '-r')
+        ax1.plot(tie_x_cord, tie_y_cord, '*k',  ms=10,  label='tie_cord')
+        ax1.plot(peak_pos_Ol[0], mean_around_peak, '*k', mfc='yellow', ms=15,label='Av Ol coordinate')
 
     if override is False:
         if mean_around_peak>tie_y_cord:
             y=y_init
 
 
-            print('peak positive, spectra left as is')
+            #print('peak positive, spectra left as is')
 
-            ax2.plot(x, y, '-r')
-            ax2.plot(tie_x_cord, tie_y_cord, '*k',  ms=10,  label='tie_cord')
-            ax2.plot(peak_pos_Ol[0], mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
-            ax2.legend()
+            if plot_figure is True:
+
+                ax2.plot(x, y, '-r')
+                ax2.plot(tie_x_cord, tie_y_cord, '*k',  ms=10,  label='tie_cord')
+                ax2.plot(peak_pos_Ol[0], mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
+                ax2.legend()
 
         else:
-            print('Peak negative, spectra inverted')
+            #print('Peak negative, spectra inverted')
 
             y=-Spectra[:, 1]
-            ax2.plot(x, y, '-r')
-            ax2.plot(tie_x_cord, -tie_y_cord, '*k', ms=10, label='tie_cord')
-            ax2.plot(peak_pos_Ol[0], -mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
-
-            ax2.legend()
             Spectra=np.column_stack((x, y))
+            if plot_figure is True:
+                ax2.plot(x, y, '-r')
+                ax2.plot(tie_x_cord, -tie_y_cord, '*k', ms=10, label='tie_cord')
+                ax2.plot(peak_pos_Ol[0], -mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
+
+                ax2.legend()
+
 
 
 
@@ -491,148 +543,210 @@ override=False, flip=False, plot_figure=True, dpi=200):
             print('spectra inverted')
             x=Spectra[:, 0]
             y=-Spectra[:, 1]
-            plt.plot(x, y, '-r')
+            #plt.plot(x, y, '-r')
             Spectra=np.column_stack((x, y))
 
-    fig.tight_layout()
-    path3=path+'/'+'H2O_Silicate_images'
-    if os.path.exists(path3):
-        out='path exists'
-    else:
-        os.makedirs(path+'/'+ 'H2O_Silicate_images', exist_ok=False)
+        if plot_figure is True:
+            fig.tight_layout()
+            path3=path+'/'+'H2O_Silicate_images'
+            if os.path.exists(path3):
+                out='path exists'
+            else:
+                os.makedirs(path+'/'+ 'H2O_Silicate_images', exist_ok=False)
 
 
-    file=filename
-    fig.savefig(path3+'/'+'Check_if_negative_{}.png'.format(filename), dpi=dpi)
+            file=filename
+            fig.savefig(path3+'/'+'Check_if_negative_{}.png'.format(filename), dpi=dpi)
 
     return Spectra
 
 
-def schiavi_bck_pos(comp):
-    """ Peak positions from Shiavi et al.
-    """
-    if comp=='basanite':
-        lower_range_sil=[340, 360]
-        mid_range1_sil=[630, 640]
-        mid_range2_sil=[np.nan, np.nan]
-        upper_range_sil=[1190, 1200]
-    if comp=='basalt':
-        lower_range_sil=[300, 340]
-        mid_range1_sil=[630, 640]
-        mid_range2_sil=[800,830]
-        upper_range_sil=[1200, 1250]
-    if comp=='andesite':
-        lower_range_sil=[230,250]
-        mid_range1_sil=[645, 700]
-        mid_range2_sil=[825, 840]
-        upper_range_sil=[1230, 1250]
-    if comp=='rhyolites':
-        lower_range_sil=[190, 210]
-        mid_range1_sil=[670, 710]
-        mid_range2_sil=[840, 845]
-        upper_range_sil=[1250, 1260]
 
-    return lower_range_sil, mid_range1_sil, mid_range2_sil, upper_range_sil
 
 
 @dataclass
-class Sil_bck_pos_Schiavis_rhyolite:
+class sil_bck_pos_Schiavi_rhyolite:
     """
-    Testing the documentation for these
+    Configuration object for Silicate background positions from Schiavi et al. (2018) for rhyolites
+
+    Parameters
+    ----------
+    lower_range_sil, mid_range1_sil, mid_range2_sil, upper_range_sil: Tuple[float, float]
+        spectral range taken as background positions (from left to right as listed here)
+
+    fit_silicate : str
+        Type of fit for the baseline of the silicate region ('poly' or 'spline')
+
+    N_poly_silicate: int
+        Degree of polynomial fit for the baseline of the silicate region
+
+    sigma_water: int
+        Allow points on background within +-sigma_silicate * std dev of other background points
+
     """
-    # What model to use
 
     lower_range_sil: [Tuple[float, float]]=(190, 210)
     mid_range1_sil: [Tuple[float, float]]=(670, 710)
     mid_range2_sil: [Tuple[float, float]]=(840, 845)
     upper_range_sil: [Tuple[float, float]]=(1250, 1260)
+    N_poly_sil: float=3
+    sigma_sil: float = 5
 
 
 @dataclass
-class Sil_bck_pos_Schiavis_andesite:
+class sil_bck_pos_Schiavi_andesite:
     """
-    Testing the documentation for these
-    """
-    # What model to use
+    Configuration object for Silicate background positions from Schiavi et al. (2018) for andesites
+
+    Parameters
+    ----------
+    lower_range_sil, mid_range1_sil, mid_range2_sil, upper_range_sil: Tuple[float, float]
+    spectral range taken as background positions (from left to right as listed here)
+
+    fit_silicate : str
+        Type of fit for the baseline of the silicate region ('poly' or 'spline')
+    N_poly_silicate: int
+        Degree of polynomial fit for the baseline of the silicate region
+    sigma_water: int
+        Allow points on background within +-sigma_silicate * std dev of other background points
+
+"""
+
 
     lower_range_sil: [Tuple[float, float]]=(230,250)
     mid_range1_sil: [Tuple[float, float]]=(645, 700)
     mid_range2_sil: [Tuple[float, float]]=(825, 840)
     upper_range_sil: [Tuple[float, float]]=(1230, 1250)
+    N_poly_sil: float=3
+    sigma_sil: float = 5
 
 
 
 @dataclass
-class Sil_bck_pos_Schiavis_basalt:
+class sil_bck_pos_Schiavi_basalt:
     """
-    Testing the documentation for these
-    """
-    # What model to use
+    Configuration object for Silicate background positions from Schiavi et al. (2018) for basalts
+
+    Parameters
+    ----------
+    lower_range_sil, mid_range1_sil, mid_range2_sil, upper_range_sil: Tuple[float, float]
+    spectral range taken as background positions (from left to right as listed here)
+
+    fit_silicate : str
+        Type of fit for the baseline of the silicate region ('poly' or 'spline')
+    N_poly_silicate: int
+        Degree of polynomial fit for the baseline of the silicate region
+    sigma_water: int
+        Allow points on background within +-sigma_silicate * std dev of other background points
+
+"""
 
     lower_range_sil: [Tuple[float, float]]=(300, 340)
     mid_range1_sil: [Tuple[float, float]]=(630, 640)
     mid_range2_sil: [Tuple[float, float]]=(800,830)
     upper_range_sil: [Tuple[float, float]]=(1200, 1250)
+    # HW and LW from Diego
+    LW: [Tuple[float, float]]=(400, 600)
+    HW: [Tuple[float, float]]=(800, 1200)
+    N_poly_sil: float=3
+    sigma_sil: float = 5
 
 
 @dataclass
-class Sil_bck_pos_Schiavis_basanite:
+class sil_bck_pos_Schiavi_basanite:
     """
-    Testing the documentation for these
-    """
-    # What model to use
+    Configuration object for Silicate background positions from Schiavi et al. (2018) for basanites
+
+    Parameters
+    ----------
+    lower_range_sil, mid_range1_sil, mid_range2_sil, upper_range_sil: Tuple[float, float]
+    spectral range taken as background positions (from left to right as listed here)
+
+    fit_silicate : str
+        Type of fit for the baseline of the silicate region ('poly' or 'spline')
+    N_poly_silicate: int
+        Degree of polynomial fit for the baseline of the silicate region
+    sigma_water: int
+        Allow points on background within +-sigma_silicate * std dev of other background points
+
+"""
 
     lower_range_sil: [Tuple[float, float]]=(340, 360)
     mid_range1_sil: [Tuple[float, float]]=(630, 640)
     mid_range2_sil: [Tuple[float, float]]=(np.nan, np.nan)
     upper_range_sil: [Tuple[float, float]]=(1190, 1200)
+    N_poly_sil: float=3
+    sigma_sil: float = 5
+
 
 
 
 
 
 def fit_area_for_silicate_region(*, path, filename, Spectra=None,
-config1: Sil_bck_pos_Schiavis_basalt(),
-sigma_sil=5, exclude_range1_sil=None, exclude_range2_sil=None, N_poly_sil=2, plot_figure=True, save_fig=True,
+config1: sil_bck_pos_Schiavi_basalt(),
+sigma_sil=5, exclude_range1_sil=None, exclude_range2_sil=None, plot_figure=True, save_fig=True,
 fit_sil='poly', dpi=200):
 
     """
-    Fits background polynomial or spline. Integrates under curve, returns trapezoid and
+    Calculates the area of silicate peaks in a spectrum and fits a polynomial or spline curve to the baseline of the spectrum.
+
 
     Parameters
-    -----------
-    Spectra: np. array
-        Spectra with olivine subtracted from it
+    ----------
+    path : str
+        File path
 
-    lower_range_sil: list
-        LHS part of spectra to use as a background (default [200, 300])
+    filename : str
+        File name
 
-    upper_range_sil: list
-        RHS part of spectra to use as background (default [1240, 1500])
+    Spectra : numpy.ndarray, optional
+        2D array representing the spectrum data
 
-    exclude_range1_sil,  exclude_range2_sil: list or None
-        Can enter up to 2 ranges (e.g. [200, 210]) to remove, helps to trim cosmic rays
+    config1 : object
+        Configuration object for silicate peak and background positions. Default values stored in the dataclasses
+        'sil_bck_pos_Schiavi_basalt', _andesite, etc. Can tweak these as well.
 
-    fit_sil: 'poly' or 'spline'
-        Fits a polynomial or cubic spline to curve.
+    exclude_range1_silicate : list of float, optional
+        List of two numbers representing the start and end of a range of
+        wavenumbers to be excluded from the spectrum
 
-        N_poly_sil: int
-            Degree of polynomial to fit to if fit_sil='poly'
+    exclude_range2_silicate : list of float, optional
+        List of two numbers representing the start and end of a second
+        range of wavenumbers to be excluded from the spectrum
 
-    poly_figure: bool
-        if True, plots figure of silicate region and shows background, and background subtracted data
+    plot_figure : bool, optional
+        Indicates whether or not to plot the fit (default is True)
 
+    dpi : int, optional
+        Resolution of the plot in dots per inch (default is 200)
 
-
-    Returns:
-    -----------
-    dataframe of background positions, and various area calculations.
-
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns for 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area',
+        as well as parameters for the selected background positions
 
     """
 
+
     Sil=Spectra
     exclude=False
+
+    lower_range_sil=config1.lower_range_sil
+    upper_range_sil=config1.upper_range_sil
+    mid_range1_sil= config1.mid_range1_sil
+    mid_range2_sil=config1.mid_range2_sil
+    N_poly_sil=config1.N_poly_sil
+    sigma_sil=config1.sigma_sil
+    LW=(lower_range_sil[1], mid_range1_sil[0])
+    if mid_range2_sil[0]>0:
+        HW=(mid_range2_sil[1],  upper_range_sil[0])
+        MW=(mid_range1_sil[1], mid_range2_sil[0])
+    else:
+        HW=(mid_range1_sil[1],upper_range_sil[0] )
+        MW=None
+
 
 
     # These bits of code trim out the excluded regions if relevant
@@ -667,10 +781,7 @@ fit_sil='poly', dpi=200):
         ((Sil_old[:, 0]>=exclude_range2_sil[0]) & (Sil_old[:, 0]<=exclude_range2_sil[1]))
         ]
 
-    lower_range_sil=config1.lower_range_sil
-    upper_range_sil=config1.upper_range_sil
-    mid_range1_sil= config1.mid_range1_sil
-    mid_range2_sil=config1.mid_range2_sil
+
 
 
 
@@ -744,11 +855,41 @@ fit_sil='poly', dpi=200):
     y_corr_sil= Sil_short[:, 1]- Baseline_ysub_sil
 
     x_sil=Baseline_sil[:, 0]
+    xdat_sil=(Sil_short[:, 0])
+    ydat_sil=y_corr_sil
+
+    xspace_sil=xdat_sil[1]-xdat_sil[0]
+    area_trap = trapz(y_corr_sil, dx=xspace_sil)
+    area_simps = simps(y_corr_sil, dx=xspace_sil)
+    # Just the LW area
+    xsil_LW=xdat_sil[(xdat_sil>LW[0]) & (xdat_sil<LW[1])]
+    y_corr_sil_LW=y_corr_sil[(xdat_sil>LW[0]) & (xdat_sil<LW[1])]
+    xspace_sil_LW=xsil_LW[1]-xsil_LW[0]
+    area_trap_LW=trapz(y_corr_sil_LW, dx=xspace_sil_LW)
+    area_simp_LW=simps(y_corr_sil_LW, dx=xspace_sil_LW)
+
+
+    # Just the HW area
+    xsil_HW=xdat_sil[(xdat_sil>HW[0]) & (xdat_sil<HW[1])]
+    y_corr_sil_HW=y_corr_sil[(xdat_sil>HW[0]) & (xdat_sil<HW[1])]
+    xspace_sil_HW=xsil_HW[1]-xsil_HW[0]
+    area_trap_HW=trapz(y_corr_sil_HW, dx=xspace_sil_HW)
+    area_simp_HW=simps(y_corr_sil_HW, dx=xspace_sil_HW)
+
+    # MW
+    if MW is not None:
+        xsil_MW=xdat_sil[(xdat_sil>MW[0]) & (xdat_sil<MW[1])]
+        y_corr_sil_MW=y_corr_sil[(xdat_sil>MW[0]) & (xdat_sil<MW[1])]
+        xspace_sil_MW=xsil_MW[1]-xsil_MW[0]
+        area_trap_MW=trapz(y_corr_sil_MW, dx=xspace_sil_MW)
+        area_simp_MW=simps(y_corr_sil_MW, dx=xspace_sil_MW)
+
 
      # Plotting what its doing
     if plot_figure is True:
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
+        fig.suptitle('file='+filename)
         ax1.plot(Sil_plot[:, 0], Sil_plot[:, 1], '-c', label='Spectra')
         if  exclude is True:
             ax1.plot(Discard[:, 0], Discard[:, 1], '*k', label='Discarded points')
@@ -759,8 +900,7 @@ fit_sil='poly', dpi=200):
         ax1.plot(Baseline_sil[:, 0], Baseline_sil[:, 1], '.b', label='selected bck pts.')
         ax1.plot(Sil_short[:, 0], Baseline_ysub_sil, '-k', label='fitted bck')
         ax1.legend()
-        xdat_sil=(Sil_short[:, 0])
-        ydat_sil=y_corr_sil
+
 
         ax1.set_ylabel('Intensity')
         ax2.set_ylabel('Intensity')
@@ -773,6 +913,19 @@ fit_sil='poly', dpi=200):
         height_p=np.max(Sil_short[:, 1])-np.min(Sil_short[:, 1])
         #ax2.set_ylim([np.min(y_corr), 1.2*height_p ])
         ax1.set_xlabel('Wavenumber')
+        ax2_max=np.max(xdat_sil)
+        ax2_min=np.min(xdat_sil)
+        ax2.plot([ax2_min, ax2_max], [0, 0], '-k')
+
+
+        ax2.fill_between(xsil_LW, y_corr_sil_LW, color='red', label='LW', alpha=0.5)
+        ax2.fill_between(xsil_HW, y_corr_sil_HW, color='cyan', label='HW', alpha=0.5)
+        if MW is not None:
+            ax2.fill_between(xsil_MW, y_corr_sil_MW, color='yellow', label='MW', alpha=0.5)
+
+
+        ax2.legend()
+
 
         path3=path+'/'+'H2O_Silicate_images'
         if os.path.exists(path3):
@@ -787,11 +940,6 @@ fit_sil='poly', dpi=200):
 
 
 
-    from numpy import trapz
-    from scipy.integrate import simps
-    xspace_sil=xdat_sil[1]-xdat_sil[0]
-    area_trap = trapz(y_corr_sil, dx=xspace_sil)
-    area_simps = simps(y_corr_sil, dx=xspace_sil)
 
 
 
@@ -801,54 +949,85 @@ fit_sil='poly', dpi=200):
                           'Silicate_RHS_Back2':upper_range_sil[1],
                           'Silicate_N_Poly': N_poly_sil,
                           'Silicate_Trapezoid_Area':area_trap,
-                          'Silicate_Simpson_Area': area_simps}, index=[0])
+                          'Silicate_Simpson_Area': area_simps,
+                          'LW_Silicate_Trapezoid_Area':area_trap_LW,
+                          'LW_Silicate_Simpson_Area':area_simp_LW,
+                          'HW_Silicate_Trapezoid_Area':area_trap_LW,
+                          'HW_Silicate_Simpson_Area':area_simp_LW,
+                           }, index=[0])
+
+    if MW is not None:
+        df_sil['MW_Silicate_Trapezoid_Area']=area_trap_MW
+        df_sil['MW_Silicate_Simpson_Area']=area_simp_MW
     return df_sil
 
 
+@dataclass
+class water_bck_pos:
+    """ Configuration object for water peak and background positions.
 
-def fit_area_for_water_region(*, path, filename, Spectra=None, lower_range_water=[2750, 3100], upper_range_water=[3750, 4100],
-sigma_water=5, exclude_range1_water=None, exclude_range2_water=None,
-N_poly_water=2, plot_figure=True, fit_water='poly', dpi=200):
+Parameters
+    ----------
+    lower_bck_water, upper_bck_water: Tuple[float, float]
+        2 coordinates for background to left of water peak, and to right.
+    fit_water : str
+        Type of fit for the baseline of the water region ('poly' or 'spline')
+    N_poly_water : int
+        Degree of polynomial fit for the baseline of the water region
+    sigma_water: int
+        Allow points on background within +-sigma*water * std dev of other background points
 
 
     """
-    Fits background polynomial or spline. Integrates under curve, returns areas
+
+    fit_water: str='poly'
+    N_poly_water: float=3
+    lower_bck_water: [Tuple[float, float]]=(2750, 3100)
+    upper_bck_water: [Tuple[float, float]]=(3750, 4100)
+    sigma_water=5
+
+
+
+
+
+def fit_area_for_water_region(*, path, filename, Spectra=None, config1: water_bck_pos(),
+ exclude_range1_water=None, exclude_range2_water=None, plot_figure=True,  dpi=200):
+
+    """
+    Calculates the area of water peaks in a spectrum and fits a polynomial or spline curve to the baseline of the spectrum.
 
     Parameters
-    -----------
-    Spectra: np. array
-        Spectra with olivine subtracted from it
+    ----------
+    path : str
+        File path
+    filename : str
+        File name
+    Spectra : numpy.ndarray, optional
+        2D array representing the spectrum data
+    config1 : object
+        Configuration object for water peak and background positions. Default parameters stored in water_bck_pos, user can tweak.
+    exclude_range1_water : list of float, optional
+        List of two numbers representing the start and end of a range of wavenumbers to be excluded from the spectrum
+    exclude_range2_water : list of float, optional
+        List of two numbers representing the start and end of a second range of wavenumbers to be excluded from the spectrum
+    plot_figure : bool, optional
+        Indicates whether or not to plot the fit (default is True)
+    dpi : int, optional
+        Resolution of the plot in dots per inch (default is 200)
 
-    lower_range_water: list
-        LHS part of spectra to use as a background (default [2750, 3100])
-
-    upper_range_water: list
-        RHS part of spectra to use as background (default [3750, 4100])
-
-    exclude_range1_water,  exclude_range2_water: list or None
-        Can enter up to 2 ranges (e.g. [3100, 3110]) to remove, helps to trim cosmic rays
-
-    fit_sil: 'poly' or 'spline'
-        Fits a polynomial or cubic spline to curve.
-
-        N_poly_sil: int
-            Degree of polynomial to fit to if fit_sil='poly'
-
-    poly_figure: bool
-        if True, plots figure of water region and shows background, and background subtracted data
-
-
-
-    Returns:
-    -----------
-    dataframe of background positions, and various area calculations.
-
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns for 'Water_Trapezoid_Area', 'Water_Simpson_Area', as well as parameters for the selected background positions
 
     """
-
     Water=Spectra
     exclude=False
-
+    N_poly_water=config1.N_poly_water
+    fit_water=config1.fit_water
+    lower_range_water=config1.lower_bck_water
+    upper_range_water=config1.upper_bck_water
+    sigma_water=config1.sigma_water
 
 
 
@@ -946,15 +1125,24 @@ N_poly_water=2, plot_figure=True, fit_water='poly', dpi=200):
 
         N_poly_water='Spline'
 
+    xdat_water=(Water_short[:, 0])
+
     Baseline_x_water=Water_short[:, 0]
     y_corr_water= Water_short[:, 1]- Baseline_ysub_water
-
+    ydat_water=y_corr_water
     x_water=Baseline_water[:, 0]
+
+
+    xspace_water=xdat_water[1]-xdat_water[0]
+    area_trap = trapz(y_corr_water, dx=xspace_water)
+    area_simps = simps(y_corr_water, dx=xspace_water)
+
 
      # Plotting what its doing
     if plot_figure is True:
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
+        fig.suptitle('file='+filename)
         ax1.plot(Water_plot[:, 0], Water_plot[:, 1], '-c')
         ax1.set_title('Background fit')
         ax1.plot(Water_short[:, 0], Water_short[:, 1], '-r')
@@ -964,8 +1152,7 @@ N_poly_water=2, plot_figure=True, fit_water='poly', dpi=200):
 
         ax1.plot(Baseline_water[:, 0], Baseline_water[:, 1], '.b')
         ax1.plot(Water_short[:, 0], Baseline_ysub_water, '-k')
-        xdat_water=(Water_short[:, 0])
-        ydat_water=y_corr_water
+
 
         ax1.set_ylabel('Intensity')
         ax2.set_ylabel('Intensity')
@@ -978,6 +1165,8 @@ N_poly_water=2, plot_figure=True, fit_water='poly', dpi=200):
         height_p=np.max(Water_short[:, 1])-np.min(Water_short[:, 1])
 
         ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        ax2.fill_between(xdat_water, y_corr_water, color='cornflowerblue', label='Water', alpha=0.5)
+        ax2.legend()
 
         path3=path+'/'+'H2O_Silicate_images'
         if os.path.exists(path3):
@@ -992,11 +1181,7 @@ N_poly_water=2, plot_figure=True, fit_water='poly', dpi=200):
 
 
 
-    from numpy import trapz
-    from scipy.integrate import simps
-    xspace_water=xdat_water[1]-xdat_water[0]
-    area_trap = trapz(y_corr_water, dx=xspace_water)
-    area_simps = simps(y_corr_water, dx=xspace_water)
+
 
 
 
@@ -1013,27 +1198,32 @@ N_poly_water=2, plot_figure=True, fit_water='poly', dpi=200):
     ## Stitching results together nicely for output.
 
 
-def stitch_dataframes_together(df_sil=None, df_water=None, Ol_file=None, MI_file=None):
-    """ Stitches results from silicate and water peaks together, ready for output
+def stitch_dataframes_together(df_sil, df_water, MI_file, Ol_file=None):
+    """ This function stitches together results from the fit_area function for silicate and water peaks and returns a DataFrame with the combined results. The DataFrame includes peak areas and background positions for both silicate and water peaks, and adds columns for the ratios of water to silicate areas.
 
     Parameters
     -----------
 
     df_sil: pd.DataFrame
-        DataFrame of peak area and backgroudn positions from fit_area... function for silica
+        DataFrame of peak area and background positions from fit_area_for_silicate_region()
 
     df_water: pd.DataFrame
-        DataFrame of peak area and backgroudn positions from fit_area... function for water
-
-    Ol_file: str
-        Olivine file name
+        DataFrame of peak area and background positions from fit_area_for_water_region()
 
     MI_file: str
         MI file name
 
-    Parameters
+    Ol_file: str, optional
+        Olivine file name
+
+
+    Returns
     -----------
-    pd.DataFrame with columns
+    pd.DataFrame
+        DataFrame with columns for MI filename, HW:LW_Trapezoid, HW:LW_Simpson, Water_Trapezoid_Area,
+        Water_Simpson_Area, Silicate_Trapezoid_Area, and Silicate_Simpson_Area.
+        If Ol_file is provided,
+        the DataFrame will also include a column for Olivine filename.
 
 
     """
@@ -1042,9 +1232,10 @@ def stitch_dataframes_together(df_sil=None, df_water=None, Ol_file=None, MI_file
         Combo_Area.insert(0, 'Olivine filename', Ol_file)
     Combo_Area.insert(1, 'MI filename', MI_file)
     Combo_Area.insert(2, 'HW:LW_Trapezoid',
-                      Combo_Area['Water_Trapezoid_Area']/Combo_Area['Silicate_Trapezoid_Area'])
+                      Combo_Area['Water_Trapezoid_Area']/Combo_Area['HW_Silicate_Trapezoid_Area'])
     Combo_Area.insert(3, 'HW:LW_Simpson',
-                      Combo_Area['Water_Simpson_Area']/Combo_Area['Silicate_Simpson_Area'])
+                      Combo_Area['Water_Simpson_Area']/Combo_Area['HW_Silicate_Simpson_Area'])
+
     if Ol_file is not None:
         cols_to_move=['Olivine filename', 'MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
      'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
