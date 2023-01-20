@@ -247,6 +247,7 @@ Ne_array=None):
     height = peaks[1]['peak_heights']
     # This gets a list of peak positions
     peak_pos = x[peaks[0]]
+
     # Lets combine them in a dataframe
     df=pd.DataFrame(data={'pos': peak_pos,
                         'height': height})

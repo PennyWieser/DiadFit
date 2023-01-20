@@ -638,6 +638,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
             ax0.set_title('Ones filtered out (Weak)')
             ax1.set_title('Ones left (not classified yet)')
 
+
         plt.subplots_adjust(wspace=0)
 
         return Group1_df.reset_index(drop=True), Groupnot1_df.reset_index(drop=True),Group1_np_y, Groupnot1_np_y
@@ -1420,7 +1421,8 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     # Gets overridden if you have triggered any of the warnings
     refit=False
     refit_param='Flagged Warnings:'
-    spec_res=xdat[1]-xdat[0]
+    spec_res=np.abs(xdat[1]-xdat[0])
+
 
 
 
@@ -1440,7 +1442,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     # Create initial peak params
     # Set peak position to 2 spectral res units either side of the initial guess made above
-    params_ini = model_ini.make_params(center=initial_guess, max=initial_guess+spec_res*2, min=initial_guess-spec_res*2)
+    params_ini = model_ini.make_params(center=initial_guess, max=initial_guess+spec_res*5, min=initial_guess-spec_res*5)
     # Set the amplitude to within X0.1 or 10X of the guessed amplitude
     params_ini['amplitude'].set(calc_diad_amplitude, min=calc_diad_amplitude/5,
                                  max=calc_diad_amplitude*5)
@@ -1457,6 +1459,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     sigma_ini=result_ini.params.get('sigma')
     fwhm_ini=result_ini.params.get('fwhm')
 
+
     # For relatively weak peaks, you wont want a gaussian background
     if config1.fit_gauss is False:
 
@@ -1469,7 +1472,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
             pars1 = model_F.make_params()
             pars1['lz1_'+ 'amplitude'].set(calc_diad_amplitude, min=0, max=calc_diad_amplitude*10)
-            pars1['lz1_'+ 'center'].set(Center_ini, min=Center_ini-3*spec_res, max=Center_ini+3*spec_res)
+            pars1['lz1_'+ 'center'].set(Center_ini, min=Center_ini-5*spec_res, max=Center_ini+5*spec_res)
             pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
                          max=config1.diad_sigma*config1.diad_sigma_max_allowance)
             params=pars1

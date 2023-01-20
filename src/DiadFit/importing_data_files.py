@@ -134,6 +134,10 @@ def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII
 
     df_in=np.array(df)
 
+    if (df_in[0, 0]-df_in[1, 0])>0:
+        df_in=np.flipud(df_in)
+    # Check if the intrument has inverted it. The new horiba instruments do this.
+
     return df_in
 
 ## Reading different file formats
@@ -183,10 +187,10 @@ def read_HORIBA_to_df(*,  path=None, filename):
     fw.close()
     fr.close()
     if path is None:
-        print(filename)
+        #print(filename)
         df=pd.read_csv('pandas2_'+filename, sep="\t", header=None)
     else:
-        print(filename)
+        #print(filename)
         df=pd.read_csv(path+'/'+'Peak_fits_txt'+'/'+'pandas2_'+filename, sep="\t", header=None)
 
         return df
@@ -309,6 +313,169 @@ creation=creation, modification=modification)
     return df_meta
 
 
+## Functions to extract things for HORIBA
+
+## HORIBA acquisition time
+encode="ISO-8859-1"
+def extract_duration_horiba(*, path, filename):
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('#Acq.'):
+            line=l
+            break
+    return line
+
+def extract_accumulations_horiba(*, path, filename):
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('#Accumu'):
+            line=l
+            break
+    return line
+
+def extract_objective_horiba(*, path, filename):
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('#Object'):
+            line=l
+            break
+    return line
+
+def extract_date_horiba(*, path, filename):
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('#Date'):
+            line=l
+            break
+    return line
+
+def extract_spectral_center_horiba(*, path, filename):
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('#Spectro (cm-¹)'):
+            line=l
+            break
+    return line
+
+def extract_24hr_time_horiba(*, path, filename):
+
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('#Acquired'):
+            line=l
+            break
+    return line
+def extract_spectraname_horiba(*, path, filename):
+    fr = open(path+'/'+filename,  'r', encoding=encode)
+
+    while True:
+        l=fr.readline()
+        if l.startswith('#Title'):
+            line=l
+            break
+    return line
+
+
+def extract_acq_params_horiba(path, filename):
+    """ Extracts acquisition parameters from HORIBA files
+    """
+    from datetime import datetime
+    # Integration time in seconds
+    Int_str=extract_duration_horiba(path=path, filename=filename)
+    integ=float(Int_str.split()[3])
+
+    #Extracting accumulations
+    accums_str=extract_accumulations_horiba(path=path, filename=filename)
+    accums=float(accums_str.split("\t")[1].split('\n')[0])
+
+    # Doesnt seem to have, can calculate
+    Dur=integ*accums
+
+    # Objective used
+    Obj_str=extract_objective_horiba(path=path, filename=filename)
+    Obj=Obj_str.split("\t")[1].split('\n')[0]
+
+
+    date_str=extract_date_horiba(path=path, filename=filename)
+    date=date_str.split('\t')[1].split( )[0]
+    day=int(date.split('.')[0])
+    month=int(date.split('.')[1])
+    year=int(date.split('.')[2])
+    month_name=calendar.month_name[month]
+    Day=datetime.strptime(date, "%d.%m.%Y")
+    spec_cen=extract_spectral_center_horiba(path=path, filename=filename)
+    spec=float(spec_cen.split('=')[1])
+
+    spec_str=extract_spectral_center_horiba(path=path,
+    filename=filename)
+
+    spec=spec_str.split('\t')[1].split('\n')[0]
+
+
+    time_str=extract_24hr_time_horiba(path=path, filename=filename)
+    time=time_str.split(' ')[1].split('\n')[0]
+
+    hour=int(time.split(':')[0])
+    minute=int(time.split(':')[1])
+    sec=int(time.split(':')[2])
+
+    sec_since_midnight=hour*60*60 + minute*60 + sec
+
+    tes=extract_spectraname_horiba(path=path, filename=filename)
+    spec_name=tes.split('\t')[1].split('\n')[0]
+
+    df=pd.DataFrame(data={'filename': filename,
+                          'spectral_name': spec_name,
+                          'date': date,
+                          'Month': month_name,
+                          'Day': Day,
+                          'power (mw)' : 'no data',
+                          'Int_time (s)': integ,
+                          'accumulations': accums,
+                          'Mag (X)': Obj,
+                          'duration': Dur,
+                          '24hr_time': time,
+                          'sec since midnight': sec_since_midnight,
+                          'Spectral_Center': spec}, index=[0])
+
+
+    return df
+
+
+
+
+def stitch_metadata_in_loop_horiba(AllFiles, path=None):
+
+    """ Stitching all metadata together
+    """
+    if path is None:
+        path=os.getcwd()
+
+    df=pd.DataFrame([])
+    for i in tqdm(range(0, len(AllFiles))):
+        file=AllFiles[i]
+        one_file=extract_acq_params_horiba(path=path, filename=file)
+        df=pd.concat([df, one_file], axis=0)
+    df_out=df.reset_index(drop=True)
+    return df_out
+
+
 
 ## Functions to extract metadata from WITEC files (v instrument specific)
 
@@ -339,7 +506,7 @@ def extract_laser_power_witec(*, path, filename):
             break
     return line
 
-def extract_accumulations(*, path, filename):
+def extract_accumulations_witec(*, path, filename):
     """ Extracts accumulations
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -353,7 +520,7 @@ def extract_accumulations(*, path, filename):
     return line
 
 
-def extract_Integration_Time(*, path, filename):
+def extract_integration_time_witec(*, path, filename):
     """ Extracts Integration time
     """
 
@@ -366,7 +533,7 @@ def extract_Integration_Time(*, path, filename):
             break
     return line
 
-def extract_Spectral_Center(*, path, filename):
+def extract_spectral_center_witec(*, path, filename):
     """ Extracts Spectral Center
     """
 
@@ -379,7 +546,7 @@ def extract_Spectral_Center(*, path, filename):
             break
     return line
 
-def extract_objective(*, path, filename):
+def extract_objective_witec(*, path, filename):
     """ Extracts objective magnification
     """
 
@@ -393,7 +560,7 @@ def extract_objective(*, path, filename):
             break
     return line
 
-def extract_duration(*, path, filename):
+def extract_duration_witec(*, path, filename):
     """ Extracts analysis duration
     """
 
@@ -407,7 +574,7 @@ def extract_duration(*, path, filename):
             break
     return line
 
-def extract_date(*, path, filename):
+def extract_date_witec(*, path, filename):
     """ Extracts date"""
 
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -421,7 +588,7 @@ def extract_date(*, path, filename):
 
     return line
 
-def checks_if_video(*, path, filename):
+def checks_if_video_witec(*, path, filename):
     """ Checks if file is an image (as doesnt have all metadata)
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -433,7 +600,7 @@ def checks_if_video(*, path, filename):
 
         return 'not Video'
 
-def checks_if_imagescan(*, path, filename):
+def checks_if_imagescan_witec(*, path, filename):
     """ Checks if file is an imagescan (as doesnt have all metadata)
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -445,7 +612,7 @@ def checks_if_imagescan(*, path, filename):
 
         return 'not Scan'
 
-def checks_if_general(*, path, filename):
+def checks_if_general_witec(*, path, filename):
     """ Checks if file is a spectra file with all the right metadata
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -458,7 +625,7 @@ def checks_if_general(*, path, filename):
 
 ## Functions for extracting the metadata from WITEC files
 
-def extract_acq_params(*, path, filename, trupower=False):
+def extract_acq_params_witec(*, path, filename, trupower=False):
     """ This function checks what type of file you have, and if its a spectra file,
     uses the functions above to extract various bits of metadata
     """
@@ -466,9 +633,9 @@ def extract_acq_params(*, path, filename, trupower=False):
     if path is None:
         path=os.getcwd()
 
-    line_general=checks_if_general(path=path, filename=filename)
-    line_video_check=checks_if_video(path=path, filename=filename)
-    line_scan=checks_if_imagescan(path=path, filename=filename)
+    line_general=checks_if_general_witec(path=path, filename=filename)
+    line_video_check=checks_if_video_witec(path=path, filename=filename)
+    line_scan=checks_if_imagescan_witec(path=path, filename=filename)
 
     # If not a
     if line_video_check == "Video":
@@ -504,23 +671,23 @@ def extract_acq_params(*, path, filename, trupower=False):
         else:
             power=np.nan
 
-        accums_str=extract_accumulations(path=path, filename=filename)
+        accums_str=extract_accumulations_witec(path=path, filename=filename)
         accums=float(accums_str.split()[3])
 
-        integ_str=extract_Integration_Time(path=path, filename=filename)
+        integ_str=extract_integration_time_witec(path=path, filename=filename)
         integ=float(integ_str.split()[3])
 
-        Obj_str=extract_objective(path=path, filename=filename)
+        Obj_str=extract_objective_witec(path=path, filename=filename)
         Obj=float(Obj_str.split()[2])
 
-        Dur_str=extract_duration(path=path, filename=filename)
+        Dur_str=extract_duration_witec(path=path, filename=filename)
         Dur=Dur_str.split()[1:]
 
-        dat_str=extract_date(path=path, filename=filename)
+        dat_str=extract_date_witec(path=path, filename=filename)
 
         dat=dat_str.split(':')[1].split(',',1)[1].lstrip( )
 
-        spec=extract_Spectral_Center(path=path, filename=filename)
+        spec=extract_spectral_center_witec(path=path, filename=filename)
         spec=float(spec.split()[1:][3])
 
     return power, accums, integ, Obj, Dur, dat, spec
@@ -528,15 +695,15 @@ def extract_acq_params(*, path, filename, trupower=False):
 
 
 
-def calculates_time(*, path, filename):
+def calculates_time_witec(*, path, filename):
     """ calculates time for non video files for WITEC files"""
 
 
 
     # Need to throw out video and peak fit files "general"
-    line_general=checks_if_general(path=path, filename=filename)
-    line_video_check=checks_if_video(path=path, filename=filename)
-    line_scan=checks_if_imagescan(path=path, filename=filename)
+    line_general=checks_if_general_witec(path=path, filename=filename)
+    line_video_check=checks_if_video_witec(path=path, filename=filename)
+    line_scan=checks_if_imagescan_witec(path=path, filename=filename)
 
     # If not a
     if line_video_check == "Video":
@@ -582,7 +749,7 @@ def calculates_time(*, path, filename):
 
     return line3_sec_int, line2
 
-def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=False):
+def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False):
     """ Stitches together WITEC metadata for all files in a loop
     """
     if path is None:
@@ -613,9 +780,9 @@ def stitch_metadata_in_loop(*, Allfiles=None, path=None, prefix=True, trupower=F
             filename=filename1
 
         #print('working on file' + str(filename1))
-        time_num, t_str=calculates_time(path=path, filename=filename1)
+        time_num, t_str=calculates_time_witec(path=path, filename=filename1)
 
-        powr, accums, integ, Obj, Dur, dat, spec=extract_acq_params(path=path,
+        powr, accums, integ, Obj, Dur, dat, spec=extract_acq_params_witec(path=path,
                                                        filename=filename1, trupower=trupower)
 
         if type(dat)==float:
