@@ -23,7 +23,8 @@ import warnings as w
 encode="ISO-8859-1"
 
 def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None, Spectra_y=None):
-
+    """Penny needs to write documentation
+    """
     if Spectra_x is None:
         Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
 
