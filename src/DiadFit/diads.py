@@ -448,7 +448,7 @@ def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_fi
     fit_params = pd.DataFrame([])
     x_cord=Diad[:, 0]
     data_y_all=np.empty([  len(x_cord), len(Diad_Files)], float)
-
+    data_x_all=np.empty([  len(x_cord), len(Diad_Files)], float)
     i=0
     for file in tqdm(Diad_Files):
 
@@ -457,12 +457,27 @@ def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_fi
     filetype=filetype, plot_figure=False)
 
         data_y_all[:, i]=Diad[:, 1]
+        data_x_all[:, i]=Diad[:, 0]
         #data = pd.concat([Diad, data], axis=0)
         fit_params = pd.concat([fit_params, df_peaks], axis=0)
         i=i+1
 
     fit_params=fit_params.reset_index(drop=True)
-    return fit_params, data_y_all
+    # Lets check all data x are the same.
+    a=data_x_all
+    same = np.all(a[0, :] == a[0, 0])
+
+    if same==True:
+
+        return fit_params, data_y_all
+    if same==False:
+        print('You do not have the same x axis for all spectra. ')
+        diff_val_row = np.where(np.any(a != a[0], axis=1))[0]
+        print(diff_val_row)
+
+
+        return fit_params, data_y_all
+
 
 
 def plot_peak_params(fit_params,
@@ -580,11 +595,8 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
         Groupnot1_df=pd.DataFrame().reindex_like(fit_params)
         Group1_np_y=np.empty(0, dtype='float')
         Groupnot1_np_y=np.empty(0, dtype='float')
-
-
-
-
         return Group1_df, Groupnot1_df, Group1_np_y, Groupnot1_np_y
+
     else:
 
         grp1=filter_bool
@@ -602,41 +614,64 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
         index_Grpnot1=Groupnot1_df.index
         Groupnot1_np_y=data_y[:, index_Grpnot1]
 
-        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, y_fig_scale*len(fit_params)))
+
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, 2+y_fig_scale*len(fit_params)))
         intc=8
         #
         if sum(grp1)>0:
-            for i in range(0, np.shape(Group1_np_y)[1]):
-
+            if sum(grp1)==1:
+                i=0
                 av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
                 Diff=np.max(Group1_np_y[:, i])-np.min(Group1_np_y[:, i])
                 ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.min(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
+
+
+            else:
+                for i in range(0, np.shape(Group1_np_y)[1]):
+
+                        av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
+                        Diff=np.max(Group1_np_y[:, i])-np.min(Group1_np_y[:, i])
+                        ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.min(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
             ax0.set_xlim([1250-i*5, 1450])
             ax0.set_xticks([])
             ax0.set_yticks([])
 
             # av_prom_Group1=np.abs(np.nanmedian(Group1_df[x_param])/intc)
             # ax0.plot(x_cord, Group1_np_y[:, i]+av_prom_Group1*i, '-r')
-        if sum(~grp1)>0:
-            for j in range(0, np.shape(Groupnot1_np_y)[1]):
+            if sum(~grp1)>0:
+                print('shape groupno1np')
+                print(np.shape(Groupnot1_np_y))
+                print('sum grp1')
+                print(sum(~grp1))
+                if sum(~grp1)==1:
+                    j=0
+                    av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+                    Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
+                    ax1.plot(x_cord-j*5,
+                    (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
 
-                av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
-                Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
-                ax1.plot(x_cord-j*5,
-                (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
-            ax1.set_xlim([1250-j*5, 1450])
-            ax1.set_xticks([])
-            ax1.set_yticks([])
+                else:
+
+                    for j in range(0, np.shape(Groupnot1_np_y)[1]):
+
+
+                        av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+                        Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
+                        ax1.plot(x_cord-j*5,
+                        (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+                ax1.set_xlim([1250-j*5, 1450])
+                ax1.set_xticks([])
+                ax1.set_yticks([])
 
             # av_prom_Groupnot1=np.abs(np.nanmedian(Groupnot1_df[x_param])/intc)
             # ax1.plot(x_cord, Groupnot1_np_y[:, i]+av_prom_Groupnot1*3*i, '-c')
 
-        #ax1.set_ylim([0, av_prom*i])
+            #ax1.set_ylim([0, av_prom*i])
         if grp_filter=='Medium-Strong':
-            ax0.set_title('Ones filtered out (Strong)')
-            ax1.set_title('Ones left (Medium)')
+            ax0.set_title('Classified as Strong')
+            ax1.set_title('Classified as Medium')
         if grp_filter=='Weak':
-            ax0.set_title('Ones filtered out (Weak)')
+            ax0.set_title('Classified as Weak')
             ax1.set_title('Ones left (not classified yet)')
 
 
@@ -665,7 +700,7 @@ def plot_diad_groups(*, x_cord,  Weak_np=None, Medium_np=None, Strong_np=None, y
 
 
     Total=Num_Strong+Num_Medium+Num_Weak
-    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(15,y_fig_scale*Total))
+    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(15,2+y_fig_scale*Total))
     if Num_Weak>0:
         for i in range(0, np.shape(Weak_np)[1]):
             Diff=np.max(Weak_np[:, i])-np.min(Weak_np[:, i])
