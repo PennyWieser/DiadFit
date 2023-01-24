@@ -749,6 +749,32 @@ def calculates_time_witec(*, path, filename):
 
     return line3_sec_int, line2
 
+def add_datetime_and_duration_cols(df):
+    """ Adds 4 columns to the metadata dataframe. One "Date and Time" is the complete
+    date and time object; 'unix_timestamp' is a column containing the numeric (float) timestamp for
+    the date and time in standard UNIX time or seconds since epoch time (Jan 1st 1970 00:00:00 UTC),
+    this is plottable; third is  the duration of the analysis as a timedelta object (days,hours,minutes,seconds)
+    it can be converted to seconds using .total_seconds(). the last column is the timedelta duration converted to seconds.
+    """
+    def duration_to_timedelta(time_string):
+        """This function converts the duration time string to timedelta object
+        """
+        time_string = time_string.replace("'","").replace("[","").replace("]","")
+        hours, minutes, seconds = [int(val.rstrip('hms')) for val in time_string.split(',')]
+        time = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
+        return time
+
+    for i in df.index:
+        df.loc[i,'date']=df['date'][i].strip()
+        df.loc[i,'24hr_time']=df['24hr_time'][i].strip()
+
+    df['Date and Time'] = df['date'] + ' ' + df['24hr_time']
+    df['Date and Time'] = df['Date and Time'].apply(lambda x: datetime.datetime.strptime(x, '%B %d, %Y %I:%M:%S %p'))
+    df['unix_timestamp'] = df['Date and Time'].apply(lambda x: x.timestamp())
+    df['duration_dhms'] = df['duration'].apply(duration_to_timedelta)
+    df['duration_s']=df['duration_dhms'].dt.total_seconds()
+    return df
+
 def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False):
     """ Stitches together WITEC metadata for all files in a loop
     """
@@ -837,6 +863,7 @@ def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False
 
 
     Time_Df_2=Time_Df_2.sort_values('sec since midnight', axis=0, ascending=True)
+    Time_Df_2 = add_datetime_and_duration_cols(Time_Df_2)
     print('Done')
 
     # Check if the person worked after midnight (lame)
