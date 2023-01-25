@@ -6,6 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+# This is for processing calibration pressures with the FDCA
+from DiadFit.Psensor import *
 
 # This reads different data formats, imports files, and does the string stripping for WITEC
 from DiadFit.importing_data_files import *
