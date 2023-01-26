@@ -563,19 +563,19 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
     if sum(~filt)>0:
         for i in range(0, np.shape(data_y_disc)[1]):
             av_prom_disc=np.abs(np.nanmedian(fit_params_disc['Diad1_prom'])/intc)
-            Diff=np.max(data_y_disc[:, i])-np.min(data_y_disc[:, i])
+            Diff=np.nanmax(data_y_disc[:, i])-np.nanmin(data_y_disc[:, i])
             av_prom_Keep=fit_params_disc['Diad1_prom'].iloc[i]
             prom_disc=prom_disc+av_prom_disc
-            ax1.plot(x_cord+i*5, (data_y_disc[:, i]-np.min(data_y_disc[:, i]))/Diff+i/3, '-r', lw=0.5)
+            ax1.plot(x_cord+i*5, (data_y_disc[:, i]-np.nanmin(data_y_disc[:, i]))/Diff+i/3, '-r', lw=0.5)
         ax1.set_xlim([1250, 1450+i*5])
         ax1.set_xticks([])
         ax1.set_yticks([])
     if sum(filt)>0:
         for i in range(0, np.shape(data_y_filt)[1]):
-            Diff=np.max(data_y_filt[:, i])-np.min(data_y_filt[:, i])
+            Diff=np.nanmax(data_y_filt[:, i])-np.nanmin(data_y_filt[:, i])
             av_prom_Keep=fit_params_filt['Diad1_prom'].iloc[i]
             prom_filt=prom_filt+av_prom_Keep
-            ax2.plot(x_cord+i*5, (data_y_filt[:, i]-np.min(data_y_filt[:, i]))/Diff+i/3, '-b', lw=0.5)
+            ax2.plot(x_cord+i*5, (data_y_filt[:, i]-np.nanmin(data_y_filt[:, i]))/Diff+i/3, '-b', lw=0.5)
 
 
         ax2.set_xlim([1250, 1450+i*5])
