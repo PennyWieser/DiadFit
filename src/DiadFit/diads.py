@@ -402,7 +402,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
         ax2.set_title('Diad2')
         ax2.plot(Diad[:, 0],Diad[:, 1], '-r')
         ax2.set_xlim([config.Diad2_window[0], config.Diad2_window[1]])
-        #ax0.set_ylim[np.min(Diad[:, 1]), np.max(Diad[:, 1]) ])
+        #ax0.set_ylim[np.nanmin(Diad[:, 1]), np.nanmax(Diad[:, 1]) ])
         fig.tight_layout()
         ax2.plot(df_sort_diad2_trim['pos'], df_sort_diad2_trim['height'], '*k', mfc='yellow', ms=10)
         ax1.plot(df_sort_diad1_trim['pos'], df_sort_diad1_trim['height'], '*k',  mfc='yellow', ms=10, label='Selected Pks')
@@ -622,16 +622,16 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
             if sum(grp1)==1:
                 i=0
                 av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
-                Diff=np.max(Group1_np_y[:, i])-np.min(Group1_np_y[:, i])
-                ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.min(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
+                Diff=np.nanmax(Group1_np_y[:, i])-np.nanmin(Group1_np_y[:, i])
+                ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
 
 
             else:
                 for i in range(0, np.shape(Group1_np_y)[1]):
 
                         av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
-                        Diff=np.max(Group1_np_y[:, i])-np.min(Group1_np_y[:, i])
-                        ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.min(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
+                        Diff=np.nanmax(Group1_np_y[:, i])-np.nanmin(Group1_np_y[:, i])
+                        ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
             ax0.set_xlim([1250-i*5, 1450])
             ax0.set_xticks([])
             ax0.set_yticks([])
@@ -646,9 +646,9 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
                 if sum(~grp1)==1:
                     j=0
                     av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
-                    Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
+                    Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
                     ax1.plot(x_cord-j*5,
-                    (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+                    (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
 
                 else:
 
@@ -656,9 +656,9 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
 
                         av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
-                        Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
+                        Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
                         ax1.plot(x_cord-j*5,
-                        (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+                        (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
                 ax1.set_xlim([1250-j*5, 1450])
                 ax1.set_xticks([])
                 ax1.set_yticks([])
@@ -703,24 +703,24 @@ def plot_diad_groups(*, x_cord,  Weak_np=None, Medium_np=None, Strong_np=None, y
     fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(15,2+y_fig_scale*Total))
     if Num_Weak>0:
         for i in range(0, np.shape(Weak_np)[1]):
-            Diff=np.max(Weak_np[:, i])-np.min(Weak_np[:, i])
-            ax0.plot(x_cord-i*5, (Weak_np[:, i]-np.min(Weak_np[:, i]))/Diff+i/3, '-r', lw=0.5)
+            Diff=np.nanmax(Weak_np[:, i])-np.nanmin(Weak_np[:, i])
+            ax0.plot(x_cord-i*5, (Weak_np[:, i]-np.nanmin(Weak_np[:, i]))/Diff+i/3, '-r', lw=0.5)
         ax0.set_xlim([1250-i*5, 1450])
         ax0.set_xticks([])
         ax0.set_yticks([])
 
     if Num_Medium>0:
         for i in range(0, np.shape(Medium_np)[1]):
-            Diff=np.max(Medium_np[:, i])-np.min(Medium_np[:, i])
-            ax1.plot(x_cord-i*5, (Medium_np[:, i]-np.min(Medium_np[:, i]))/Diff+i/3, '-b', lw=0.5)
+            Diff=np.nanmax(Medium_np[:, i])-np.nanmin(Medium_np[:, i])
+            ax1.plot(x_cord-i*5, (Medium_np[:, i]-np.nanmin(Medium_np[:, i]))/Diff+i/3, '-b', lw=0.5)
         ax1.set_xlim([1250-i*5, 1450])
         ax1.set_xticks([])
         ax1.set_yticks([])
 
     if Num_Strong>0:
         for i in range(0, np.shape(Strong_np)[1]):
-            Diff=np.max(Strong_np[:, i])-np.min(Strong_np[:, i])
-            ax2.plot(x_cord-i*5, (Strong_np[:, i]-np.min(Strong_np[:, i]))/Diff+i/3, '-g', lw=0.5)
+            Diff=np.nanmax(Strong_np[:, i])-np.nanmin(Strong_np[:, i])
+            ax2.plot(x_cord-i*5, (Strong_np[:, i]-np.nanmin(Strong_np[:, i]))/Diff+i/3, '-g', lw=0.5)
         ax2.set_xlim([1250-i*5, 1450])
         ax2.set_xticks([])
         ax2.set_yticks([])
