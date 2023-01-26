@@ -1,0 +1,39 @@
+Spectrum--041
+
+General:
+System ID:	100-1200-1896
+Start Time:	7:50:01 PM
+Start Date:	Friday, August 27, 2021
+Duration:	0h 2m 18s
+User Name:	Witec
+Sample Name:	
+Configuration:	Raman CCD1
+
+UHTS600S_VIS:
+Excitation Wavelength [nm]:	532.067
+Laser Power [mW]:	55.609
+Grating:	G2: 1800 g/mm BLZ=500nm
+Center Wavelength [nm]:	572.422
+Spectral Center [rel. 1/cm]:	1325.000
+
+DU401_BVF:
+Serial Number:	26256
+Readout Mode:	Single Track (1-20)
+Vertical Shift Speed [µs]:	16.25
+Horizontal Shift Speed [MHz]:	0.033
+Preamplifier Gain:	1.00
+Cycle Time [sec]:	45.09666
+Sensor Temperature [°C]:	-59
+
+Number Of Accumulations:	3
+Integration Time [s]:	45.00000
+
+Objective:
+Objective Name:	Zeiss EC Epiplan 5x / 0.13
+Objective Magnification:	5.0
+
+Sample Location (global position):
+Position X [µm]:	-2219.300
+Position Y [µm]:	-2952.700
+Position Z [µm]:	0.000
+

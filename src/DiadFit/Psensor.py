@@ -4,6 +4,7 @@ import math
 import os
 from docx import Document
 import datetime
+import warnings
 
 encode="ISO-8859-1"
 
@@ -93,7 +94,7 @@ def read_pfiles(*,path=None,file=None,start_time=None,sn_name='0132212'): #UCB '
 
 ## Function for calculating datetime and duration from metadata file
 
-def add_datetime_and_duration_cols(df):
+def add_datetime_and_duration_cols(*,df=None,raman_cpu_offset='none',offset_hms=[0,0,0]):
     """ This function take a DataFrame and adds columns for "Date and Time", "unix_timestamp" and "duration_s". The input frame should be either the complete DataFrame with spectra metadata and fits output by DiadFit or just the spectral metadata. "Date and Time" contains datetime objects; 'unix_timestamp' contains the numeric (float) timestamp for the date and time in standard UNIX time or seconds since epoch time (Jan 1st 1970 00:00:00 UTC), this is plottable; and "duration_s" is the duration of the analysis in seconds.
 
     Parameters:
@@ -124,7 +125,18 @@ def add_datetime_and_duration_cols(df):
 
     df['Date and Time'] = df['date'] + ' ' + df['24hr_time']
     df['Date and Time'] = df['Date and Time'].apply(lambda x: datetime.datetime.strptime(x, '%B %d, %Y %I:%M:%S %p'))
-    df['unix_timestamp'] = df['Date and Time'].apply(lambda x: x.timestamp())
+
+    if raman_cpu_offset=='none':
+        df['unix_timestamp'] = df['Date and Time'].apply(lambda x: x.timestamp())
+    elif raman_cpu_offset=='behind':
+        df['Date and Time - offset']=df['Date and Time']+datetime.timedelta(hours=offset_hms[0],minutes=offset_hms[1],seconds=offset_hms[2])
+        df['unix_timestamp'] = df['Date and Time - offset'].apply(lambda x: x.timestamp())
+    elif raman_cpu_offset=='ahead':
+        df['Date and Time - offset']=df['Date and Time']-datetime.timedelta(hours=offset_hms[0],minutes=offset_hms[1],seconds=offset_hms[2])
+        df['unix_timestamp'] = df['Date and Time - offset'].apply(lambda x: x.timestamp())
+    else:
+        warnings.warn("Invalid value for raman_cpu_offset, please use 'behind', 'ahead' or 'none'")
+        return
     dur_days = df['duration'].apply(duration_to_timedelta)
     df['duration_s']=dur_days.dt.total_seconds()
     return df
