@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# This is for filtering cosmic rays
+from DiadFit.cosmicray_filter import *
 
 # This is for processing calibration pressures with the FDCA
 from DiadFit.Psensor import *
