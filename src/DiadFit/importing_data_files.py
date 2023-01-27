@@ -18,6 +18,31 @@ encode="ISO-8859-1"
 ## Functions for getting file names
 
 
+def check_for_duplicates(spectra_path, prefix=True, prefix_str=' '):
+
+    All_files_spectra= [f for f in listdir(spectra_path) if isfile(join(spectra_path, f))]
+
+    file_m=np.empty(len(All_files_spectra), dtype=object)
+    for i in range(0, len(All_files_spectra)):
+        name=All_files_spectra[i]
+        # If no prefix or suffix to remove, simple
+        if prefix is False:
+            name2=name
+        else:
+            name2=name.split(prefix_str, maxsplit=1)[1:]
+        file_m[i]=name2[0]
+
+    if len(file_m)!=len(pd.Series(file_m).unique()):
+        file_m_s=pd.Series(file_m)
+        print('duplicates')
+        print(file_m_s[file_m_s.duplicated()])
+        print('OOPS. at least one of your file name is duplicated go back to your spectra, you named a file twice, this will confuse the stitching ')
+        #raise Exception('Duplicate file')
+
+    return file_m
+
+
+
 def get_files(path, ID_str=None, file_ext='txt', exclude_str=None, exclude_type=None, sort=True):
     """ This function takes a user path, and extracts all files which contain the ID_str
 
@@ -901,6 +926,7 @@ def extracting_filenames_generic(*, names, prefix=False,
         # If no prefix or suffix to remove, simple
         if prefix is False and suffix is False:
             file_m[i]=name
+            print(file_m)
 
         else:
             if prefix is True:
@@ -918,6 +944,8 @@ def extracting_filenames_generic(*, names, prefix=False,
 
         if file_type in file_m[i]:
             file_m[i]=file_m[i].replace(file_type, '')
+
+
 
     if len(file_m)!=len(pd.Series(file_m).unique()):
         file_m_s=pd.Series(file_m)

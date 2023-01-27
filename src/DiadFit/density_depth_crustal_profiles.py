@@ -428,7 +428,8 @@ def convert_co2_dens_press_depth(T_K=None,
 
     if output=='df':
         if model is not None:
-            Depth_km=convert_pressure_to_depth(P_kbar=P_kbar, model=model)
+            Depth_km=convert_pressure_to_depth(P_kbar=P_kbar, model=model,
+            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
 
 
         if isinstance(CO2_dens_gcm3, np.float64) or isinstance(CO2_dens_gcm3, np.float):

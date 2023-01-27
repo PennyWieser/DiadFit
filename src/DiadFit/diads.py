@@ -617,6 +617,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, 2+y_fig_scale*len(fit_params)))
         intc=8
+        print(sum(grp1))
         #
         if sum(grp1)>0:
             if sum(grp1)==1:
@@ -638,30 +639,30 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
             # av_prom_Group1=np.abs(np.nanmedian(Group1_df[x_param])/intc)
             # ax0.plot(x_cord, Group1_np_y[:, i]+av_prom_Group1*i, '-r')
-            if sum(~grp1)>0:
-                print('shape groupno1np')
-                print(np.shape(Groupnot1_np_y))
-                print('sum grp1')
-                print(sum(~grp1))
-                if sum(~grp1)==1:
-                    j=0
+        if sum(~grp1)>0:
+            print('shape groupno1np')
+            print(np.shape(Groupnot1_np_y))
+            print('sum grp1')
+            print(sum(~grp1))
+            if sum(~grp1)==1:
+                j=0
+                av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+                Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
+                ax1.plot(x_cord-j*5,
+                (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+
+            else:
+
+                for j in range(0, np.shape(Groupnot1_np_y)[1]):
+
+
                     av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
                     Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
                     ax1.plot(x_cord-j*5,
                     (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
-
-                else:
-
-                    for j in range(0, np.shape(Groupnot1_np_y)[1]):
-
-
-                        av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
-                        Diff=np.max(Groupnot1_np_y[:, j])-np.min(Groupnot1_np_y[:, j])
-                        ax1.plot(x_cord-j*5,
-                        (Groupnot1_np_y[:, j]-np.min(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
-                ax1.set_xlim([1250-j*5, 1450])
-                ax1.set_xticks([])
-                ax1.set_yticks([])
+            ax1.set_xlim([1250-j*5, 1450])
+            ax1.set_xticks([])
+            ax1.set_yticks([])
 
             # av_prom_Groupnot1=np.abs(np.nanmedian(Groupnot1_df[x_param])/intc)
             # ax1.plot(x_cord, Groupnot1_np_y[:, i]+av_prom_Groupnot1*3*i, '-c')
@@ -1449,6 +1450,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
     """
+
     # Calculate the amplitude from the sigma and the prominence
     calc_diad_amplitude=((config1.diad_sigma)*(config1.diad_prom))/0.3939
     calc_HB_amplitude=((config1.diad_sigma)*(config1.HB_prom))/0.3939
@@ -2203,10 +2205,12 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     if fit_peaks==2:
         if np.isnan(HB_pos)==True or config1.HB_prom<0:
             fit_peaks=1
+            fit_gauss=False
 
     if fit_peaks==3:
         if np.isnan(HB_pos)==True and np.isnan(C13_pos)==True:
             fit_peaks=1
+            fit_gauss=False
 
         elif np.isnan(C13_pos)==True or config1.C13_prom<10:
             fit_peaks=2
@@ -2593,6 +2597,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     if fit_peaks==2:
         if np.isnan(HB_pos)==True or config1.HB_prom<-50:
             fit_peaks=1
+            config1.fit_gauss=False
             #print('Either no hb position, or prominence<-50, using 1 fit')
 
     Diad_df=get_data(path=path, filename=filename, filetype=filetype)
