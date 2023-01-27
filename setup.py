@@ -37,6 +37,7 @@ setup(
             'scipy',
             'lmfit',
             'tqdm',
+            'python-docx'
             ],
 
     classifiers=[
