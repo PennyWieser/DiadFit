@@ -640,17 +640,17 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
             # av_prom_Group1=np.abs(np.nanmedian(Group1_df[x_param])/intc)
             # ax0.plot(x_cord, Group1_np_y[:, i]+av_prom_Group1*i, '-r')
 
-            if sum(~grp1)>0:
-                print('shape groupno1np')
-                print(np.shape(Groupnot1_np_y))
-                print('sum grp1')
-                print(sum(~grp1))
-                if sum(~grp1)==1:
-                    j=0
-                    av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
-                    Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
-                    ax1.plot(x_cord-j*5,
-                    (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+        if sum(~grp1)>0:
+            print('shape groupno1np')
+            print(np.shape(Groupnot1_np_y))
+            print('sum grp1')
+            print(sum(~grp1))
+            if sum(~grp1)==1:
+                j=0
+                av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+                Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
+                ax1.plot(x_cord-j*5,
+                (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
 
 
             else:
@@ -659,13 +659,13 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
 
 
-                        av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
-                        Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
-                        ax1.plot(x_cord-j*5,
-                        (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
-                ax1.set_xlim([1250-j*5, 1450])
-                ax1.set_xticks([])
-                ax1.set_yticks([])
+                    av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+                    Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
+                    ax1.plot(x_cord-j*5,
+                    (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+            ax1.set_xlim([1250-j*5, 1450])
+            ax1.set_xticks([])
+            ax1.set_yticks([])
 
 
             # av_prom_Groupnot1=np.abs(np.nanmedian(Groupnot1_df[x_param])/intc)
