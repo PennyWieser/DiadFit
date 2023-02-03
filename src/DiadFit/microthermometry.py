@@ -7,7 +7,7 @@ from pathlib import Path
 from pickle import load
 import pickle
 
-import CoolProp.CoolProp as cp
+
 DiadFit_dir=Path(__file__).parent
 
 
@@ -38,6 +38,13 @@ def calculate_density_homog_T_CO2(T_C, print=False):
 
     P_Pa=P_MPa*10**6
     T_K=T_C+273.15
+
+    try:
+        import CoolProp.CoolProp as cp
+    except ImportError:
+        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
+
+
     Phase=cp.PhaseSI('P', P_Pa, 'T', T_K,'CO2')
     if print is True:
 
