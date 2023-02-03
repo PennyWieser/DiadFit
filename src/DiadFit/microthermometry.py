@@ -3,13 +3,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import inspect
 from scipy.interpolate import CubicSpline
-
+from pathlib import Path
+from pickle import load
+import pickle
 
 import CoolProp.CoolProp as cp
 DiadFit_dir=Path(__file__).parent
 
 
-def calculate_density_homog_T(T_C):
+def calculate_density_homog_T_CO2(T_C, print=False):
     """ Calculates CO2 density for a specified homogenization temperature in Celcius
     using the Span and Wanger (1996) equation of state.
     Only works for one sample, use loop_density_homog_T
@@ -34,12 +36,14 @@ def calculate_density_homog_T(T_C):
     PCrit=7.3773
     TCrit=30.9782
 
-    print('T='+str(T_C))
-    print('P='+str(P_MPa))
     P_Pa=P_MPa*10**6
     T_K=T_C+273.15
     Phase=cp.PhaseSI('P', P_Pa, 'T', T_K,'CO2')
-    print('Phase coolprop says='+str(Phase))
+    if print is True:
+
+        print('T='+str(T_C))
+        print('P='+str(P_MPa))
+        print('Phase coolprop says='+str(Phase))
 
     Density_kgm3_liq=np.nan
     Density_kgm3_gas=np.nan
@@ -57,7 +61,7 @@ def calculate_density_homog_T(T_C):
     if P_MPa>PCrit and T_C>TCrit:
         Density_kgm3_supercrit=cp.PropsSI('D', 'P|supercritical', P_Pa, 'T', T_K, 'CO2')
 
-    df=pd.DataFrame(data='Liq_gcm3': Density_kgm3_liq/1000,
+    df=pd.DataFrame(data={'Liq_gcm3': Density_kgm3_liq/1000,
     'Gas_gcm3': Density_kgm3_gas/1000,
     'Supercrit_Liq_gcm3': Density_kgm3_supcrit_liq/1000,
     'Supercrit_Gas_gcm3': Density_kgm3_supcrit_gas/1000,
@@ -68,7 +72,7 @@ def calculate_density_homog_T(T_C):
     return df
 
 
-def loop_density_homog_T(T_C):
+def loop_density_homog_T_CO2(T_C):
     """ Calculates CO2 density for a specified homogenization temperature in Celcius
     using the Span and Wanger (1996) equation of state.
 
@@ -77,7 +81,7 @@ def loop_density_homog_T(T_C):
     if isinstance(T_C, pd.Series):
         T_C_np=np.array(T_C)
     for i in range(0, len(T_C)):
-        data=calculate_density_homog_T(T_C[i])
+        data=calculate_density_homog_T_CO2(T_C[i])
         Density = pd.concat([Density, data], axis=0)
 
     Density.reset_index(drop=True)

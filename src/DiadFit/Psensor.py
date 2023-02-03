@@ -2,7 +2,13 @@ import numpy as np
 import pandas as pd
 import math
 import os
-from docx import Document
+
+try:
+    import docx
+except ImportError:
+    ImportError('Not installed')
+
+#from docx import Document
 import datetime
 import warnings
 
