@@ -926,7 +926,7 @@ def extracting_filenames_generic(*, names, prefix=False,
         # If no prefix or suffix to remove, simple
         if prefix is False and suffix is False:
             file_m[i]=name
-            print(file_m)
+            #print(file_m)
 
         else:
             if prefix is True:

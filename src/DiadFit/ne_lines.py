@@ -294,7 +294,7 @@ Ne_array=None):
         Max_y_Neon1=np.max(Neon1_trim_y)
         x_Neon_1=x[y==Max_y_Neon1][0]
         df_fit_params=pd.DataFrame(data={'Peak1_cent': x_Neon_1,
-                                    'Peak1_height': Max_y_Neon1})
+                                    'Peak1_height': Max_y_Neon1},index=[0])
 
 
     if len(df_pk2_trim)==1:

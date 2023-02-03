@@ -11,7 +11,7 @@ encode="ISO-8859-1"
 ## This function is the main filter, runs on one spectrum
 
 def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filetype='headless_txt',n=1,dynfact=0.01,dynfact_2=0.003,
-                        export_cleanspec=True,plot_rays=True,save_fig='rays_only',figsize=(20,5)):
+                        export_cleanspec=True,plot_rays=True,save_fig='rays_only',figsize=(20,5), xlims=None):
     file=Diad_files.iloc[i]
     #open the spectrum in form of array
     Diad_array=pf.get_data(path=path, filename=file, filetype=filetype)
@@ -138,6 +138,13 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
             ax2.set_title('De-rayed spectrum')
             ax3.set_title('Intensity factor and rays - pass 2')
             ax4.set_title('De-rayed spectrum - pass 2')
+            if xlims is not None:
+                ax0.set_xlim(xlims)
+                ax1.set_xlim(xlims)
+                ax2.set_xlim(xlims)
+                ax3.set_xlim(xlims)
+                ax4.set_xlim(xlims)
+
             fig.suptitle(file, fontsize=12)
 
         if second_pass==False:
@@ -151,6 +158,9 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
 
             ax0.set_title('Intensity factor and rays')
             ax1.set_title('Original spectrum')
+            if xlims is not None:
+                ax0.set_xlim(xlims)
+                ax1.set_xlim(xlims)
 
             fig.suptitle(file+' - NO RAYS detected', fontsize=12)
 
@@ -175,7 +185,7 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
 
 ## Filter rays in a loop
 
-def filter_raysinloop(*,Diad_files=None, spectra_path=None, diad_peaks=None,fit_params=None, plot_rays=False, export_cleanspec=True, save_fig='all', dynfact=0.01, dynfact_2=0.0005, n=1):
+def filter_raysinloop(*,Diad_files=None, spectra_path=None, diad_peaks=None,fit_params=None, plot_rays=False, export_cleanspec=True, save_fig='all', dynfact=0.01, dynfact_2=0.0005, n=1,xlims=None):
 
     ray_list=pd.DataFrame([])
     spectra_df=pd.DataFrame([])
@@ -184,7 +194,7 @@ def filter_raysinloop(*,Diad_files=None, spectra_path=None, diad_peaks=None,fit_
 
         filename_select=Diad_files.iloc[i]
         rays_found,spectrum=filter_singleray(path=spectra_path,Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,plot_rays=plot_rays,
-                                 export_cleanspec=export_cleanspec,save_fig=save_fig,dynfact=dynfact,dynfact_2=dynfact_2,n=n)
+                                 export_cleanspec=export_cleanspec,save_fig=save_fig,dynfact=dynfact,dynfact_2=dynfact_2,n=n,xlims=xlims)
         ray_list=pd.concat([ray_list,rays_found])
         spectra_df=pd.concat([spectra_df,spectrum['Intensity']],axis=1)
 
