@@ -25,7 +25,7 @@ from DiadFit.diads import *
 # This has densimeters from different instruments
 from DiadFit.densimeters import *
 
-
+from DiadFit.microthermometry import *
 # Skewness
 from DiadFit.skewness import *
 
