@@ -8,7 +8,7 @@ try:
 except ImportError:
     ImportError('Not installed')
 
-from docx import Document
+#from docx import Document
 import datetime
 import warnings
 

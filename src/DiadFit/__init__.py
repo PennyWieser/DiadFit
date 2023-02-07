@@ -36,6 +36,7 @@ from DiadFit.H2O_fitting import *
 from DiadFit.error_propagation import *
 
 from DiadFit.density_depth_crustal_profiles import *
+from DiadFit.sterner_pitzer_1994_CO2_EOS import *
 
 # version
 from ._version import __version__
