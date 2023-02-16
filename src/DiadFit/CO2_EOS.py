@@ -12,7 +12,7 @@ import pickle
 
 
 DiadFit_dir=Path(__file__).parent
-import CoolProp.CoolProp as cp
+
 
 
 ## Calculating density for a given homogenization temp - Only available with Span and Wanger, but have equations
@@ -218,6 +218,11 @@ def calculate_rho_gcm3_for_P_T(P_kbar, T_K, EOS='SW96'):
         if isinstance(T_K, pd.Series):
             T_K=np.array(T_K)
 
+        try:
+            import CoolProp.CoolProp as cp
+        except ImportError:
+            raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
+
         P_Pa=P_kbar*10**8
         Density_gcm3=cp.PropsSI('D', 'P', P_Pa, 'T', T_K, 'CO2')/1000
 
@@ -273,6 +278,17 @@ def calculate_P_for_rho_T_SW96(density_gcm3, T_K):
     if isinstance(T_K, pd.Series):
         T_K=np.array(T_K)
     Density_kgm3=density_gcm3*1000
+
+    try:
+        import CoolProp.CoolProp as cp
+    except ImportError:
+        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
+
+    try:
+        import CoolProp.CoolProp as cp
+    except ImportError:
+        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
+
     P_kbar=cp.PropsSI('P', 'D', Density_kgm3, 'T', T_K, 'CO2')/10**8
     df=pd.DataFrame(data={'P_kbar': P_kbar,
                             'P_MPa': P_kbar*100,
