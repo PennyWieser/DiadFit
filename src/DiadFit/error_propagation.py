@@ -5,6 +5,116 @@ import matplotlib.pyplot as plt
 import DiadFit as pf
 
 from DiadFit.density_depth_crustal_profiles import *
+from DiadFit.CO2_EOS import *
+
+## Microthermometry error propagation
+# propagate_microthermometry_uncertainty_1sam goes to 'make_error_dist_microthermometry_1sam'
+def make_error_dist_microthermometry_1sam(*, T_h_C, sample_i=0, error_T_h_C=0.3, N_dup=1000,
+        error_dist_T_h_C='uniform', error_type_T_h_C='Abs', len_loop=1):
+
+    if len_loop==1:
+        df_c=pd.DataFrame(data={'T_h_C': T_h_C}, index=[0])
+    else:
+        df_c=pd.DataFrame(data={'T_h_C': T_h_C})
+
+
+    # Temperature error distribution
+    if error_type_T_h_C=='Abs':
+        error_T_h_C=error_T_h_C
+    if error_type_T_h_C =='Perc':
+        error_T_h_C=df_c['T_h_C'].iloc[sample_i]*error_T_h_C/100
+    if error_dist_T_h_C=='normal':
+        Noise_to_add_T_h_C = np.random.normal(0, error_T_h_C, N_dup)
+    if error_dist_T_h_C=='uniform':
+        Noise_to_add_T_h_C = np.random.uniform(- error_T_h_C, +
+                                                      error_T_h_C, N_dup)
+
+    T_h_C_with_noise=Noise_to_add_T_h_C+df_c['T_h_C'].iloc[sample_i]
+
+    return T_h_C_with_noise
+
+
+def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None, sample_i=0, error_T_h_C=0.3, N_dup=1000,
+        error_dist_T_h_C='uniform', error_type_T_h_C='Abs', len_loop=1, EOS='SW96', T_K=None, homog_to=None):
+
+    # Set up empty things to fill up.
+
+    if type(T_h_C) is pd.Series:
+        len_loop=len(T_h_C)
+    else:
+        len_loop=1
+
+
+    All_outputs=pd.DataFrame([])
+    Std_density_gas=np.empty(len_loop)
+    Std_density_liq=np.empty(len_loop)
+    Mean_density_gas=np.empty(len_loop)
+    Mean_density_liq=np.empty(len_loop)
+    Sample=np.empty(len_loop,  dtype=np.dtype('U100') )
+
+    for i in range(0, len_loop):
+
+        # If user has entered a pandas series for error, takes right one for each loop
+        if type(error_T_h_C) is pd.Series:
+            error_T_h_C=error_T_h_C.iloc[i]
+        else:
+            error_T_h_C=error_T_h_C
+
+        if type(T_h_C) is pd.Series:
+            T_h_C_i=T_h_C.iloc[i]
+        else:
+            T_h_C_i=T_h_C
+
+        # Check of
+        if Sample_ID is None:
+            Sample[i]=i
+
+        elif isinstance(Sample_ID, str):
+            Sample[i]=Sample_ID
+        else:
+            Sample[i]=Sample_ID.iloc[i]
+
+        Temp_MC=make_error_dist_microthermometry_1sam(T_h_C=T_h_C_i,
+        sample_i=0, error_T_h_C=error_T_h_C, N_dup=N_dup,
+        error_dist_T_h_C=error_dist_T_h_C, error_type_T_h_C=error_type_T_h_C, len_loop=1)
+
+        Sample2=Sample[i]
+        MC_T=calculate_CO2_density_homog_T(T_h_C=Temp_MC, Sample_ID=Sample2, EOS=EOS, homog_to=homog_to)
+
+
+
+
+        # MC for each FI
+        All_outputs=pd.concat([All_outputs, MC_T], axis=0)
+
+        # get av and mean
+        Std_density_gas[i]=np.nanstd(MC_T['Gas_gcm3'])
+        Std_density_liq[i]=np.nanstd(MC_T['Liq_gcm3'])
+        Mean_density_gas[i]=np.nanmean(MC_T['Gas_gcm3'])
+        Mean_density_liq[i]=np.nanmean(MC_T['Liq_gcm3'])
+
+
+
+    Av_outputs=pd.DataFrame(data={'Sample_ID': Sample,
+                                      'Mean_density_Gas_gcm3': Mean_density_gas,
+                                      'Std_density_Gas_gcm3': Std_density_gas,
+                                       'Mean_density_Liq_gcm3': Mean_density_liq,
+                                      'Std_density_Liq_gcm3': Std_density_liq,
+                                      'error_T_h_C': error_T_h_C})
+
+    # if T_K is not None:
+    #
+    #     Press=calculate_P_for_rho_T(density_gcm3=All_outputs['Bulk_gcm3'],
+    #     T_K=T_K, EOS=EOS)
+    #     All_outputs['P_kbar']=Press
+    #
+    #     Av_outputs['Mean_P_kbar']=np.nanmean(Press)
+    #     Av_outputs['std_P_kbar']=np.nanstd(Press)
+
+
+
+
+    return Av_outputs, All_outputs
 
 
 

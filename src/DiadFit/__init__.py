@@ -25,7 +25,6 @@ from DiadFit.diads import *
 # This has densimeters from different instruments
 from DiadFit.densimeters import *
 
-from DiadFit.microthermometry import *
 # Skewness
 from DiadFit.skewness import *
 
@@ -36,7 +35,7 @@ from DiadFit.H2O_fitting import *
 from DiadFit.error_propagation import *
 
 from DiadFit.density_depth_crustal_profiles import *
-from DiadFit.sterner_pitzer_1994_CO2_EOS import *
+from DiadFit.CO2_EOS import *
 
 # version
 from ._version import __version__
