@@ -321,24 +321,25 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
 
     # Check, is it an integer, If so just calculate depth
-    if type(crust_dens_kgm3)==int or type(crust_dens_kgm3)==float:
-        D=10**5*P_kbar/(9.81*crust_dens_kgm3)
-        model=None
+    if crust_dens_kgm3 is not None:
+        if type(crust_dens_kgm3)==int or type(crust_dens_kgm3)==float:
+            D=10**5*P_kbar/(9.81*crust_dens_kgm3)
+            model=None
 
 
-    else:
-        # Check if its a pandas series.
-        if isinstance(crust_dens_kgm3, pd.Series):
-            # Now check, is it a series of strings, or
-            if type(crust_dens_kgm3[0])==str:
-                model=crust_dens_kgm3.iloc[0]
-            else:
-                model=None
-                D=10**5*P_kbar/(9.81*crust_dens_kgm3)
+        else:
+            # Check if its a pandas series.
+            if isinstance(crust_dens_kgm3, pd.Series):
+                # Now check, is it a series of strings, or
+                if type(crust_dens_kgm3[0])==str:
+                    model=crust_dens_kgm3.iloc[0]
+                else:
+                    model=None
+                    D=10**5*P_kbar/(9.81*crust_dens_kgm3)
 
-        # Check if its just a single string
-        elif type(crust_dens_kgm3)==str:
-            model=crust_dens_kgm3
+            # Check if its just a single string
+            elif type(crust_dens_kgm3)==str:
+                model=crust_dens_kgm3
 
 
 
@@ -398,7 +399,10 @@ def convert_co2_dens_press_depth(T_K=None,
     CO2_dens_gcm3=None,
     crust_dens_kgm3=None, output='kbar',
     g=9.81, model=None,
-    d1=None, d2=None, rho1=None, rho2=None, rho3=None):
+    d1=None, d2=None, rho1=None, rho2=None, rho3=None, EOS='SW96'):
+
+    """ This is a now old function that isn't used, kept her for backwards functionality
+    """
 
 
 

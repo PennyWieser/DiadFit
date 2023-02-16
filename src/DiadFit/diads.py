@@ -1602,6 +1602,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     # Same, but also with a Gaussian Background
     if config1.fit_gauss is not False:
+        print(config1.gauss_amp)
 
         # making the gaussian model
         model1 = GaussianModel(prefix='bkg_')
@@ -2203,7 +2204,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     # Check number of peaks makes sense
     fit_peaks=config1.fit_peaks
-
+    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+    Diad=np.array(Diad_df)
 
 
     if fit_peaks==2:
@@ -2212,15 +2214,33 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
             fit_gauss=False
 
     if fit_peaks==3:
+        # This tests if HB is Nan and C13 is Nan
         if np.isnan(HB_pos)==True and np.isnan(C13_pos)==True:
             fit_peaks=1
             fit_gauss=False
+        # If only HB is Nan, lets instead allocate a HB positoin.
+        elif np.isnan(HB_pos):
+            HB_region=[Diad_pos+19, Diad_pos+23]
+            filter=(Diad[:, 0]>=HB_region[0])& (Diad[:,0]<=HB_region[1])
+            TrimDiad=Diad[filter]
+            filter2=(Diad[:, 0]>=(HB_region[0]-5))& (Diad[:,0]<=(HB_region[1]+5))
+            TrimDiad2=Diad[filter2]
+            maxy=np.max(TrimDiad[:, 1])
+            maxx=TrimDiad[TrimDiad[:, 1]==maxy]
+            HB_pos=float(maxx[:, 0][0])
+            miny=np.min(TrimDiad2[:, 1])
+            config1.HB_prom=maxy-miny
+            config1.gauss_amp=2*(maxy-miny)
 
+
+
+
+        # If no C13, reduce fit peaks to 2.
         elif np.isnan(C13_pos)==True or config1.C13_prom<10:
             fit_peaks=2
 
-    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
-    Diad=np.array(Diad_df)
+
+
     # First, we feed data into the remove baseline function, which returns corrected data
 
     y_corr_diad2, Py_base_diad2, x_diad2,  Diad_short_diad2, Py_base_diad2, Pf_baseline_diad2,  Baseline_ysub_diad2, Baseline_x_diad2, Baseline_diad2, span_diad2=remove_diad_baseline(
