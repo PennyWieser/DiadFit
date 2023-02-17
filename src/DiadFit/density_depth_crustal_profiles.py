@@ -343,7 +343,7 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
 
 
-    if model is not None:
+    elif model is not None:
         if model == "two-step":
             if d1 is None or rho1 is None or rho2 is None:
                 raise Exception('You have selected the two-step model, You must enter d1 (km), rho1 and rho2 (kg/m3)')
@@ -379,7 +379,8 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
                 for i in range(0, len(P_kbar)):
                     D[i]=func(P_kbar[i])
 
-
+    else:
+        raise TypeError('You need to either enter a model, or a value for crust_dens_kgm3' )
 
 
     D_series=pd.Series(D)
@@ -393,9 +394,8 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
 
 
-## Actual functions doing the conversions
 
-def convert_co2_dens_press_depth(T_K=None,
+def convert_co2_dens_press_depth_old(T_K=None,
     CO2_dens_gcm3=None,
     crust_dens_kgm3=None, output='kbar',
     g=9.81, model=None,
@@ -403,6 +403,7 @@ def convert_co2_dens_press_depth(T_K=None,
 
     """ This is a now old function that isn't used, kept her for backwards functionality
     """
+
 
 
 
@@ -487,8 +488,8 @@ def convert_co2_dens_press_depth(T_K=None,
                                 'Pressure (MPa)': P_kbar*100,
                                 'Depth (km)': Depth_km,
                                 'input_crust_dens_kgm3': crust_dens_kgm3,
-                                'input_T_K': T_K,
-                                'input_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+                                'MC_T_K': T_K,
+                                'MC_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
 
         else:
 
@@ -497,8 +498,8 @@ def convert_co2_dens_press_depth(T_K=None,
                                 'Pressure (MPa)': P_kbar*100,
                                 'Depth (km)': Depth_km,
                                 'input_crust_dens_kgm3': crust_dens_kgm3,
-                                'input_T_K': T_K,
-                                'input_CO2_dens_gcm3': CO2_dens_gcm3})
+                                'MC_T_K': T_K,
+                                'MC_CO2_dens_gcm3': CO2_dens_gcm3})
 
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
 

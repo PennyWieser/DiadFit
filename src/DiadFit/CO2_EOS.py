@@ -289,12 +289,22 @@ def calculate_P_for_rho_T_SW96(density_gcm3, T_K):
     except ImportError:
         raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
 
+
+
     P_kbar=cp.PropsSI('P', 'D', Density_kgm3, 'T', T_K, 'CO2')/10**8
-    df=pd.DataFrame(data={'P_kbar': P_kbar,
-                            'P_MPa': P_kbar*100,
-                            'T_K': T_K,
-                            'density_gcm3': density_gcm3
-                            })
+    if isinstance(P_kbar, float):
+        df=pd.DataFrame(data={'P_kbar': P_kbar,
+                                'P_MPa': P_kbar*100,
+                                'T_K': T_K,
+                                'density_gcm3': density_gcm3
+                                }, index=[0])
+    else:
+        df=pd.DataFrame(data={'P_kbar': P_kbar,
+                                'P_MPa': P_kbar*100,
+                                'T_K': T_K,
+                                'density_gcm3': density_gcm3
+                                })
+
     return df
 
 # Calculating P for a given density and Temp, Sterner and Pitzer

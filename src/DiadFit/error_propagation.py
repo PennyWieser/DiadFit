@@ -124,7 +124,7 @@ crust_dens_kgm3=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
 error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='normal',
-plot_figure=True, len_loop=1):
+plot_figure=True, len_loop=1, model=None):
 
     """ Calculate temperature, CO2 density, and crustal density for a given sample using Monte Carlo simulations with added noise.
 
@@ -251,26 +251,8 @@ plot_figure=True, len_loop=1):
         crust_dens_with_noise=Noise_to_add_crust_dens+crust_dens_kgm3
         crust_dens_with_noise[crust_dens_with_noise < 0.0001] = 0.0001
 
-
-        df_out=pd.DataFrame(data={'T_K_with_noise': T_K_with_noise,
-                                'CO2_dens_with_noise': CO2_dens_with_noise,
-                                'crust_dens_with_noise': crust_dens_with_noise,
-                                'T_K': df_c['T_K'].iloc[sample_i],
-                                'CO2_density_gcm3': df_c['CO2_density_gcm3'].iloc[sample_i],
-                                'Crustal Density_kg_m3': crust_dens_kgm3,
-                                'model': None,
-                                'error_T_K': error_T_K,
-                                'error_type_T_K': error_type_T_K,
-                                'error_dist_T_K': error_dist_T_K,
-                                'error_CO2_dens': error_CO2_dens,
-                                'error_type_CO2_dens': error_type_CO2_dens,
-                                'error_dist_CO2_dens': error_dist_CO2_dens,
-                                'error_crust_dens_kgm3': error_crust_dens,
-                                'error_type_crust_dens': error_type_crust_dens,
-                                'error_dist_crust_dens': error_dist_crust_dens,
-                                })
-
-
+    elif model is not None:
+        crust_dens_with_noise=None
 
     else:
         if error_crust_dens>0:
@@ -279,12 +261,13 @@ plot_figure=True, len_loop=1):
 
 
 
-        df_out=pd.DataFrame(data={'T_K_with_noise': T_K_with_noise,
+    df_out=pd.DataFrame(data={'T_K_with_noise': T_K_with_noise,
                                 'CO2_dens_with_noise': CO2_dens_with_noise,
-                                'crust_dens_with_noise': crust_dens_kgm3,
+                                'crust_dens_with_noise': crust_dens_with_noise,
                                 'T_K': df_c['T_K'].iloc[sample_i],
                                 'CO2_density_gcm3': df_c['CO2_density_gcm3'].iloc[sample_i],
                                 'Crustal Density_kg_m3': crust_dens_kgm3,
+                                'model': model,
                                 'error_T_K': error_T_K,
                                 'error_type_T_K': error_type_T_K,
                                 'error_dist_T_K': error_dist_T_K,
@@ -297,9 +280,9 @@ plot_figure=True, len_loop=1):
                                 })
 
 
+
+
     return df_out
-
-
 
 
 def loop_all_FI_MC(sample_ID, CO2_density_gcm3, T_K, N_dup=1000,
@@ -309,10 +292,23 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
                 plot_figure=False, fig_i=0):
 
+    print('Please use the new function propagate_FI_uncertainty instead as this allows you use different EOS')
+
+
+
+def propagate_FI_uncertainty(sample_ID, CO2_density_gcm3, T_K, N_dup=1000,
+crust_dens_kgm3=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
+error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='uniform',
+error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
+error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
+                plot_figure=False, fig_i=0, EOS='SW96', model=None):
+
     """
     Loop through all fluid inclusions in a dataset and run Monte Carlo simulations for
     temperature, CO2 density, and crustal density
 
+    EOS: string, 'SW96' (default) or 'SP94'
+        Equation of state you wish to use. Span and wanger 1996- SW96, Sterner and Pitzer 1994 - SP94.
     sample_ID: pd.Series
         Panda series of sample names. E.g., select a column from your dataframe (df['sample_name'])
 
@@ -401,12 +397,24 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
     All_outputs=pd.DataFrame([])
 
+    # Lets calculate the parameters not using any errors, to be able to plot an error bar around each point
+
+    df_ind=convert_co2_dens_press_depth(T_K=T_K,
+    CO2_dens_gcm3=CO2_density_gcm3,
+    crust_dens_kgm3=crust_dens_kgm3, output='kbar',
+    g=9.81, model=model,
+    d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3, EOS=EOS)
+
 
 
     #This loops through each fluid inclusion
     for i in range(0, len_loop):
         if i % 20 == 0:
             print('working on sample number '+str(i))
+
+        SingleCalc_D_km[i]=df_ind['Depth (km)'].iloc[i]
+        SingleCalc_Press_kbar[i]=df_ind['Pressure (kbar)'].iloc[i]
+
 
         # If user has entered a pandas series for error, takes right one for each loop
         if type(error_T_K) is pd.Series:
@@ -443,24 +451,22 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
         error_CO2_dens=error_CO2_dens, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
         crust_dens_kgm3=crust_dens_kgm3,  error_crust_dens=error_crust_dens, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
         d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
-     plot_figure=plot_figure, len_loop=len_loop)
+     plot_figure=plot_figure, len_loop=len_loop, model=model)
 
         # Convert to densities for MC
 
+        if model is None:
+            MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                            CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                        crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
+                                        d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3, model=model,
+                                            EOS=EOS)
+        else:
+            MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                            CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                        model=model, EOS=EOS)
 
-        MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
-                                        CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
-                                       crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
-                                       d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
-                                         output='df')
 
-
-
-        # Singular density calculation
-
-        Densities=convert_co2_dens_press_depth(T_K=T_K_i,
-                                       crust_dens_kgm3=crust_dens_kgm3,
-                    CO2_dens_gcm3=CO2_density_gcm3_i, output='df', d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
 
 
 
@@ -480,8 +486,10 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
             CO2_density_input[i]=CO2_density_gcm3.iloc[i]
         else:
             CO2_density_input=CO2_density_gcm3
-        SingleCalc_D_km[i]=Densities['Depth (km)']
-        SingleCalc_Press_kbar[i]=Densities['Pressure (kbar)']
+
+
+
+
 
         All_outputs=pd.concat([All_outputs, MC_T], axis=0)
 
@@ -496,6 +504,13 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
         error_crust_dens_loop[i]=np.nanmean(df_synthetic['error_crust_dens_kgm3'])
         error_crust_dens2_loop[i]=np.nanstd(df_synthetic['error_crust_dens_kgm3'])
+
+
+
+
+
+
+
 
     df_step=pd.DataFrame(data={'Filename': Sample,
                         'CO2_density_gcm3': CO2_density_input,
@@ -512,8 +527,15 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
                          'error_T_K': error_T_K,
                          'error_CO2_dens_gcm3': error_CO2_dens,
                          'error_crust_dens_kgm3': error_crust_dens_loop,
-
+                        'T_K': T_K,
+                        'CO2_dens_gcm3_input': CO2_density_gcm3,
+                        'model': model,
+                        'crust_dens_kgm3':crust_dens_kgm3,
+                        'EOS': EOS
                          })
+
+
+
 
     if plot_figure is True:
         df_1_sample=All_outputs.loc[All_outputs['Filename']==All_outputs['Filename'].iloc[fig_i]]
@@ -524,10 +546,11 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
         ax6.set_title('Calculated distribution of pressures (kbar)')
 
 
-        ax1.hist(df_1_sample['input_T_K'], color='red',  ec='k')
-        ax2.hist(df_1_sample['input_CO2_dens_gcm3'], facecolor='white', ec='k')
-        ax2.xaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
-        ax3.hist(df_1_sample['input_crust_dens_kgm3'], color='salmon', ec='k')
+        ax1.hist(df_1_sample['MC_T_K'], color='red',  ec='k')
+        ax2.hist(df_1_sample['MC_CO2_dens_gcm3'], facecolor='white', ec='k')
+        ax2.xaxis.set_major_formatter(plt.FormatStrFormatter('%.3f'))
+        if model is None:
+            ax3.hist(df_1_sample['input_crust_dens_kgm3'], color='salmon', ec='k')
         ax4.hist(df_1_sample['Depth (km)'], color='cornflowerblue', ec='k')
         ax5.hist(df_1_sample['Pressure (MPa)'], color='cyan', ec='k')
         ax6.hist(df_1_sample['Pressure (kbar)'], color='cyan', ec='k')
@@ -587,3 +610,53 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
         fig.tight_layout()
 
     return df_step, All_outputs, fig
+
+
+## Actual functions doing the conversions
+def convert_co2_dens_press_depth(T_K=None,
+    CO2_dens_gcm3=None,
+    crust_dens_kgm3=None, output='kbar',
+    g=9.81, model=None,
+    d1=None, d2=None, rho1=None, rho2=None, rho3=None, EOS='SW96'):
+
+    # First step is to get pressure
+    Pressure=calculate_P_for_rho_T(T_K=T_K,
+                density_gcm3=CO2_dens_gcm3,
+                 EOS=EOS)
+
+    # Second step is to get crustal depths
+
+    Depth_km=convert_pressure_to_depth(P_kbar=Pressure['P_kbar'],
+                crust_dens_kgm3=crust_dens_kgm3,     g=9.81, model=model,
+    d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
+
+
+
+    if type(Depth_km) is float:
+    # Crustal density, using P=rho g H
+        df=pd.DataFrame(data={'Pressure (kbar)': Pressure['P_kbar'],
+                            'Pressure (MPa)': Pressure['P_MPa'],
+                            'Depth (km)': Depth_km,
+                            'input_crust_dens_kgm3': crust_dens_kgm3,
+                            'model': model,
+                            'MC_T_K': T_K,
+                            'MC_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+
+    else:
+
+
+        df=pd.DataFrame(data={'Pressure (kbar)': Pressure['P_kbar'],
+                            'Pressure (MPa)': Pressure['P_MPa'],
+                            'Depth (km)': Depth_km,
+                            'input_crust_dens_kgm3': crust_dens_kgm3,
+                             'model': model,
+                            'MC_T_K': T_K,
+                            'MC_CO2_dens_gcm3': CO2_dens_gcm3})
+
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    return df
+
+
+
+

@@ -26,10 +26,10 @@ Welcome to DiadFits documentation!
    :maxdepth: 2
    :caption: Fitting Diads from CO2 gas cell (+ Ne correction) WITEC
 
-   Examples/Example1a_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
-   Examples/Example1a_Gas_Cell_Calibration/v38+_Filtering_Numerical
-   Examples/Example1a_Gas_Cell_Calibration/v38+_FitAll_Together
-   Examples/Example1a_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
+   Examples/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines
+   Examples/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical
+   Examples/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together
+   Examples/Example1a_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together
    %
 
 
@@ -37,11 +37,12 @@ Welcome to DiadFits documentation!
    :maxdepth: 2
    :caption: Fitting Diads from natural FI with secondary phases (+ Ne correction) WITEC
 
-   Examples/Example1b_CO2_Fluid_Inclusions/v38+_Fit_Your_Ne_Lines
-   Examples/Example1b_CO2_Fluid_Inclusions/v38+_Filtering_Numerical
-   Examples/Example1b_CO2_Fluid_Inclusions/v38+_FitAll_Together
-   Examples/Example1b_CO2_Fluid_Inclusions/Secondary_Peaks
-   Examples/Example1b_CO2_Fluid_Inclusions/v38+_Stitch_Outputs_Together
+   Examples/Example1b_CO2_Fluid_Inclusions/Step1_Fit_Your_Ne_Lines
+   Examples/Example1b_CO2_Fluid_Inclusions/Step2_Filtering_Numerical
+   Examples/Example1b_CO2_Fluid_Inclusions/Step3_FitAll_Together
+   Examples/Example1b_CO2_Fluid_Inclusions/Step3b_Secondary_Peaks
+   Examples/Example1b_CO2_Fluid_Inclusions/Step4_Stitch_Outputs_Together
+   Examples/Example1b_CO2_Fluid_Inclusions/Step5_CO2_Density_to_pressure
    %
 
 
@@ -49,10 +50,10 @@ Welcome to DiadFits documentation!
    :maxdepth: 2
    :caption: Fitting Diads from MI VB (HORIBA ~pre2010)
 
-   Examples/Example1c_Gas_Cell_Calibration/v38+_Fit_Your_Ne_Lines
-   Examples/Example1c_Gas_Cell_Calibration/v38+_Filtering_Numerical
-   Examples/Example1c_Gas_Cell_Calibration/v38+_FitAll_Together
-   Examples/Example1c_Gas_Cell_Calibration/v38+_Stitch_Outputs_Together
+   Examples/Example1c_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines
+   Examples/Example1c_Gas_Cell_Calibration/Step2_Filtering_Numerical
+   Examples/Example1c_Gas_Cell_Calibration/Step3_FitAll_Together
+   Examples/Example1c_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together
    %   
 
 

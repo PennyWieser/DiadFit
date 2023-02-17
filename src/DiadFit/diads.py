@@ -1602,7 +1602,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     # Same, but also with a Gaussian Background
     if config1.fit_gauss is not False:
-        print(config1.gauss_amp)
+
 
         # making the gaussian model
         model1 = GaussianModel(prefix='bkg_')
