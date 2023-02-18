@@ -47,21 +47,81 @@ def calculate_CO2_density_homog_T(T_h_C, Sample_ID=None, homog_to=None, EOS='SW9
     # This is equation 3.15 from Span and Wanger (1996)
     gas_density=(np.exp(-1.7074879*TempTerm**0.34-0.8227467*TempTerm**0.5-4.6008549*TempTerm**1-10.111178*TempTerm**2.333333-29.742252*TempTerm**4.6666667)*0.4676)
 
+
+
     if isinstance(Liq_density, float):
-        df=pd.DataFrame(data={'Bulk_gcm3': np.nan,
-    'Liq_gcm3': Liq_density,
-    'Gas_gcm3': gas_density,
-    'T_h_C': T_h_C,
-    'homog_to': 'no input'}, index=[0])
+        if homog_to is None:
+            df=pd.DataFrame(data={'Bulk_gcm3': np.nan,
+        'Liq_gcm3': Liq_density,
+        'Gas_gcm3': gas_density,
+        'T_h_C': T_h_C,
+        'homog_to': homog_to}, index=[0])
+        else:
+            if homog_to=='L':
+                df=pd.DataFrame(data={'Bulk_gcm3': Liq_density,
+            'Liq_gcm3': Liq_density,
+            'Gas_gcm3': gas_density,
+            'T_h_C': T_h_C,
+            'homog_to': homog_to}, index=[0])
+
+            elif homog_to=='V':
+                df=pd.DataFrame(data={'Bulk_gcm3': gas_density,
+            'Liq_gcm3': Liq_density,
+            'Gas_gcm3': gas_density,
+            'T_h_C': T_h_C,
+            'homog_to': homog_to}, index=[0])
+
+            else:
+                df=pd.DataFrame(data={'Bulk_gcm3': np.nan,
+            'Liq_gcm3': Liq_density,
+            'Gas_gcm3': gas_density,
+            'T_h_C': T_h_C,
+            'homog_to': homog_to}, index=[0])
+
 
     else:
-
-
-        df=pd.DataFrame(data={'Bulk_gcm3': np.nan,
+        # If they havent specified
+        if homog_to is None:
+            df=pd.DataFrame(data={'Bulk_gcm3': np.nan,
     'Liq_gcm3': Liq_density,
     'Gas_gcm3': gas_density,
     'T_h_C': T_h_C,
-    'homog_to': 'no input'})
+    'homog_to': homog_to})
+
+        # If its a string, e.g. same for all samples
+        elif isinstance(homog_to, str):
+            if homog_to=='L':
+                df=pd.DataFrame(data={'Bulk_gcm3': Liq_density,
+        'Liq_gcm3': Liq_density,
+        'Gas_gcm3': gas_density,
+        'T_h_C': T_h_C,
+        'homog_to': homog_to})
+            if homog_to=='V':
+                df=pd.DataFrame(data={'Bulk_gcm3': gas_density,
+        'Liq_gcm3': Liq_density,
+        'Gas_gcm3': gas_density,
+        'T_h_C': T_h_C,
+        'homog_to': homog_to})
+
+        # If its a panda series
+        else:
+
+
+            df=pd.DataFrame(data={'Bulk_gcm3': np.nan,
+        'Liq_gcm3': Liq_density,
+        'Gas_gcm3': gas_density,
+        'T_h_C': T_h_C,
+        'homog_to': homog_to})
+
+            print(homog_to)
+
+            homog_L=homog_to=='L'
+            df.loc[homog_L, 'Bulk_gcm3']=Liq_density
+            homog_L=homog_to=='V'
+            df.loc[homog_L, 'Bulk_gcm3']=gas_density
+
+
+
 
     return df
 
