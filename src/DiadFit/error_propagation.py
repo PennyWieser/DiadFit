@@ -102,16 +102,6 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None, sample_i=0, er
                                       'Std_density_Liq_gcm3': Std_density_liq,
                                       'error_T_h_C': error_T_h_C})
 
-    # if T_K is not None:
-    #
-    #     Press=calculate_P_for_rho_T(density_gcm3=All_outputs['Bulk_gcm3'],
-    #     T_K=T_K, EOS=EOS)
-    #     All_outputs['P_kbar']=Press
-    #
-    #     Av_outputs['Mean_P_kbar']=np.nanmean(Press)
-    #     Av_outputs['std_P_kbar']=np.nanstd(Press)
-
-
 
 
     return Av_outputs, All_outputs

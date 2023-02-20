@@ -4,7 +4,8 @@ Introduction and Citation
 
 Welcome to DiadFit - An Open-Source python3 tool for fitting Raman spectra
 
-.. image:: IntroDiagram.png
+.. image:: img/IntroDiagram.jpg
+
 
 This tool is currently in progress, with planned submission to Volcanica in the near future.
 
