@@ -113,7 +113,6 @@ def calculate_CO2_density_homog_T(T_h_C, Sample_ID=None, homog_to=None, EOS='SW9
         'T_h_C': T_h_C,
         'homog_to': homog_to})
 
-            print(homog_to)
 
             homog_L=homog_to=='L'
             df.loc[homog_L, 'Bulk_gcm3']=Liq_density

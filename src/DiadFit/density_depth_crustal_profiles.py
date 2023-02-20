@@ -345,6 +345,7 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
     elif model is not None:
         if model == "two-step":
+
             if d1 is None or rho1 is None or rho2 is None:
                 raise Exception('You have selected the two-step model, You must enter d1 (km), rho1 and rho2 (kg/m3)')
             D=loop_pressure_depth_2step(P_kbar=P_kbar,
@@ -352,7 +353,7 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
         if model == "three-step":
             if d1 is None or d2 is None or rho1 is None or rho2 is None or rho3 is None:
-                raise Exception('You have selected the two-step model, You must enter d1 and d2 (km), rho1, rho2 and rho3 (kg/m3)')
+                raise Exception('You have selected the three-step model, You must enter d1 and d2 (km), rho1, rho2 and rho3 (kg/m3)')
 
             D=loop_pressure_depth_3step(P_kbar=P_kbar,
             d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)

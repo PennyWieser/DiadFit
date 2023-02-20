@@ -449,11 +449,12 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
             MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
                                             CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
                                         crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
-                                        d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3, model=model,
+                                        d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
                                             EOS=EOS)
         else:
             MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
                                             CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
                                         model=model, EOS=EOS)
 
 
