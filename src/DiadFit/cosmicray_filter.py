@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-from tqdm.notebook import tqdm_notebook
+from tqdm.autonotebook import tqdm
 import DiadFit as pf
 
 encode="ISO-8859-1"
@@ -190,7 +190,7 @@ def filter_raysinloop(*,Diad_files=None, spectra_path=None, diad_peaks=None,fit_
     ray_list=pd.DataFrame([])
     spectra_df=pd.DataFrame([])
 
-    for i in tqdm_notebook(Diad_files.index.tolist()):
+    for i in tqdm(Diad_files.index.tolist()):
 
         filename_select=Diad_files.iloc[i]
         rays_found,spectrum=filter_singleray(path=spectra_path,Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,plot_rays=plot_rays,

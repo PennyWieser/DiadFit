@@ -13,7 +13,7 @@ from DiadFit.importing_data_files import *
 from typing import Tuple, Optional
 from dataclasses import dataclass
 import matplotlib.patches as patches
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 ## Test this
 
