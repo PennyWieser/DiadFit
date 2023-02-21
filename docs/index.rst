@@ -71,6 +71,7 @@ Welcome to DiadFits documentation!
 
    Examples/Example4_H2OQuant_Glass/H2O_Fitting
 
+   %
 
 .. toctree::
    :maxdepth: 2
