@@ -21,7 +21,16 @@ import warnings as w
 #warnings.simplefilter('error')
 
 encode="ISO-8859-1"
+## Ratio of different peaks
 
+def calculate_mole_fraction_2comp(peak_area_a, peak_area_b, cross_section_a, cross_section_b, instrument_eff_a, instrument_eff_b):
+
+    Sum_phase_a=peak_area_a/(cross_section_a*instrument_eff_a)
+    Sum_phase_b=peak_area_b/(cross_section_b*instrument_eff_b)
+
+    df=pd.DataFrame(data={'A:B molar ratio': Sum_phase_a/Sum_phase_b})
+
+    return df
 def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None, Spectra_y=None):
     """Penny needs to write documentation
     """

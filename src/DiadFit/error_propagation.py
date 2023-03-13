@@ -75,7 +75,7 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None, sample_i=0, er
             Sample[i]=Sample_ID.iloc[i]
 
         Temp_MC=make_error_dist_microthermometry_1sam(T_h_C=T_h_C_i,
-        sample_i=0, error_T_h_C=error_T_h_C, N_dup=N_dup,
+        sample_i=i, error_T_h_C=error_T_h_C, N_dup=N_dup,
         error_dist_T_h_C=error_dist_T_h_C, error_type_T_h_C=error_type_T_h_C, len_loop=1)
 
         Sample2=Sample[i]
