@@ -120,7 +120,52 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
                 pxdf[['Wavenumber','Intensity']].to_csv(path+'/'+file.replace('.txt', '')+'_CRR.txt', sep='\t', header=False, index=False)
 
     # This plots the results if True
-    if plot_rays==True:
+    if plot_rays=='rays_only':
+        if all_rayswave.empty==False:
+            if second_pass==True:
+                fig, (ax0,ax1,ax2,ax3,ax4) = plt.subplots(1,5,figsize=figsize)
+
+                ax0.plot(pxdf['Wavenumber'],pxdf['maxpx_fact*minpx_fact'],color='k')
+                ax3.plot(pxdf_pass2['Wavenumber'],pxdf_pass2['maxpx_fact_pass2*minpx_fact_pass2'],color='r')
+                ax0.scatter(rays_wavenumber,rays_fact,color='r')
+                ax3.scatter(rays_wavenumber_pass2,rays_fact_pass2,color='orange')
+
+                ax1.plot(pxdf['Wavenumber'],pxdf['Intensity'],color='k')
+                ax2.plot(pxdf_filt['Wavenumber'],pxdf_filt['Intensity'],color='r')
+                ax4.plot(pxdf_filt_pass2['Wavenumber'],pxdf_filt_pass2['Intensity'],color='orange')
+
+                ax0.set_title('Intensity factor and rays')
+                ax1.set_title('Original spectrum')
+                ax2.set_title('De-rayed spectrum')
+                ax3.set_title('Intensity factor and rays - pass 2')
+                ax4.set_title('De-rayed spectrum - pass 2')
+                if xlims is not None:
+                    ax0.set_xlim(xlims)
+                    ax1.set_xlim(xlims)
+                    ax2.set_xlim(xlims)
+                    ax3.set_xlim(xlims)
+                    ax4.set_xlim(xlims)
+
+                fig.suptitle(file, fontsize=12)
+
+            if second_pass==False:
+
+                fig, (ax0,ax1) = plt.subplots(1,2,figsize=figsize)
+
+                ax0.plot(pxdf['Wavenumber'],pxdf['maxpx_fact*minpx_fact'],color='k')
+                ax0.scatter(rays_wavenumber,rays_fact,color='r')
+
+                ax1.plot(pxdf['Wavenumber'],pxdf['Intensity'],color='k')
+
+                ax0.set_title('Intensity factor and rays')
+                ax1.set_title('Original spectrum')
+                if xlims is not None:
+                    ax0.set_xlim(xlims)
+                    ax1.set_xlim(xlims)
+
+                fig.suptitle(file+' - NO RAYS detected', fontsize=12)
+
+    if plot_rays=='all':
         if second_pass==True:
             fig, (ax0,ax1,ax2,ax3,ax4) = plt.subplots(1,5,figsize=figsize)
 
