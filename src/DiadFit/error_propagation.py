@@ -330,9 +330,10 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
     error_dist_CO2_dens (str, optional):
         The distribution of error in the CO2 density measurement, either 'normal' or 'uniform'
 
-    crust_dens_kgm3 (float, optional) or str
+    Choose from:
+
+    crust_dens_kgm3 (float, optional)
         if float, The crustal density of the sample in kg/m^3.
-        if str, either a density model ('ryan_lerner, two step etc')
         if two-step or three-step:
             rho1 - density in kg/m3 down to d1
             rho2 - density in kg/m3 between d1 and d2
@@ -349,6 +350,43 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
     error_dist_crust_dens(str, optional):
         The distribution of error in the CO2 density measurement, either 'normal' or 'uniform'.
 
+    OR
+
+    model: str
+
+        ryan_lerner:
+            Parameterization of Ryan 1987, actual equation from Lerner et al. 2021
+            After 16.88 km (455 MPa), assume density is 2.746, as density turns around again. This profile is tweaked for Hawaii
+
+        mavko_debari:
+            Parameterization of Mavko and Thompson (1983) and DeBari and Greene (2011)
+            as given in Putirka (2017) Down the Crater Elements supplement.
+
+
+        hill_zucca:
+            Parameterization of Hill and Zucca (1987),
+            as given in Putirka (2017) Down the Crater Elements supplement
+
+        prezzi:
+            Parameterization of Prezzi et al. (2009),
+            as given in Putirka (2017) Down the Crater Elements supplement. Tweaked for Andes.
+
+        rasmussen:
+            Linear fit to the supporting information of Rasmussen et al. 2022,
+            overall best fit density vs. depth
+
+        two-step:
+            If two step, must also define d1 (depth to 1st step), rho1 (density to 1st step), rho2 (density to 2nd step)
+
+        three-step:
+            If three step, must also define d1 (depth to 1st step), d2 (depth to second step), rho1 (density to 1st step), rho2 (density to 2nd step),
+            rho3 (density after 3rd step) in km and kg/m3 respectively.
+
+
+        If a model is selected, error_type_crust_dens, error_crust_dens, and error_dist_crust_dens not used.
+
+
+
     plot_figure (bool):
         if True, plots a figure of the distribution of different variables.
 
@@ -360,6 +398,8 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
 
     """
+    if isinstance(crust_dens_kgm3, str):
+        raise TypeError('Do not enter a string for crustal density, put it as a model instead')
 
     # Set up empty things to fill up.
 
@@ -600,7 +640,9 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
         fig.tight_layout()
 
-    return df_step, All_outputs, fig
+    #return df_step, All_outputs, fig
+
+    return df_step, All_outputs,fig if 'fig' in locals() else None
 
 
 ## Actual functions doing the conversions
