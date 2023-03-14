@@ -571,7 +571,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
     if plot_figure is True:
         df_1_sample=All_outputs.loc[All_outputs['Filename']==All_outputs['Filename'].iloc[fig_i]]
         fig, ((ax1, ax4), (ax2, ax5), (ax3, ax6)) = plt.subplots(3, 2, figsize=(12,8))
-        fig.suptitle('Simulations for sample = ' + str(All_outputs['Filename'].iloc[fig_i]))
+        fig.suptitle('Simulations for sample = ' + str(All_outputs['Filename'].iloc[fig_i]), fontsize=20)
         ax4.set_title('Calculated distribution of depths')
         ax5.set_title('Calculated distribution of pressures (MPa)')
         ax6.set_title('Calculated distribution of pressures (kbar)')
