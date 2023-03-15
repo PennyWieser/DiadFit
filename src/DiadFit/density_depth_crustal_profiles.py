@@ -268,10 +268,14 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
     g: float
         gravitational constant, in m/s2
 
-    crust_dens_kgm3: float or str
-        If float: Crustal density in kg/m3
+    Choose from:
 
-        If model, choose from:
+    crust_dens_kgm3: float or str
+        Crustal density in kg/m3
+
+    OR
+
+    model, choose from:
 
         ryan_lerner:
             Parameterization of Ryan 1987, actual equation from Lerner et al. 2021
@@ -303,15 +307,6 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
 
 
-
-    OR
-
-
-
-    Else, just enter a crustal density in kg/m3, e.g., model=2700
-
-
-
     Returns
     -----------
 
@@ -321,6 +316,10 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
 
     # Check, is it an integer, If so just calculate depth
+
+    if isinstance(crust_dens_kgm3, str):
+        raise TypeError('Do not enter a string for crustal density, put it as a model instead')
+
     if crust_dens_kgm3 is not None:
         if type(crust_dens_kgm3)==int or type(crust_dens_kgm3)==float:
             D=10**5*P_kbar/(9.81*crust_dens_kgm3)

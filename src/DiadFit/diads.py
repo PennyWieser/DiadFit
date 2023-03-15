@@ -432,9 +432,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
             df_sort_diad2_trim['height'].iloc[i]-1/7*(df_sort_diad2_trim['height'].iloc[i]-700)), xycoords="data", fontsize=10, rotation=90)
 
 
-        return df_out, Diad, fig
-    else:
-        return df_out, Diad
+    return df_out, Diad, fig if 'fig' in locals() else None
+
 
 
 
@@ -449,7 +448,7 @@ def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_fi
     """
 
     # Do fit for first file to get length
-    df_peaks, Diad=identify_diad_peaks(
+    df_peaks, Diad, fig=identify_diad_peaks(
     config=config, path=spectra_path, filename=Diad_Files[0],
     filetype=filetype, plot_figure=plot_figure)
 
@@ -461,7 +460,7 @@ def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_fi
     i=0
     for file in tqdm(Diad_Files):
 
-        df_peaks, Diad=identify_diad_peaks(
+        df_peaks, Diad, fig=identify_diad_peaks(
         config=diad_id_config, path=spectra_path, filename=file,
     filetype=filetype, plot_figure=False)
 
