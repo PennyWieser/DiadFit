@@ -8,10 +8,23 @@ import DiadFit as pf
 
 encode="ISO-8859-1"
 
+def check_pars(plot_rays, save_fig,export_cleanspec):
+    if not isinstance(plot_rays, str) or plot_rays not in ['all', 'rays_only']:
+        raise ValueError("plot_rays can only be 'all' or 'rays_only', please correct")
+    if not isinstance(save_fig, str) or save_fig not in ['all', 'rays_only']:
+        raise ValueError("save_fig can only be 'all' or 'rays_only', please correct")
+    if not isinstance(export_cleanspec, bool):
+        raise ValueError("export_cleanspec can only be True or False, please correct")
 ## This function is the main filter, runs on one spectrum
 
 def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filetype='headless_txt',n=1,dynfact=0.01,dynfact_2=0.003,
-                        export_cleanspec=True,plot_rays=True,save_fig='rays_only',figsize=(20,5), xlims=None):
+                        export_cleanspec=True,plot_rays='all',save_fig='rays_only',figsize=(20,5), xlims=None):
+    try:
+        check_pars(plot_rays, save_fig,export_cleanspec)
+    except ValueError as e:
+        print(str(e))
+        raise e
+
     file=Diad_files.iloc[i]
     #open the spectrum in form of array
     Diad_array=pf.get_data(path=path, filename=file, filetype=filetype)
@@ -230,7 +243,12 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
 
 ## Filter rays in a loop
 
-def filter_raysinloop(*,Diad_files=None, spectra_path=None, diad_peaks=None,fit_params=None, plot_rays=False, export_cleanspec=True, save_fig='all', dynfact=0.01, dynfact_2=0.0005, n=1,xlims=None):
+def filter_raysinloop(*,Diad_files=None, spectra_path=None, diad_peaks=None,fit_params=None, plot_rays='all', export_cleanspec=True, save_fig='all', dynfact=0.01, dynfact_2=0.0005, n=1,xlims=None):
+    try:
+        check_pars(plot_rays, save_fig,export_cleanspec)
+    except ValueError as e:
+        print(str(e))
+        raise e
 
     ray_list=pd.DataFrame([])
     spectra_df=pd.DataFrame([])
