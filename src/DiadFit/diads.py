@@ -81,11 +81,9 @@ class diad_id_config:
     approx_diad2_pos_3peaks: Tuple[float, float]=(1379, 1395, 1379-17)
 
     # Thresholds for Scipy find peaks
-    height: float = 400
-    distance: float = 5
-    threshold: float = 0.5
+    height: float = 1
     width: float=0.5
-    prominence: float=10
+    prominence: float=50
 
     # to plot or not to plot
     plot_figure: bool = True
@@ -107,9 +105,23 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
 
     # First lets use find peaks
-    y=Diad[:, 1]
-    x=Diad[:, 0]
-    spec_res=np.abs(x[1]-x[0])
+    y_in=Diad[:, 1]
+    x_in=Diad[:, 0]
+    spec_res=np.abs(x_in[1]-x_in[0])
+
+    # Now lets fit a cubic spline to smoooth it all out a bit
+    # Get x and y ready to make a cubic spline through data
+    # Fit a  cubic spline
+    f2 = interp1d(x_in, y_in, kind='cubic')
+    x_new=np.linspace(np.min(x_in), np.max(x_in), 100000)
+
+    y_cub=f2(x_new)
+
+    y=y_cub
+    x=x_new
+
+
+
     # Spacing of hotband from main peak
     diad2_HB2_min_offset=19-spec_res
     diad2_HB2_max_offset=23+spec_res
@@ -122,8 +134,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     diad2_C13_min_offset=16.5-spec_res
     diad2_C13_max_offset=20+spec_res
 
-    peaks = find_peaks(y,height = config.height, threshold = config.threshold,
-    distance = config.distance, prominence=config.prominence, width=config.width)
+    peaks = find_peaks(y, height = config.height, prominence=config.prominence, width=config.width)
+
 
     # This gets the list of peak positions.
     peak_pos = x[peaks[0]]
@@ -176,22 +188,19 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
             df_out['HB2_height']=diad_2_HB['height'].iloc[0]
 
             # Now calculate prominence of this
-            # Find midpoint between diad and hotband
-            MidPoint_x_Diad2=(df_out['Diad2_pos'].iloc[0]+df_out['HB2_pos'].iloc[0])/2
-
-            # Find median y coordinate around this midpoint +-2 data points
-            MidPoint_y_Diad2=np.median(Diad[:, 1][
-            (Diad[:, 0]<MidPoint_x_Diad2+2*spec_res)
-            &(Diad[:, 0]>MidPoint_x_Diad2-2*spec_res)])
+            # Find the minimum value between the diad2 and HB2 peak position
+            Diad_between=Diad[(Diad[:, 0]<df_out['HB2_pos'].iloc[0])& (Diad[:, 0]>df_out['Diad2_pos'].iloc[0])]
+            Min_y_midpoint=np.min(Diad_between[:, 1])
 
 
-            RHS_x_Diad2=(df_out['HB2_pos'].iloc[0])+15
+
+            RHS_x_Diad2=(df_out['HB2_pos'].iloc[0])+20
             RHS_y_Diad2=np.median(Diad[:, 1][
             (Diad[:, 0]<RHS_x_Diad2+2*spec_res)
             &(Diad[:, 0]>RHS_x_Diad2-2*spec_res)])
             # First, find HB prominence
 
-            df_out['Diad2_HB2_Valley_prom']=MidPoint_y_Diad2-RHS_y_Diad2
+            df_out['Diad2_HB2_Valley_prom']=Min_y_midpoint/RHS_y_Diad2
 
 
         else:
@@ -272,23 +281,21 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
             df_out['HB1_height']=diad_1_HB['height'].iloc[0]
 
 
-            # Lets take the median of the peaks between the HB and the diad
-            MidPoint_x_Diad1=(df_out['Diad1_pos'].iloc[0]+df_out['HB1_pos'].iloc[0])/2
-            MidPoint_y_Diad1=np.median(Diad[:, 1][
-            (Diad[:, 0]<MidPoint_x_Diad1+2*spec_res)
-            &(Diad[:, 0]>MidPoint_x_Diad1-2*spec_res)])
+            # Find the minimum value between the diad2 and HB2 peak position
+            Diad_between=Diad[(Diad[:, 0]>df_out['HB1_pos'].iloc[0])& (Diad[:, 0]<df_out['Diad1_pos'].iloc[0])]
+            Min_y_midpoint=np.min(Diad_between[:, 1])
 
 
 
             # Lets do the same, but 15 away from this
 
-            LHS_x_Diad1=(df_out['HB1_pos'].iloc[0])-15
+            LHS_x_Diad1=(df_out['HB1_pos'].iloc[0])-20
             LHS_y_Diad1=np.median(Diad[:, 1][
-            (Diad[:, 0]<LHS_x_Diad1+2*spec_res)
-            &(Diad[:, 0]>LHS_x_Diad1-2*spec_res)])
+            (Diad[:, 0]<LHS_x_Diad1+2.1*spec_res)
+            &(Diad[:, 0]>LHS_x_Diad1-2.1*spec_res)])
 
 
-            df_out['Diad1_HB1_Valley_prom']=MidPoint_y_Diad1-LHS_y_Diad1
+            df_out['Diad1_HB1_Valley_prom']=Min_y_midpoint/LHS_y_Diad1
 
         else:
             df_out['HB1_pos']=np.nan
@@ -340,10 +347,12 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     df_out['Diad1_Median_Bck']=Med_bck_diad1
     df_out['Diad2_Median_Bck']=Med_bck_diad2
 
-    df_out['Diad1_prom']=df_out['Diad1_height']-Med_bck_diad1
-    df_out['Diad2_prom']=df_out['Diad2_height']-Med_bck_diad2
-    df_out['HB1_prom']=df_out['HB1_height']-Med_LHS_diad1
-    df_out['HB2_prom']=df_out['HB2_height']-Med_RHS_diad2
+    df_out['Diad1_abs_prom']=df_out['Diad1_height']-Med_bck_diad1
+    df_out['Diad2_abs_prom']=df_out['Diad2_height']-Med_bck_diad2
+    df_out['Diad1_ratio_prom']=df_out['Diad1_height']/Med_bck_diad1
+    df_out['Diad2_ratio_prom']=df_out['Diad2_height']/Med_bck_diad2
+    df_out['HB1_abs_prom']=df_out['HB1_height']-Med_LHS_diad1
+    df_out['HB2_abs_prom']=df_out['HB2_height']-Med_RHS_diad2
 
 
 
@@ -356,20 +365,20 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
         ], 0.25)
 
         df_out['C13_prom']=df_out['C13_height']-C13_back
-        df_out['C13_HB2_prom_ratio']=df_out['HB2_prom']/df_out['C13_prom']
+        df_out['C13_HB2_abs_prom_ratio']=df_out['HB2_abs_prom']/df_out['C13_prom']
     else:
         df_out['C13_prom']=np.nan
-        df_out['C13_HB2_prom_ratio']=np.nan
+        df_out['C13_HB2_abs_prom_ratio']=np.nan
 
 
 
 
     # Other useful params
-    df_out['Mean_Diad_HB_Valley_prom']=(df_out['Diad2_HB2_Valley_prom']+df_out['Diad1_HB1_Valley_prom'])
-    df_out['Mean_HB_prom']=(df_out['HB1_prom']+df_out['HB2_prom'])
+    df_out['Mean_Diad_HB_Valley_prom']=(df_out['Diad2_HB2_Valley_prom']+df_out['Diad1_HB1_Valley_prom'])/2
+    df_out['Mean_HB_prom']=(df_out['HB1_abs_prom']+df_out['HB2_abs_prom'])
 
-    df_out['Diad2_HB2_prom_ratio']=df_out['Diad2_prom']/df_out['HB2_prom']
-    df_out['Diad1_HB1_prom_ratio']=df_out['Diad1_prom']/df_out['HB1_prom']
+    df_out['Diad2_HB2_abs_prom_ratio']=df_out['Diad2_abs_prom']/df_out['HB2_abs_prom']
+    df_out['Diad1_HB1_abs_prom_ratio']=df_out['Diad1_abs_prom']/df_out['HB1_abs_prom']
 
     # Parameter for amount of noise between diads vs. height of peaks
     between_diads_x=(x>df_out['Diad1_pos'].iloc[0]+20)&(x<df_out['Diad2_pos'].iloc[0]-30)
@@ -384,8 +393,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
 
     # Lets sort based on columns we want near each other
-    cols_to_move = ['filename', 'Diad2_HB2_prom_ratio', 'Diad1_HB1_prom_ratio', 'Diad2_pos', 'Diad2_prom', 'Diad1_pos', 'Diad1_prom',
-               'HB2_pos', 'HB2_prom', 'HB1_pos', 'HB1_prom', 'C13_pos', 'C13_prom', 'Diad1_prom/std_betweendiads']
+    cols_to_move = ['filename', 'Diad2_HB2_abs_prom_ratio', 'Diad1_HB1_abs_prom_ratio', 'Diad2_pos', 'Diad2_prom', 'Diad1_pos', 'Diad1_prom',
+               'HB2_pos', 'HB2_abs_prom', 'HB1_pos', 'HB1_abs_prom', 'C13_pos', 'C13_prom', 'Diad1_prom/std_betweendiads']
 
     df_out = df_out[cols_to_move + [
         col for col in df_out.columns if col not in cols_to_move]]
@@ -491,7 +500,7 @@ def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_fi
 def plot_peak_params(fit_params,
                      x_param='Diad1_pos',  y1_param='approx_split',
                     y2_param='Mean_Valley_prom', y3_param='C13_prom',
-                    y4_param='HB2_prom', fill_na=-1000):
+                    y4_param='HB2_abs_prom', fill_na=-1000):
 
     """ Filters diad files by peak params
     Parameters
