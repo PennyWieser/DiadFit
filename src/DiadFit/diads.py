@@ -383,8 +383,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     # Parameter for amount of noise between diads vs. height of peaks
     between_diads_x=(x>df_out['Diad1_pos'].iloc[0]+20)&(x<df_out['Diad2_pos'].iloc[0]-30)
     std_bet_diad=np.std(y[between_diads_x])
-    noise_vs_peak_Diad1=df_out['Diad1_prom']/std_bet_diad
-    noise_vs_peak_Diad2=df_out['Diad2_prom']/std_bet_diad
+    noise_vs_peak_Diad1=df_out['Diad1_abs_prom']/std_bet_diad
+    noise_vs_peak_Diad2=df_out['Diad2_abs_prom']/std_bet_diad
     df_out['Diad1_prom/std_betweendiads']=noise_vs_peak_Diad1
     df_out['Diad2_prom/std_betweendiads']=noise_vs_peak_Diad2
 
@@ -393,7 +393,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
 
     # Lets sort based on columns we want near each other
-    cols_to_move = ['filename', 'Diad2_HB2_abs_prom_ratio', 'Diad1_HB1_abs_prom_ratio', 'Diad2_pos', 'Diad2_prom', 'Diad1_pos', 'Diad1_prom',
+    cols_to_move = ['filename', 'Diad2_HB2_abs_prom_ratio', 'Diad1_HB1_abs_prom_ratio', 'Diad2_pos', 'Diad2_abs_prom', 'Diad1_pos', 'Diad1_abs_prom',
                'HB2_pos', 'HB2_abs_prom', 'HB1_pos', 'HB1_abs_prom', 'C13_pos', 'C13_prom', 'Diad1_prom/std_betweendiads']
 
     df_out = df_out[cols_to_move + [
@@ -560,7 +560,7 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
     """
 
     reas_split=(fit_params['approx_split'].between(splitting_limits[0], splitting_limits[1]))
-    reas_heigh=fit_params['Diad1_prom']>lower_diad1_prom
+    reas_heigh=fit_params['Diad1_abs_prom']>lower_diad1_prom
 
     fit_params_filt=fit_params.loc[(reas_split&reas_heigh)].reset_index(drop=True)
     fit_params_disc=fit_params.loc[~(reas_split&reas_heigh)].reset_index(drop=True)
@@ -579,9 +579,9 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
     ax2.set_title('Spectra to Keep')
     if sum(~filt)>0:
         for i in range(0, np.shape(data_y_disc)[1]):
-            av_prom_disc=np.abs(np.nanmedian(fit_params_disc['Diad1_prom'])/intc)
+            av_prom_disc=np.abs(np.nanmedian(fit_params_disc['Diad1_abs_prom'])/intc)
             Diff=np.nanmax(data_y_disc[:, i])-np.nanmin(data_y_disc[:, i])
-            av_prom_Keep=fit_params_disc['Diad1_prom'].iloc[i]
+            av_prom_Keep=fit_params_disc['Diad1_abs_prom'].iloc[i]
             prom_disc=prom_disc+av_prom_disc
             ax1.plot(x_cord+i*5, (data_y_disc[:, i]-np.nanmin(data_y_disc[:, i]))/Diff+i/3, '-r', lw=0.5)
         ax1.set_xlim([1250, 1450+i*5])
@@ -590,7 +590,7 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
     if sum(filt)>0:
         for i in range(0, np.shape(data_y_filt)[1]):
             Diff=np.nanmax(data_y_filt[:, i])-np.nanmin(data_y_filt[:, i])
-            av_prom_Keep=fit_params_filt['Diad1_prom'].iloc[i]
+            av_prom_Keep=fit_params_filt['Diad1_abs_prom'].iloc[i]
             prom_filt=prom_filt+av_prom_Keep
             ax2.plot(x_cord+i*5, (data_y_filt[:, i]-np.nanmin(data_y_filt[:, i]))/Diff+i/3, '-b', lw=0.5)
 
@@ -639,7 +639,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
         if sum(grp1)>0:
             if sum(grp1)==1:
                 i=0
-                av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
+                av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_abs_prom'])/intc)
                 Diff=np.nanmax(Group1_np_y[:, i])-np.nanmin(Group1_np_y[:, i])
                 ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
 
@@ -647,7 +647,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
             else:
                 for i in range(0, np.shape(Group1_np_y)[1]):
 
-                        av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_prom'])/intc)
+                        av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_abs_prom'])/intc)
                         Diff=np.nanmax(Group1_np_y[:, i])-np.nanmin(Group1_np_y[:, i])
                         ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
             ax0.set_xlim([1250-i*5, 1450])
@@ -664,7 +664,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
             print(sum(~grp1))
             if sum(~grp1)==1:
                 j=0
-                av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+                av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_abs_prom'])/intc)
                 Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
                 ax1.plot(x_cord-j*5,
                 (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
@@ -676,7 +676,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
 
 
-                    av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_prom'])/intc)
+                    av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_abs_prom'])/intc)
                     Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
                     ax1.plot(x_cord-j*5,
                     (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
