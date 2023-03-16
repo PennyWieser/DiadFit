@@ -9,6 +9,22 @@ import DiadFit as pf
 encode="ISO-8859-1"
 
 def check_pars(plot_rays, save_fig,export_cleanspec):
+    """ Checks if input parameters plot_rays, save_fig and expor_cleanspec are valid. If any of them is not valid, it raises a ValueError indicating which parameter is incorrect and what the allowed values are.
+
+    Parameters
+    --------------
+    plot_rays: str ('all' or 'rays_only')
+        Plot all spectra or just those for which cosmic rays were found
+    save_fig: str ('all' or 'rays_only')
+        Save all figures or just those for spectra in which cosmic rays were found
+    export_cleanspec: bool
+        Indicates whether to export de-rayed spectra or not
+
+    Returns
+    -------------
+    None
+
+    """
     if not isinstance(plot_rays, str) or plot_rays not in ['all', 'rays_only']:
         raise ValueError("plot_rays can only be 'all' or 'rays_only', please correct")
     if not isinstance(save_fig, str) or save_fig not in ['all', 'rays_only']:
@@ -19,6 +35,45 @@ def check_pars(plot_rays, save_fig,export_cleanspec):
 
 def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filetype='headless_txt',n=1,dynfact=0.01,dynfact_2=0.003,
                         export_cleanspec=True,plot_rays='all',save_fig='rays_only',figsize=(20,5), xlims=None):
+    """ This function is used to filter out cosmic rays in single Raman spectra of CO2. It requires the input of pre-identified peaks to avoid excluding peaks of interest. The filter compares the intensity of each pixel in the spectrum to n surrounding pixels and calculates an intensity factor. Pixels that exceed a certain intensity factor threshold are removed from the spectrum. It repeats the process when a cosmic ray is found, so that "wide" cosmic rays can be excluded (when a cosmic ray encompasses more than a single pixel)
+
+    Parameters
+    --------------
+    path: str
+        The path of the spectrum file
+    Diad_files: pd.Series
+        'filename' column of fit_params variable output by pf.loop_approx_diad_fits
+    i: int
+        index number in Diad_files of the file to be filtered
+    diad_peaks: pd.DataFrame
+        Dataframe containing the peaks of interest for each file subset from fit_params variable output by pf.loop_approx_diad_fits(columns Diad1_pos,	Diad2_pos,HB1_pos,HB2_pos,C13_pos)
+    filetype: str ('headless_txt')
+        Sets the filetype of the spectrum file
+    n: int
+        Neighbor pixels to consider, 1 is typically enough.
+    dynfact: float or int
+        Intensity factor cutoff for the first filter pass (can adjust based on y axis of intensity factor plot)
+    dynfact_2: float or int
+        Intensity factor cutoff for the second filter pass (can adjust based on y axis of intensity factor plot)
+    export_cleanspec: bool
+        Indicates whether to export de-rayed spectra or not
+    plot_rays: str ('all' or 'rays_only')
+        Plot all spectra or just those for which cosmic rays were found
+    save_fig: str ('all' or 'rays_only')
+        Save all figures or just those for spectra in which cosmic rays were found
+    fig_size: tuple
+        Sets the figure size
+    xlims: list
+        Sets the x axis limits of the plots
+
+    Returns
+    -------------
+    record: pd.DataFrame
+        Dataframe containing the filename and whether cosmic rays were found
+    clean_spec_df: pd.DataFrame
+        DataFrame containing the cleaned spectrum (Wavenumber and Intensity columns)
+
+    """
     try:
         check_pars(plot_rays, save_fig,export_cleanspec)
     except ValueError as e:
@@ -237,13 +292,50 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
     record.loc[file,'rays_present']=not all_rayswave.empty
 
     if second_pass==True:
-        return record ,pxdf_filt_pass2[['Wavenumber','Intensity']]
+        clean_spec_df=pxdf_filt_pass2[['Wavenumber','Intensity']]
     if second_pass==False:
-        return record ,pxdf[['Wavenumber','Intensity']]
+        clean_spec_df=pxdf[['Wavenumber','Intensity']]
+
+    return record ,clean_spec_df
 
 ## Filter rays in a loop
 
-def filter_raysinloop(*,Diad_files=None, spectra_path=None, diad_peaks=None,fit_params=None, plot_rays='all', export_cleanspec=True, save_fig='all', dynfact=0.01, dynfact_2=0.0005, n=1,xlims=None):
+def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_params=None,n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None):
+    """ This function is used to filter out cosmic rays in multiple Raman spectra of CO2 in a loop.
+
+    Parameters
+    --------------
+    spectra_path: str
+        The folder path of the spectrum files
+    Diad_files: pd.Series
+        'filename' column of fit_params variable output by pf.loop_approx_diad_fits
+    diad_peaks: pd.DataFrame
+        Dataframe containing the peaks of interest for each file subset from fit_params variable output by pf.loop_approx_diad_fits(columns Diad1_pos,	Diad2_pos,HB1_pos,HB2_pos,C13_pos)
+    fit_params: pd.DataFrame
+        Dataframe output as fit_params from pf.loop_approx_diad_fits
+    n: int
+        Neighbor pixels to consider, 1 is typically enough.
+    dynfact: float or int
+        Intensity factor cutoff for the first filter pass (can adjust based on y axis of intensity factor plot)
+    dynfact_2: float or int
+        Intensity factor cutoff for the second filter pass (can adjust based on y axis of intensity factor plot)
+    export_cleanspec: bool
+        Indicates whether to export de-rayed spectra or not
+    plot_rays: str ('all' or 'rays_only')
+        Plot all spectra or just those for which cosmic rays were found
+    save_fig: str ('all' or 'rays_only')
+        Save all figures or just those for spectra in which cosmic rays were found
+    xlims: list
+        Sets the x axis limits of the plots
+
+    Returns
+    -------------
+    data_y_all_crr: np.array
+        Array containing all cleaned spectra for plotting
+    fit_params_crr: pd.DataFrame
+        fit_params DataFrame output from pf.loop_approx_diad_fits with updated filenames when cosmic rays were found and a new column indicating if cosmic rays were found
+
+    """
     try:
         check_pars(plot_rays, save_fig,export_cleanspec)
     except ValueError as e:
