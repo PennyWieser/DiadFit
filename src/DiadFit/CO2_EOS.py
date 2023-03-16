@@ -283,15 +283,15 @@ def calculate_rho_gcm3_for_P_T(P_kbar, T_K, EOS='SW96'):
             raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
 
         P_Pa=P_kbar*10**8
-        Density_gcm3=cp.PropsSI('D', 'P', P_Pa, 'T', T_K, 'CO2')/1000
+        CO2_dens_gcm3=cp.PropsSI('D', 'P', P_Pa, 'T', T_K, 'CO2')/1000
 
 
 
     if EOS=='SP94':
 
-        Density_gcm3=calculate_SP19942(T_K=T_K, target_pressure_MPa=P_kbar*100)
+        CO2_dens_gcm3=calculate_SP19942(T_K=T_K, target_pressure_MPa=P_kbar*100)
 
-    return pd.Series(Density_gcm3)
+    return pd.Series(CO2_dens_gcm3)
 
 
 
@@ -308,9 +308,9 @@ def calculate_rho_gcm3_for_P_T_SW96(P_kbar, T_K):
         T_K=np.array(T_K)
 
     P_Pa=P_kbar*10**8
-    Density_gcm3=cp.PropsSI('D', 'P', P_Pa, 'T', T_K, 'CO2')/1000
+    CO2_dens_gcm3=cp.PropsSI('D', 'P', P_Pa, 'T', T_K, 'CO2')/1000
 
-    return pd.Series(Density_gcm3)
+    return pd.Series(CO2_dens_gcm3)
 
 # Generic fun
 
@@ -320,23 +320,25 @@ def calculate_rho_gcm3_for_P_T_SW96(P_kbar, T_K):
 
 ## Generic function for converting rho and T into Pressure
 
-def calculate_P_for_rho_T(density_gcm3, T_K, EOS='SW96'):
+def calculate_P_for_rho_T(CO2_dens_gcm3, T_K, EOS='SW96'):
+
+
 
     if EOS=='SW96':
-        df=calculate_P_for_rho_T_SW96(density_gcm3=density_gcm3, T_K=T_K)
+        df=calculate_P_for_rho_T_SW96(CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K)
     elif EOS=='SP94':
-        df=calculate_P_for_rho_T_SP94(density_gcm3=density_gcm3, T_K=T_K)
+        df=calculate_P_for_rho_T_SP94(CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K)
     else:
         raise TypeError('Please choose either SP94 or SW96 as an EOS')
     return df
 
 # Calculating P for a given density and Temperature using Coolprop
-def calculate_P_for_rho_T_SW96(density_gcm3, T_K):
-    if isinstance(density_gcm3, pd.Series):
-        density_gcm3=np.array(density_gcm3,)
+def calculate_P_for_rho_T_SW96(CO2_dens_gcm3, T_K):
+    if isinstance(CO2_dens_gcm3, pd.Series):
+        CO2_dens_gcm3=np.array(CO2_dens_gcm3,)
     if isinstance(T_K, pd.Series):
         T_K=np.array(T_K)
-    Density_kgm3=density_gcm3*1000
+    Density_kgm3=CO2_dens_gcm3*1000
 
     try:
         import CoolProp.CoolProp as cp
@@ -355,22 +357,22 @@ def calculate_P_for_rho_T_SW96(density_gcm3, T_K):
         df=pd.DataFrame(data={'P_kbar': P_kbar,
                                 'P_MPa': P_kbar*100,
                                 'T_K': T_K,
-                                'density_gcm3': density_gcm3
+                                'CO2_dens_gcm3': CO2_dens_gcm3
                                 }, index=[0])
     else:
         df=pd.DataFrame(data={'P_kbar': P_kbar,
                                 'P_MPa': P_kbar*100,
                                 'T_K': T_K,
-                                'density_gcm3': density_gcm3
+                                'CO2_dens_gcm3': CO2_dens_gcm3
                                 })
 
     return df
 
 # Calculating P for a given density and Temp, Sterner and Pitzer
-def calculate_P_for_rho_T_SP94(T_K, density_gcm3, scalar_return=False):
+def calculate_P_for_rho_T_SP94(T_K, CO2_dens_gcm3, scalar_return=False):
     T=T_K-273.15
     T0=-273.15
-    MolConc=density_gcm3/44
+    MolConc=CO2_dens_gcm3/44
     a1=0*(T-T0)**-4+0*(T-T0)**-2+1826134/(T-T0)+79.224365+0*(T-T0)+0*(T-T0)**2
     a2=0*(T-T0)**-4+0*(T-T0)**-2+0/(T-T0)+0.00006656066+0.0000057152798*(T-T0)+0.00000000030222363*(T-T0)**2
     a3=0*(T-T0)**-4+0*(T-T0)**-2+0/(T-T0)+0.0059957845+0.000071669631*(T-T0)+0.0000000062416103*(T-T0)**2
@@ -396,7 +398,7 @@ def calculate_P_for_rho_T_SP94(T_K, density_gcm3, scalar_return=False):
         df=pd.DataFrame(data={'P_kbar': P_MPa/100,
                             'P_MPa': P_MPa,
                             'T_K': T_K,
-                            'density_gcm3': density_gcm3
+                            'CO2_dens_gcm3': CO2_dens_gcm3
 
                             })
         return df
@@ -407,7 +409,7 @@ def calculate_P_for_rho_T_SP94(T_K, density_gcm3, scalar_return=False):
 
 
 def calculate_P_SP1994(*, T_K=1400,
-T_h_C=None, phase=None, density_gcm3=None, return_array=False):
+T_h_C=None, phase=None, CO2_dens_gcm3=None, return_array=False):
     """ This function calculates Pressure using Sterner and Pitzer (1994) using either a homogenization temp,
     or a CO2 density. You must also input a temperature of your system (e.g. 1400 K for a basalt)
 
@@ -427,7 +429,7 @@ T_h_C=None, phase=None, density_gcm3=None, return_array=False):
             'Gas' or 'Liquid', the phase your inclusion homogenizes too
     Or:
 
-        density_gcm3: int, float, pd.Series
+        CO2_dens_gcm3: int, float, pd.Series
             Density of your inclusion in g/cm3, e.g. from Raman spectroscopy
 
     return_array: bool
@@ -445,10 +447,10 @@ T_h_C=None, phase=None, density_gcm3=None, return_array=False):
     T=T_K-273.15
     T0=-273.15
 
-    if density_gcm3 is not None and T_h_C is not None:
-        raise TypeError('Enter either density_gcm3 or T_h_C, not both')
-    if density_gcm3 is not None:
-        density_to_use=density_gcm3/44
+    if CO2_dens_gcm3 is not None and T_h_C is not None:
+        raise TypeError('Enter either CO2_dens_gcm3 or T_h_C, not both')
+    if CO2_dens_gcm3 is not None:
+        density_to_use=CO2_dens_gcm3/44
         Liq_density=np.nan
         gas_density=np.nan
 
@@ -470,7 +472,7 @@ T_h_C=None, phase=None, density_gcm3=None, return_array=False):
             density_to_use=gas_density
 
 
-    P_MPa=calculate_P_for_rho_T_SP94(T_K=T_K, density_gcm3=density_to_use)
+    P_MPa=calculate_P_for_rho_T_SP94(T_K=T_K, CO2_dens_gcm3=density_to_use)
 
     if return_array is True:
         return P_MPa
@@ -481,16 +483,16 @@ T_h_C=None, phase=None, density_gcm3=None, return_array=False):
         if isinstance(P_MPa, float) or isinstance(P_MPa, int):
             df=pd.DataFrame(data={'T_h_C': T_h_C,
                                 'T_K': T_K,
-                                'Liq_density_gcm3': Liq_density,
-                                'Gas_density_gcm3': gas_density,
+                                'Liq_CO2_dens_gcm3': Liq_density,
+                                'Gas_CO2_dens_gcm3': gas_density,
                                 'P_MPa': P_MPa}, index=[0])
         else:
 
 
             df=pd.DataFrame(data={'T_h_C': T_h_C,
                                 'T_K': T_K,
-                                'Liq_density_gcm3': Liq_density,
-                                'Gas_density_gcm3': gas_density,
+                                'Liq_CO2_dens_gcm3': Liq_density,
+                                'Gas_CO2_dens_gcm3': gas_density,
                                 'P_MPa': P_MPa})
 
 
@@ -503,9 +505,9 @@ import scipy
 from scipy.optimize import minimize
 # What we are trying to do, is run at various densities, until pressure matches input pressure
 
-def objective_function(density_gcm3, T_K, target_pressure_MPa):
+def objective_function(CO2_dens_gcm3, T_K, target_pressure_MPa):
     # The objective function that you want to minimize
-    calculated_pressure = calculate_P_for_rho_T_SP94(density_gcm3=density_gcm3, T_K=T_K, scalar_return=True)
+    calculated_pressure = calculate_P_for_rho_T_SP94(CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K, scalar_return=True)
     objective = np.abs(calculated_pressure - target_pressure_MPa)
     return objective
 

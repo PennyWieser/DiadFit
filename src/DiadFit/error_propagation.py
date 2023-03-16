@@ -109,7 +109,7 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None, sample_i=0, er
 
 
 
-def calculate_temperature_density_MC(sample_i=1,  N_dup=1000, T_K=None, CO2_density_gcm3=None,
+def calculate_temperature_density_MC(sample_i=1,  N_dup=1000, T_K=None, CO2_dens_gcm3=None,
 crust_dens_kgm3=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
 error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
@@ -139,7 +139,7 @@ plot_figure=True, len_loop=1, model=None):
     error_dist_T_K (str, optional):
         The distribution of error in the CO2 density measurement, either 'normal' or 'uniform'
 
-    CO2_density_gcm3 (float, optional):
+    CO2_dens_gcm3 (float, optional):
         The CO2 density of the CO2 fluid in g/cm^3.
 
     error_CO2_dens (float, optional):
@@ -184,10 +184,10 @@ plot_figure=True, len_loop=1, model=None):
 
     if len_loop==1:
         df_c=pd.DataFrame(data={'T_K': T_K,
-                            'CO2_density_gcm3': CO2_density_gcm3}, index=[0])
+                            'CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
     else:
         df_c=pd.DataFrame(data={'T_K': T_K,
-                            'CO2_density_gcm3': CO2_density_gcm3})
+                            'CO2_dens_gcm3': CO2_dens_gcm3})
 
 
     # Temperature error distribution
@@ -210,14 +210,14 @@ plot_figure=True, len_loop=1, model=None):
     if error_type_CO2_dens=='Abs':
         error_CO2_dens=error_CO2_dens
     if error_type_CO2_dens =='Perc':
-        error_CO2_dens=df_c['CO2_density_gcm3'].iloc[sample_i]*error_CO2_dens/100
+        error_CO2_dens=df_c['CO2_dens_gcm3'].iloc[sample_i]*error_CO2_dens/100
     if error_dist_CO2_dens=='normal':
         Noise_to_add_CO2_dens = np.random.normal(0, error_CO2_dens, N_dup)
     if error_dist_CO2_dens=='uniform':
         Noise_to_add_CO2_dens = np.random.uniform(- error_CO2_dens, +
                                                       error_CO2_dens, N_dup)
 
-    CO2_dens_with_noise=Noise_to_add_CO2_dens+df_c['CO2_density_gcm3'].iloc[sample_i]
+    CO2_dens_with_noise=Noise_to_add_CO2_dens+df_c['CO2_dens_gcm3'].iloc[sample_i]
     CO2_dens_with_noise[CO2_dens_with_noise < 0.0001] = 0.0001
 
     # Crustal density noise
@@ -255,7 +255,7 @@ plot_figure=True, len_loop=1, model=None):
                                 'CO2_dens_with_noise': CO2_dens_with_noise,
                                 'crust_dens_with_noise': crust_dens_with_noise,
                                 'T_K': df_c['T_K'].iloc[sample_i],
-                                'CO2_density_gcm3': df_c['CO2_density_gcm3'].iloc[sample_i],
+                                'CO2_dens_gcm3': df_c['CO2_dens_gcm3'].iloc[sample_i],
                                 'Crustal Density_kg_m3': crust_dens_kgm3,
                                 'model': model,
                                 'error_T_K': error_T_K,
@@ -275,7 +275,7 @@ plot_figure=True, len_loop=1, model=None):
     return df_out
 
 
-def loop_all_FI_MC(sample_ID, CO2_density_gcm3, T_K, N_dup=1000,
+def loop_all_FI_MC(sample_ID, CO2_dens_gcm3, T_K, N_dup=1000,
 crust_dens_kgm3=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
 error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='uniform',
 error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
@@ -286,7 +286,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
 
 
-def propagate_FI_uncertainty(sample_ID, CO2_density_gcm3, T_K, N_dup=1000,
+def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K, N_dup=1000,
 crust_dens_kgm3=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
 error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='uniform',
 error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
@@ -302,7 +302,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
     sample_ID: pd.Series
         Panda series of sample names. E.g., select a column from your dataframe (df['sample_name'])
 
-    CO2_density_gcm3: pd.Series, integer or float
+    CO2_dens_gcm3: pd.Series, integer or float
         CO2 densities in g/cm3 to perform calculations with. Can be a column from your dataframe (df['density_g_cm3']), or a single value (e.g.., 0.2)
 
     T_K: pd.Series, integer, float
@@ -403,8 +403,8 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
     # Set up empty things to fill up.
 
-    if type(CO2_density_gcm3) is pd.Series:
-        len_loop=len(CO2_density_gcm3)
+    if type(CO2_dens_gcm3) is pd.Series:
+        len_loop=len(CO2_dens_gcm3)
     else:
         len_loop=1
 
@@ -430,7 +430,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
     # Lets calculate the parameters not using any errors, to be able to plot an error bar around each point
 
     df_ind=convert_co2_dens_press_depth(T_K=T_K,
-    CO2_dens_gcm3=CO2_density_gcm3,
+    CO2_dens_gcm3=CO2_dens_gcm3,
     crust_dens_kgm3=crust_dens_kgm3, output='kbar',
     g=9.81, model=model,
     d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3, EOS=EOS)
@@ -458,10 +458,10 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
             T_K_i=T_K
 
 
-        if type(CO2_density_gcm3) is pd.Series:
-            CO2_density_gcm3_i=CO2_density_gcm3.iloc[i]
+        if type(CO2_dens_gcm3) is pd.Series:
+            CO2_dens_gcm3_i=CO2_dens_gcm3.iloc[i]
         else:
-            CO2_density_gcm3_i=CO2_density_gcm3
+            CO2_dens_gcm3_i=CO2_dens_gcm3
 
 
         if type(error_CO2_dens) is pd.Series:
@@ -476,7 +476,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
 
         # This is the function doing the work to actually make the simulations for each variable.
-        df_synthetic=calculate_temperature_density_MC(sample_i=i, N_dup=N_dup, CO2_density_gcm3=CO2_density_gcm3,
+        df_synthetic=calculate_temperature_density_MC(sample_i=i, N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3,
         T_K=T_K, error_T_K=error_T_K, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
         error_CO2_dens=error_CO2_dens, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
         crust_dens_kgm3=crust_dens_kgm3,  error_crust_dens=error_crust_dens, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
@@ -513,10 +513,10 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
         MC_T.insert(0, 'Filename', Sample[i])
 
 
-        if isinstance(CO2_density_gcm3, pd.Series):
-            CO2_density_input[i]=CO2_density_gcm3.iloc[i]
+        if isinstance(CO2_dens_gcm3, pd.Series):
+            CO2_density_input[i]=CO2_dens_gcm3.iloc[i]
         else:
-            CO2_density_input=CO2_density_gcm3
+            CO2_density_input=CO2_dens_gcm3
 
 
 
@@ -544,7 +544,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
 
     df_step=pd.DataFrame(data={'Filename': Sample,
-                        'CO2_density_gcm3': CO2_density_input,
+                        'CO2_dens_gcm3': CO2_density_input,
                          'SingleFI_D_km': SingleCalc_D_km,
                          'SingleFI_P_kbar': SingleCalc_Press_kbar,
 
@@ -559,7 +559,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
                          'error_CO2_dens_gcm3': error_CO2_dens,
                          'error_crust_dens_kgm3': error_crust_dens_loop,
                         'T_K': T_K,
-                        'CO2_dens_gcm3_input': CO2_density_gcm3,
+                        'CO2_dens_gcm3_input': CO2_dens_gcm3,
                         'model': model,
                         'crust_dens_kgm3':crust_dens_kgm3,
                         'EOS': EOS
@@ -654,7 +654,7 @@ def convert_co2_dens_press_depth(T_K=None,
 
     # First step is to get pressure
     Pressure=calculate_P_for_rho_T(T_K=T_K,
-                density_gcm3=CO2_dens_gcm3,
+                CO2_dens_gcm3=CO2_dens_gcm3,
                  EOS=EOS)
 
     # Second step is to get crustal depths
