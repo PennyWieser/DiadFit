@@ -385,15 +385,21 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
     df_out['Diad2_HB2_abs_prom_ratio']=df_out['Diad2_abs_prom']/df_out['HB2_abs_prom']
     df_out['Diad1_HB1_abs_prom_ratio']=df_out['Diad1_abs_prom']/df_out['HB1_abs_prom']
-
+    # Average these
+    df_out['Av_Diad_HB_prom_ratio']=(df_out['Diad2_HB2_abs_prom_ratio']+df_out['Diad1_HB1_abs_prom_ratio'])/2
     # Parameter for amount of noise between diads vs. height of peaks
 
     between_diads_x=(x>diad_id_config.RH_bck_diad1[0])&(x<diad_id_config.LH_bck_diad2[1])
     std_bet_diad=np.std(y[between_diads_x])
-    noise_vs_peak_Diad1=df_out['Diad1_abs_prom']/std_bet_diad
-    noise_vs_peak_Diad2=df_out['Diad2_abs_prom']/std_bet_diad
-    df_out['Diad1_prom/std_betweendiads']=noise_vs_peak_Diad1
-    df_out['Diad2_prom/std_betweendiads']=noise_vs_peak_Diad2
+
+    df_out['Diad1_prom/std_betweendiads']=df_out['Diad1_abs_prom']/std_bet_diad
+    df_out['Diad2_prom/std_betweendiads']=df_out['Diad2_abs_prom']/std_bet_diad
+    df_out['HB1_prom/std_betweendiads']=df_out['HB1_abs_prom']/std_bet_diad
+    df_out['HB2_prom/std_betweendiads']=df_out['HB2_abs_prom']/std_bet_diad
+
+    # New ones
+    df_out['Av_Diad_prom/std_betweendiads']=(noise_vs_peak_Diad1+noise_vs_peak_Diad2)/2
+    df_out['C13_prom/HB2_prom']=df_out['C13_abs_prom']/df_out['HB2_abs_prom']
 
 
 
@@ -406,7 +412,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
      'Diad1_HB1_abs_prom_ratio','Diad2_HB2_abs_prom_ratio',
     'Diad1_HB1_Valley_prom', 'Diad2_HB2_abs_prom_ratio',
     'Mean_Diad_HB_Valley_prom','Mean_abs_HB_prom',
-    'Diad1_prom/std_betweendiads', 'Diad2_prom/std_betweendiads']
+    'Diad1_prom/std_betweendiads', 'Diad2_prom/std_betweendiads',
+    'Av_Diad_prom/std_betweendiads', 'C13_prom/HB2_prom', 'Av_Diad_HB_prom_ratio']
 
     df_out = df_out[cols_to_move + [
         col for col in df_out.columns if col not in cols_to_move]]
@@ -513,7 +520,7 @@ def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_fi
 def plot_peak_params(fit_params,
                      x_param='Diad1_pos',  y1_param='approx_split',
                     y2_param='Mean_Valley_prom', y3_param='C13_abs_prom',
-                    y4_param='HB2_abs_prom', fill_na=-1000):
+                    y4_param='HB2_abs_prom', fill_na=0):
 
     """ Filters diad files by peak params
     Parameters
@@ -647,7 +654,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, 2+y_fig_scale*len(fit_params)))
         intc=8
-        print(sum(grp1))
+
         #
         if sum(grp1)>0:
             if sum(grp1)==1:
@@ -671,10 +678,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
             # ax0.plot(x_cord, Group1_np_y[:, i]+av_prom_Group1*i, '-r')
 
         if sum(~grp1)>0:
-            print('shape groupno1np')
-            print(np.shape(Groupnot1_np_y))
-            print('sum grp1')
-            print(sum(~grp1))
+
             if sum(~grp1)==1:
                 j=0
                 av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_abs_prom'])/intc)
@@ -716,7 +720,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
 
 
-def plot_diad_groups(*, x_cord,  Weak_np=None, Medium_np=None, Strong_np=None, y_fig_scale=0.5,):
+def plot_diad_groups(*, x_cord,  Weak_np=None, Medium_np=None, Strong_np=None, y_fig_scale=0.5):
 
 
     #
@@ -4000,7 +4004,7 @@ def plot_diad_spectra(Diad_Files_Specific=None, df_out=None, yoff=100):
 
 from scipy.signal import find_peaks
 def plot_secondary_peaks(*, Diad_Files, path, filetype,
-        xlim=[1040, 1200], config=None, sigma_filter=False, sigma=3, find_peaks_filter=False, just_plot=False, yscale=0.2):
+        xlim_plot=[1040, 1200], xlim_peaks=[1060, 1100], config=None, sigma_filter=False, sigma=3, find_peaks_filter=False, just_plot=False, yscale=0.2):
     fig, (ax1) = plt.subplots(1, 1, figsize=(10,yscale*len(Diad_Files)))
 
     i=0
@@ -4017,6 +4021,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
     for file in Diad_Files:
 
+
         Diad_df=get_data(path=path, filename=file, filetype=filetype)
         Diad=np.array(Diad_df)
 
@@ -4027,13 +4032,19 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
 
         # Region of interest
-        Region = (x>xlim[0])& (x<xlim[1])
-        x_trim=x[Region]
-        y_trim=y[Region]
+        Region_peaks = ((x>xlim_peaks[0])& (x<xlim_peaks[1]))
+        Region_plot=((x>xlim_plot[0])& (x<xlim_plot[1]))
+        x_trim=x[Region_peaks]
+        y_trim=y[Region_peaks]
+        x_plot=x[Region_plot]
+        y_plot=y[Region_plot]
         y_data[:, i]=y
 
+
+
+        # IF using scipy find peaks
         if find_peaks_filter is True:
-            # Scipy find peaks
+            # Find peaks for trimmed spectra (e.g. in region peaks have been asked for)
             peaks = find_peaks(y_trim,height = config.height, threshold = config.threshold,
             distance = config.distance, prominence=config.prominence, width=config.width)
             height = peaks[1]['peak_heights'] #list of the heights of the peaks
@@ -4045,29 +4056,30 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
             # Trim number of peaks based on user-defined N peaks
             df_peak_sort_short=df_peak_sort[0:config.N_peaks]
+
             #print(df_peak_sort_short)
             if len(df_peak_sort_short>1):
                 peak_pos_saved[i]=df_peak_sort_short['pos'].values
-                peak_height_saved[i]=df_peak_sort_short['pos'].values
+                peak_height_saved[i]=df_peak_sort_short['height'].values
             else:
                 peak_pos_saved[i]=np.nan
                 peak_height_saved[i]=np.nan
 
-            peak_bck=np.quantile(y_trim, 0.2)
-            av_y=np.quantile(y_trim, 0.5)
-            Diff=np.max(y_trim)-np.min(y_trim)
-            Y_sum=np.max(y_trim)/Diff
+            peak_bck[i]=np.quantile(y_plot, 0.2)
+            av_y=np.quantile(y_plot, 0.5)
+            Diff=np.max(y_plot)-np.min(y_plot)
+            Y_sum=np.max(y_plot)/Diff
 
-            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '-r')
-            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '.k', ms=1)
+            ax1.plot(x_plot, ((y_plot-np.min(y_plot))/Diff)+i, '-r')
+            ax1.plot(x_plot, ((y_plot-np.min(y_plot))/Diff)+i, '.k', ms=1)
             if len(height)>0:
 
 
-                ax1.plot(df_peak_sort_short['pos'], (df_peak_sort_short['height']-np.min(y_trim))/Diff+i, '*k', mfc='yellow', ms=10)
+                ax1.plot(df_peak_sort_short['pos'], (df_peak_sort_short['height']-np.min(y_plot))/Diff+i, '*k', mfc='yellow', ms=10)
 
-            yplot[i]=np.min(((y_trim-np.min(y_trim))/Diff)+i)
+            yplot[i]=np.min(((y_plot-np.min(y_plot))/Diff)+i)
 
-            ax1.annotate(str(file), xy=(xlim[1]+0.5, yplot[i]),
+            ax1.annotate(str(file), xy=(xlim_plot[1]+0.5, yplot[i]),
                          xycoords="data", fontsize=8)
             #ax1.set_xlim(xlim)
             Y=Y+Y_sum
@@ -4075,6 +4087,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
         if sigma_filter is True:
                 # Find max value in region
+
             maxy=np.max(y_trim)
             xpos=x_trim[y_trim==maxy][0]
             #print(xpos)
@@ -4082,9 +4095,10 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             stdy=np.nanstd(y_around_max)
             mediany=np.nanmedian(y_around_max)
             if maxy>mediany+stdy*sigma:
-                pos_x=x[y==maxy][0]
+                pos_x=x_trim[y_trim==maxy][0]
             else:
                 pos_x=np.nan
+
 
 
             if pos_x>0:
@@ -4095,41 +4109,43 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
                 peak_pos_saved[i]=np.nan
                 peak_height_saved[i]=np.nan
 
-            peak_bck=np.quantile(y_trim, 0.2)
-            av_y=np.quantile(y_trim, 0.5)
-            Diff=np.max(y_trim)-np.min(y_trim)
-            Y_sum=np.max(y_trim)/Diff
+            peak_bck[i]=np.quantile(y_plot, 0.2)
+            av_y=np.quantile(y_plot, 0.5)
+            Diff=np.max(y_plot)-np.min(y_plot)
+            Y_sum=np.max(y_plot)/Diff
+            # IF there is something that passes the filter
             if pos_x>0:
-                y_star[i]=(peak_height_saved[i]-np.min(y_trim))/Diff+i
+                y_star[i]=(peak_height_saved[i]-np.min(y_plot))/Diff+i
+                ax1.plot(pos_x, y_star[i], '*k', mfc='yellow', ms=10)
             else:
                 y_star[i]=np.nan
 
-            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '-r')
-            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '.k', ms=1)
-            yplot[i]=np.min(((y_trim-np.min(y_trim))/Diff)+i)
-            ax1.annotate(str(file), xy=(xlim[1]+0.5, yplot[i]),
+            ax1.plot(x_plot, ((y_plot-np.min(y_plot))/Diff)+i, '-r')
+            ax1.plot(x_plot, ((y_plot-np.min(y_plot))/Diff)+i, '.k', ms=1)
+            yplot[i]=np.min(((y_plot-np.min(y_plot))/Diff)+i)
+            ax1.annotate(str(file), xy=(xlim_plot[1]+0.5, yplot[i]),
                          xycoords="data", fontsize=8)
             Y=Y+Y_sum
             i=i+1
 
         if just_plot is True:
-            Diff=np.max(y_trim)-np.min(y_trim)
-            Y_sum=np.max(y_trim)/Diff
-            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '-r')
-            ax1.plot(x_trim, ((y_trim-np.min(y_trim))/Diff)+i, '.k', ms=1)
-            yplot[i]=np.min(((y_trim-np.min(y_trim))/Diff)+i)
-            ax1.annotate(str(file), xy=(xlim[1]+0.5, yplot[i]),
+            Diff=np.max(y_plot)-np.min(y_plot)
+            Y_sum=np.max(y_plot)/Diff
+            ax1.plot(x_plot, ((y_plot-np.min(y_plot))/Diff)+i, '-r')
+            ax1.plot(x_plot, ((y_plot-np.min(y_plot))/Diff)+i, '.k', ms=1)
+            yplot[i]=np.min(((y_plot-np.min(y_plot))/Diff)+i)
+            ax1.annotate(str(file), xy=(xlim_plot[1]+0.5, yplot[i]),
                          xycoords="data", fontsize=8)
             Y=Y+Y_sum
             i=i+1
 
 
-
     df_peaks=pd.DataFrame(data={'pos': peak_pos_saved,
                                         'height': peak_height_saved,
                                             'prom': peak_height_saved-peak_bck})
-    if sigma_filter is True:
-        ax1.plot(df_peaks['pos'][y_star>0], y_star[y_star>0], '*k', mfc='yellow', ms=10)
+
+    #if sigma_filter is True:
+        #ax1.plot(df_peaks['pos'][y_star>0], y_star[y_star>0], '*k', mfc='yellow', ms=10)
 
 
 
@@ -4152,16 +4168,20 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
     ax1.legend(ncol=7,loc='upper center', fontsize=10,  bbox_to_anchor=[0.5, 1.05])
     ax1.set_ylim([-0.5, yplot[-1]+3])
-    ax1.set_xlim([xlim[0], xlim[1]+0.5])
+    ax1.set_xlim([xlim_plot[0], xlim_plot[1]+0.5])
 
-    df_peaks=pd.DataFrame(data={'pos': peak_pos_saved,
-                                'prom': peak_height_saved-peak_bck})
+    # df_peaks=pd.DataFrame(data={'filename': Diad_Files,
+    #                         'pos': peak_pos_saved,
+    #                             'prom': peak_height_saved-peak_bck})
+
+
 
     ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
     ax1.set_yticks([])
 
     x_data=x_trim
 
+    df_peaks['file_names']=Diad_Files
 
     return df_peaks, x_data, y_data, fig
 

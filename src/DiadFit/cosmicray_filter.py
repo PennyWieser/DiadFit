@@ -183,9 +183,9 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
 
         if all_rayswave.empty==False:
             if second_pass==True:
-                pxdf_filt_pass2_4export[['Wavenumber','Intensity']].to_csv(path+'/'+file.replace('.txt', '')+'_CRR.txt', sep='\t', header=False, index=False)
+                pxdf_filt_pass2_4export[['Wavenumber','Intensity']].to_csv(path+'/'+file.replace('.txt', '')+'_CRR_DiadFit.txt', sep='\t', header=False, index=False)
             if second_pass==False:
-                pxdf[['Wavenumber','Intensity']].to_csv(path+'/'+file.replace('.txt', '')+'_CRR.txt', sep='\t', header=False, index=False)
+                pxdf[['Wavenumber','Intensity']].to_csv(path+'/'+file.replace('.txt', '')+'_CRR_DiadFit.txt', sep='\t', header=False, index=False)
 
     # This plots the results if True
     if plot_rays=='rays_only':
@@ -280,12 +280,12 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
         if save_fig=='all':
             fig_path = os.path.join(path, "CRRfigs")
             os.makedirs(fig_path, exist_ok=True)
-            fig.savefig(fig_path+'/'+file.replace('.txt', '')+'_CRR.png')
+            fig.savefig(fig_path+'/'+file.replace('.txt', '')+'_CRR_DiadFit.png')
         if save_fig=='rays_only':
             fig_path = os.path.join(path, "CRRfigs")
             os.makedirs(fig_path, exist_ok=True)
             if all_rayswave.empty==False:
-                fig.savefig(fig_path+'/'+file.replace('.txt', '')+'_CRR.png')
+                fig.savefig(fig_path+'/'+file.replace('.txt', '')+'_CRR_DiadFit.png')
 
     record=pd.DataFrame([])
     record.loc[file,'filename']=file
@@ -330,9 +330,9 @@ def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_p
 
     Returns
     -------------
-    data_y_all_crr: np.array
+    data_y_all_CRR_DiadFit: np.array
         Array containing all cleaned spectra for plotting
-    fit_params_crr: pd.DataFrame
+    fit_params_CRR_DiadFit: pd.DataFrame
         fit_params DataFrame output from pf.loop_approx_diad_fits with updated filenames when cosmic rays were found and a new column indicating if cosmic rays were found
 
     """
@@ -356,10 +356,10 @@ def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_p
     ray_list=ray_list.reset_index(drop=True)
 
     # this is the new data_y_all array, contains all intensities for the spectra, with rays removed.
-    data_y_all_crr=spectra_df.to_numpy()
+    data_y_all_CRR_DiadFit=spectra_df.to_numpy()
 
-    # This merges the results of the CRR filtering loop back in with the fit_parameters (filenames for which CRR detected are replaced by filename_CRR
-    fit_params_crr=pd.merge(ray_list, fit_params, on='filename', how='outer')
-    fit_params_crr.loc[fit_params_crr['rays_present']==True, 'filename']=fit_params_crr['filename'].str.replace('.txt', '',regex=True)+'_CRR.txt'
-    display(fit_params_crr.head())
-    return data_y_all_crr,fit_params_crr
+    # This merges the results of the CRR filtering loop back in with the fit_parameters (filenames for which CRR detected are replaced by filename_CRR_DiadFit
+    fit_params_CRR_DiadFit=pd.merge(ray_list, fit_params, on='filename', how='outer')
+    fit_params_CRR_DiadFit.loc[fit_params_CRR_DiadFit['rays_present']==True, 'filename']=fit_params_CRR_DiadFit['filename'].str.replace('.txt', '',regex=True)+'_CRR_DiadFit.txt'
+    display(fit_params_CRR_DiadFit.head())
+    return data_y_all_CRR_DiadFit,fit_params_CRR_DiadFit
