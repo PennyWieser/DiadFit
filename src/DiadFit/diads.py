@@ -398,8 +398,10 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     df_out['HB2_prom/std_betweendiads']=df_out['HB2_abs_prom']/std_bet_diad
 
     # New ones
-    df_out['Av_Diad_prom/std_betweendiads']=(noise_vs_peak_Diad1+noise_vs_peak_Diad2)/2
+    df_out['Av_Diad_prom/std_betweendiads']=(df_out['Diad1_prom/std_betweendiads']+df_out['Diad2_prom/std_betweendiads'])/2
     df_out['C13_prom/HB2_prom']=df_out['C13_abs_prom']/df_out['HB2_abs_prom']
+
+    df_out['Left_vs_Right']=Med_LHS_diad1/Med_RHS_diad2
 
 
 
@@ -413,7 +415,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     'Diad1_HB1_Valley_prom', 'Diad2_HB2_abs_prom_ratio',
     'Mean_Diad_HB_Valley_prom','Mean_abs_HB_prom',
     'Diad1_prom/std_betweendiads', 'Diad2_prom/std_betweendiads',
-    'Av_Diad_prom/std_betweendiads', 'C13_prom/HB2_prom', 'Av_Diad_HB_prom_ratio']
+    'Av_Diad_prom/std_betweendiads', 'C13_prom/HB2_prom', 'Av_Diad_HB_prom_ratio', 'Left_vs_Right']
 
     df_out = df_out[cols_to_move + [
         col for col in df_out.columns if col not in cols_to_move]]
