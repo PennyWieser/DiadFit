@@ -33,7 +33,7 @@ def check_pars(plot_rays, save_fig,export_cleanspec):
         raise ValueError("export_cleanspec can only be True or False, please correct")
 ## This function is the main filter, runs on one spectrum
 
-def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filetype='headless_txt',n=1,dynfact=0.01,dynfact_2=0.003,
+def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude_ranges=[], filetype='headless_txt',n=1,dynfact=0.01,dynfact_2=0.003,
                         export_cleanspec=True,plot_rays='all',save_fig='rays_only',figsize=(20,5), xlims=None):
     """ This function is used to filter out cosmic rays in single Raman spectra of CO2. It requires the input of pre-identified peaks to avoid excluding peaks of interest. The filter compares the intensity of each pixel in the spectrum to n surrounding pixels and calculates an intensity factor. Pixels that exceed a certain intensity factor threshold are removed from the spectrum. It repeats the process when a cosmic ray is found, so that "wide" cosmic rays can be excluded (when a cosmic ray encompasses more than a single pixel)
 
@@ -47,6 +47,8 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
         index number in Diad_files of the file to be filtered
     diad_peaks: pd.DataFrame
         Dataframe containing the peaks of interest for each file subset from fit_params variable output by pf.loop_approx_diad_fits(columns Diad1_pos,	Diad2_pos,HB1_pos,HB2_pos,C13_pos)
+    exclude_ranges: tuple list
+        List of tuples containing ranges for user-defined peaks of interest to exclude from ray-filtering.
     filetype: str ('headless_txt')
         Sets the filetype of the spectrum file
     n: int
@@ -108,6 +110,8 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
     snr_hb2=[diad_peaks['HB2_pos']-res,diad_peaks['HB2_pos']+res]
     snr_c13=[diad_peaks['C13_pos']-res,diad_peaks['C13_pos']+res]
 
+
+
     # These identifies regions that aren't the peak regions
     not_diad1=~pxdf.Wavenumber.between(snr_diad1[0][i],snr_diad1[1][i])
     not_diad2=~pxdf.Wavenumber.between(snr_diad2[0][i],snr_diad2[1][i])
@@ -116,8 +120,16 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
     not_hb2=~pxdf.Wavenumber.between(snr_hb2[0][i],snr_hb2[1][i])
     not_c13=~pxdf.Wavenumber.between(snr_c13[0][i],snr_c13[1][i])
 
+    #This is for the extra ranges defined by the user
+    if exclude_ranges==None:
+        exclude_ranges=[]
+
+    exclude_mask = pd.Series(False, index=pxdf.index)
+    for r in exclude_ranges:
+        exclude_mask |= (pxdf.Wavenumber >= r[0]) & (pxdf.Wavenumber <= r[1])
+    not_exclude_mask=~exclude_mask
     #This filters wavenumbers, intensities and intensity factors based on the query criteria.
-    query_str='maxpx_fact*minpx_fact > @dynfact & @not_diad1 & @not_diad2 & @not_hb1 & @not_hb2 & @not_c13'
+    query_str='maxpx_fact*minpx_fact > @dynfact & @not_diad1 & @not_diad2 & @not_hb1 & @not_hb2 & @not_c13 & @not_exclude_mask'
     rays_wavenumber=pxdf.query(query_str)['Wavenumber']
     rays_intensity=pxdf.query(query_str)['Intensity']
     rays_fact=pxdf.query(query_str)['maxpx_fact*minpx_fact']
@@ -162,9 +174,17 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
         not_hb1=~pxdf_pass2.Wavenumber.between(snr_hb1[0][i],snr_hb1[1][i])
         not_hb2=~pxdf_pass2.Wavenumber.between(snr_hb2[0][i],snr_hb2[1][i])
         not_c13=~pxdf_pass2.Wavenumber.between(snr_c13[0][i],snr_c13[1][i])
+        #This is for the extra ranges defined by the user
+        if exclude_ranges==None:
+            exclude_ranges=[]
 
+        exclude_mask2 = pd.Series(False, index=pxdf_pass2.index)
+        for r in exclude_ranges:
+            exclude_mask2 |= (pxdf_pass2.Wavenumber >= r[0]) & (pxdf_pass2.Wavenumber <= r[1])
+        not_exclude_mask2=~exclude_mask2
         #This filters the dataframe
-        query_str2='maxpx_fact_pass2*minpx_fact_pass2 > @dynfact_2 & @not_diad1 & @not_diad2 & @not_hb1 & @not_hb2 and @not_c13'
+        query_str2='maxpx_fact_pass2*minpx_fact_pass2 > @dynfact_2 & @not_diad1 & @not_diad2 & @not_hb1 & @not_hb2 and @not_c13 & @not_exclude_mask2'
+
         rays_wavenumber_pass2=pxdf_pass2.query(query_str2)['Wavenumber']
         rays_intensity_pass2=pxdf_pass2.query(query_str2)['Intensity']
         rays_fact_pass2=pxdf_pass2.query(query_str2)['maxpx_fact_pass2*minpx_fact_pass2']
@@ -202,6 +222,26 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
                 ax2.plot(pxdf_filt['Wavenumber'],pxdf_filt['Intensity'],color='r')
                 ax4.plot(pxdf_filt_pass2['Wavenumber'],pxdf_filt_pass2['Intensity'],color='orange')
 
+                y0_min, y0_max = ax0.get_ylim()
+                y1_min,y1_max = ax1.get_ylim()
+                y2_min, y2_max = ax2.get_ylim()
+                y3_min,y3_max = ax3.get_ylim()
+                y4_min, y4_max = ax4.get_ylim()
+
+
+                ax0.set_ylim([y0_min,y0_max])
+                ax1.set_ylim([y1_min,y1_max])
+                ax2.set_ylim([y2_min,y2_max])
+                ax3.set_ylim([y3_min,y3_max])
+                ax4.set_ylim([y4_min,y4_max])
+
+                for r in exclude_ranges:
+                    ax0.fill_between(r, y0_min, y0_max, color='blue', alpha=0.2)
+                    ax1.fill_between(r, y1_min, y1_max, color='blue', alpha=0.2)
+                    ax2.fill_between(r, y2_min, y2_max, color='blue', alpha=0.2)
+                    ax3.fill_between(r, y3_min, y3_max, color='blue', alpha=0.2)
+                    ax4.fill_between(r, y4_min, y4_max, color='blue', alpha=0.2)
+
                 ax0.set_title('Intensity factor and rays')
                 ax1.set_title('Original spectrum')
                 ax2.set_title('De-rayed spectrum')
@@ -225,6 +265,18 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
 
                 ax1.plot(pxdf['Wavenumber'],pxdf['Intensity'],color='k')
 
+                ax0.scatter(pxdf['Wavenumber'][exclude_mask],pxdf['maxpx_fact*minpx_fact'][exclude_mask],color='blue')
+                ax1.scatter(pxdf['Wavenumber'][exclude_mask],pxdf['Intensity'][exclude_mask],color='blue')
+
+                y0_min, y0_max = ax0.get_ylim()
+                y1_min,y1_max = ax1.get_ylim()
+                ax0.set_ylim([y0_min,y0_max])
+                ax1.set_ylim([y1_min,y1_max])
+
+                for r in exclude_ranges:
+                    ax0.fill_between(r, y0_min, y0_max, color='blue', alpha=0.2)
+                    ax1.fill_between(r, y1_min, y1_max, color='blue', alpha=0.2)
+
                 ax0.set_title('Intensity factor and rays')
                 ax1.set_title('Original spectrum')
                 if xlims is not None:
@@ -245,6 +297,26 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
             ax1.plot(pxdf['Wavenumber'],pxdf['Intensity'],color='k')
             ax2.plot(pxdf_filt['Wavenumber'],pxdf_filt['Intensity'],color='r')
             ax4.plot(pxdf_filt_pass2['Wavenumber'],pxdf_filt_pass2['Intensity'],color='orange')
+
+            y0_min, y0_max = ax0.get_ylim()
+            y1_min,y1_max = ax1.get_ylim()
+            y2_min, y2_max = ax2.get_ylim()
+            y3_min,y3_max = ax3.get_ylim()
+            y4_min, y4_max = ax4.get_ylim()
+
+
+            ax0.set_ylim([y0_min,y0_max])
+            ax1.set_ylim([y1_min,y1_max])
+            ax2.set_ylim([y2_min,y2_max])
+            ax3.set_ylim([y3_min,y3_max])
+            ax4.set_ylim([y4_min,y4_max])
+
+            for r in exclude_ranges:
+                ax0.fill_between(r, y0_min, y0_max, color='blue', alpha=0.2)
+                ax1.fill_between(r, y1_min, y1_max, color='blue', alpha=0.2)
+                ax2.fill_between(r, y2_min, y2_max, color='blue', alpha=0.2)
+                ax3.fill_between(r, y3_min, y3_max, color='blue', alpha=0.2)
+                ax4.fill_between(r, y4_min, y4_max, color='blue', alpha=0.2)
 
             ax0.set_title('Intensity factor and rays')
             ax1.set_title('Original spectrum')
@@ -268,6 +340,15 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
             ax0.scatter(rays_wavenumber,rays_fact,color='r')
 
             ax1.plot(pxdf['Wavenumber'],pxdf['Intensity'],color='k')
+
+            y0_min, y0_max = ax0.get_ylim()
+            y1_min,y1_max = ax1.get_ylim()
+            ax0.set_ylim([y0_min,y0_max])
+            ax1.set_ylim([y1_min,y1_max])
+
+            for r in exclude_ranges:
+                ax0.fill_between(r, y0_min, y0_max, color='blue', alpha=0.2)
+                ax1.fill_between(r, y1_min, y1_max, color='blue', alpha=0.2)
 
             ax0.set_title('Intensity factor and rays')
             ax1.set_title('Original spectrum')
@@ -300,7 +381,8 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None,  filety
 
 ## Filter rays in a loop
 
-def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_params=None,n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None):
+def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_params=None,exclude_ranges=[],
+n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None):
     """ This function is used to filter out cosmic rays in multiple Raman spectra of CO2 in a loop.
 
     Parameters
@@ -313,6 +395,8 @@ def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_p
         Dataframe containing the peaks of interest for each file subset from fit_params variable output by pf.loop_approx_diad_fits(columns Diad1_pos,	Diad2_pos,HB1_pos,HB2_pos,C13_pos)
     fit_params: pd.DataFrame
         Dataframe output as fit_params from pf.loop_approx_diad_fits
+    exclude_ranges: tuple list
+        List of tuples containing ranges for user-defined peaks of interest to exclude from ray-filtering.
     n: int
         Neighbor pixels to consider, 1 is typically enough.
     dynfact: float or int
@@ -348,7 +432,7 @@ def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_p
     for i in tqdm(Diad_files.index.tolist()):
 
         filename_select=Diad_files.iloc[i]
-        rays_found,spectrum=filter_singleray(path=spectra_path,Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,plot_rays=plot_rays,
+        rays_found,spectrum=filter_singleray(path=spectra_path,Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,exclude_ranges=exclude_ranges,plot_rays=plot_rays,
                                  export_cleanspec=export_cleanspec,save_fig=save_fig,dynfact=dynfact,dynfact_2=dynfact_2,n=n,xlims=xlims)
         ray_list=pd.concat([ray_list,rays_found])
         spectra_df=pd.concat([spectra_df,spectrum['Intensity']],axis=1)
