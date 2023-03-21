@@ -14,7 +14,26 @@ encode="ISO-8859-1"
 
 
 def calculate_density_cornell(temp='SupCrit', Split=None):
-    """ Calculates density for Cornell densimeters"""
+    """ This function converts Diad Splitting into CO$_2$ density using the densimeters of DeVitre et al. (2021)
+    This should only be used for the Cornell Raman, not other Ramans at present
+
+    Parameters
+    -------------
+    temp: str
+        'SupCrit' if measurements done at 37C
+        'RoomT' if measurements done at 24C
+
+    Split: int, float, pd.Series, np.array
+
+    Returns
+    --------------
+    pd.DataFrame
+        Prefered Density (based on different equatoins being merged), and intermediate calculations
+
+
+
+
+    """
 
     #if temp is "RoomT":
     LowD_RT=-38.34631 + 0.3732578*Split
@@ -25,18 +44,35 @@ def calculate_density_cornell(temp='SupCrit', Split=None):
     MedD_SC=-47.2609 + 0.4596005*Split+ 0.0374189*(Split-103.733)**2-0.0187173*(Split-103.733)**3
     HighD_SC=-42.52782 + 0.4144277*Split- 0.1514429*(Split-104.566)**2
 
-    df=pd.DataFrame(data={'Preferred D': 0,
-     'in range': 'Y',
-                            'Notes': 'not in range',
-                            'LowD_RT': LowD_RT,
-                            'HighD_RT': HighD_RT,
-                            'LowD_SC': LowD_SC,
-                            'MedD_SC': MedD_SC,
-                            'HighD_SC': HighD_SC,
-                            'Temperature': temp,
-                            'Splitting': Split,
+    if isinstance(Split, pd.Series) or isinstance(Split, np.ndarray):
 
-                            })
+        df=pd.DataFrame(data={'Preferred D': 0,
+        'in range': 'Y',
+                                'Notes': 'not in range',
+                                'LowD_RT': LowD_RT,
+                                'HighD_RT': HighD_RT,
+                                'LowD_SC': LowD_SC,
+                                'MedD_SC': MedD_SC,
+                                'HighD_SC': HighD_SC,
+                                'Temperature': temp,
+                                'Splitting': Split,
+
+                                })
+
+    else:
+        df=pd.DataFrame(data={'Preferred D': 0,
+        'in range': 'Y',
+                                'Notes': 'not in range',
+                                'LowD_RT': LowD_RT,
+                                'HighD_RT': HighD_RT,
+                                'LowD_SC': LowD_SC,
+                                'MedD_SC': MedD_SC,
+                                'HighD_SC': HighD_SC,
+                                'Temperature': temp,
+                                'Splitting': Split,
+
+                                }, index=[0])
+
 
     roomT=df['Temperature']=="RoomT"
     SupCrit=df['Temperature']=="SupCrit"

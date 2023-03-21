@@ -24,6 +24,30 @@ encode="ISO-8859-1"
 ## Ratio of different peaks
 
 def calculate_mole_fraction_2comp(peak_area_a, peak_area_b, cross_section_a, cross_section_b, instrument_eff_a, instrument_eff_b):
+    """ This function calculates the molar ration of 2 components a and b based on peak areas, cross section and instrument efficiency
+
+    Parameters
+    ------------
+
+    peak_area_a: int, float, pd.Series, np.array
+        Peak area of component a
+
+    peak_area_b: int, float, pd.Series, np.array
+        Peak area of component b
+
+    cross_section_a, cross_section_a: int, float
+        Raman cross section for component a and b
+
+    instrument_eff_a, instrument_eff_b: int, float
+        Instrument effeciency of a and b.
+
+    Returns
+    ------------
+    pd.DataFrame
+        Molar ratio of a/b
+
+
+    """"
 
     Sum_phase_a=peak_area_a/(cross_section_a*instrument_eff_a)
     Sum_phase_b=peak_area_b/(cross_section_b*instrument_eff_b)
@@ -32,7 +56,27 @@ def calculate_mole_fraction_2comp(peak_area_a, peak_area_b, cross_section_a, cro
 
     return df
 def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None, Spectra_y=None):
-    """Penny needs to write documentation
+    """This function makes a plot of the spectra for a specific file to allow visual inspectoin
+
+    Parameters
+    ----------------
+    Either
+
+    path: str
+        Folder where spectra is stored
+    filename: str
+        Filename of specific spectra file of interest
+    filetype: str
+        filetype ('Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII',
+        'HORIBA_txt', 'Renishaw_txt')
+    Or
+        Spectra_x: np.array of x coordinates
+        Spectra_y: np.array of y coordinates
+
+    Returns
+        plots figure with common peaks overlain
+
+
     """
     if Spectra_x is None:
         Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
@@ -47,7 +91,7 @@ def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(4,3))
 
-    miny=np.min(Spectra_x)
+    miny=np.min(Spectra_y)
     maxy=np.max(Spectra_y)
     ax1.plot([1090, 1090], [miny, maxy], ':k', label='Magnesite')
     ax1.plot([1131, 1131], [miny, maxy], '-',  alpha=0.5,color='grey', label='Anhydrite/Mg-Sulfate')

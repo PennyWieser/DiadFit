@@ -6,8 +6,19 @@ import inspect
 
 
 def rasmussen(P_kbar):
-    """ 4th degree fit to the supporting information of Rasmussen et al. 2022,
-    overall best fit density vs. depth. Above 5.24 kbar, returns Nan"""
+    """ Calculates Depth for a given pressure using a 4th degree fit to the supporting information of Rasmussen et al. 2022,
+    overall best fit density vs. depth. Above 5.24 kbar, returns Nan
+
+    Parameters
+    -------------
+    P_kbar: int, float, pd.series
+        Pressure in kbar
+
+    Returns
+    -------------
+    Depth in km (same datatype as input)
+
+    """
     P=P_kbar
     if P<5.2474630296099205:
         b=-0.0025915704129682504
@@ -21,8 +32,20 @@ def rasmussen(P_kbar):
     return D
 
 def hill_zucca(P_kbar):
-    """ Parameterization of Hill and Zucca (1987),
+
+    """Calculates Depth for a given pressure using the parameterization of Hill and Zucca (1987),
     as given in Putirka (2017) Down the Crater Elements supplement for Hawaii
+
+    Parameters
+    -------------
+    P_kbar: int, float, pd.series
+        Pressure in kbar
+
+    Returns
+    -------------
+    Depth in km (same datatype as input)
+
+
     """
     P=P_kbar
 
@@ -31,8 +54,19 @@ def hill_zucca(P_kbar):
     return D
 
 def ryan_lerner(P_kbar):
-    """ Parameterization of Ryan 1987, actual equation from Lerner et al. 2021
+    """ Calculates depth for a given pressure using the Parameterization of Ryan 1987, actual equation from Lerner et al. 2021
     After 16.88 km (455 MPa), returns NaN
+
+    Parameters
+    -------------
+    P_kbar: int, float, pd.series
+        Pressure in kbar
+
+    Returns
+    -------------
+    Depth in km (same datatype as input)
+
+
     """
     P=P_kbar*100
     if P<455.09090909:
@@ -43,8 +77,19 @@ def ryan_lerner(P_kbar):
     return D
 
 def mavko_debari(P_kbar):
-    """ Parameterization of Mavko and Thompson (1983) and DeBari and Greene (2011)
+    """ Calculates depth for a given pressure using the parameterization of Mavko and Thompson (1983) and DeBari and Greene (2011)
     as given in Putirka (2017) Down the Crater Elements supplement, used for Cascades
+
+    Parameters
+    -------------
+    P_kbar: int, float, pd.series
+        Pressure in kbar
+
+    Returns
+    -------------
+    Depth in km (same datatype as input)
+
+
     """
     P=P_kbar
     D=0.4853881 + 3.6006116*P - 0.0117368*(P-1.3822)**2
@@ -54,9 +99,20 @@ def mavko_debari(P_kbar):
 
 
 def prezzi(P_kbar):
-    """ Parameterization of Prezzi et al. (2009),
+    """Calcultes depth for a given pressure using the parameterization of Prezzi et al. (2009),
     as given in Putirka (2017) Down the Crater Elements supplement.
     Used for Andes.
+
+    Parameters
+    -------------
+    P_kbar: int, float, pd.series
+        Pressure in kbar
+
+    Returns
+    -------------
+    Depth in km (same datatype as input)
+
+
     """
     P=P_kbar
     D=4.88 + 3.30*P - 0.0137*(P - 18.01)**2
@@ -65,9 +121,21 @@ def prezzi(P_kbar):
 
 
 def prezzi(P_kbar):
-    """ Parameterization of Prezzi et al. (2009),
+    """Calculates depth for a given pressure using the parameterization of Prezzi et al. (2009),
     as given in Putirka (2017) Down the Crater Elements supplement.
     Used for Andes.
+
+    Parameters
+    -------------
+    P_kbar: int, float, pd.series
+        Pressure in kbar
+
+    Returns
+    -------------
+    Depth in km (same datatype as input)
+
+
+
     """
     P=P_kbar
     D=4.88 + 3.30*P - 0.0137*(P - 18.01)**2
@@ -96,6 +164,9 @@ def convert_pressure_depth_2step(P_kbar=None, d1=None, rho1=None, rho2=None, g=9
 
     rho2: int or float
         Density (kg/m3) below step transition
+
+    g: float
+        gravitational constant
 
     Returns
     -------------
@@ -136,6 +207,9 @@ def loop_pressure_depth_2step(P_kbar=None, d1=14, rho1=2800, rho2=3100, g=9.81):
 
     rho2: int or float
         Density (kg/m3) below step transition
+
+    g: float
+        gravitational constant
 
     Returns
     -------------
@@ -178,6 +252,9 @@ def convert_pressure_depth_3step(P_kbar=None, d1=5, d2=14, g=9.81,
 
     rho3: int or float
         Density (kg/m3) below 2nd step transition
+
+    g: float
+        gravitational constant
 
     Returns
     -------------
@@ -257,6 +334,7 @@ def loop_pressure_depth_3step(P_kbar=None,  d1=5, d2=14,
 def convert_pressure_to_depth(P_kbar=None, crust_dens_kgm3=None, g=9.81,
 d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
     """ Converts pressure in kbar to depth in km using a variety of crustal density profiles
+    or existing models for Pressure vs. depth
 
 
     Parameters
@@ -299,11 +377,21 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
             overall best fit density vs. depth
 
         two-step:
-            If two step, must also define d1 (depth to 1st step), rho1 (density to 1st step), rho2 (density to 2nd step)
+            If two step, must also define:
+                d1: Depth to first transition in km
+                rho1: Density between surface and 1st transition
+                d2: Depth to second transition in km (from surface)
+                rho2: Density between 1st and 2nd transition
 
         three-step:
-            If three step, must also define d1 (depth to 1st step), d2 (depth to second step), rho1 (density to 1st step), rho2 (density to 2nd step),
-            rho3 (density after 3rd step) in km and kg/m3 respectively.
+            If three step, must also define:
+                d1: Depth to first transition in km
+                rho1: Density between surface and 1st transition
+                d2: Depth to second transition in km (from surface)
+                rho2: Density between 1st and 2nd transition
+                d3: Depth to third transition in km (from surface)
+                rho3: Density between 2nd and 3rd transition depth.
+
 
 
 
@@ -401,7 +489,8 @@ def convert_co2_dens_press_depth_old(T_K=None,
     g=9.81, model=None,
     d1=None, d2=None, rho1=None, rho2=None, rho3=None, EOS='SW96'):
 
-    """ This is a now old function that isn't used, kept her for backwards functionality
+    """ This is a now old function that isn't used, kept for backwards functionality.
+    Dont use unless you have built code relying on it!
     """
 
 
