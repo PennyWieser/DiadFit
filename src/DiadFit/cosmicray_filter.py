@@ -8,8 +8,8 @@ import DiadFit as pf
 
 encode="ISO-8859-1"
 
-def check_pars(plot_rays, save_fig,export_cleanspec):
-    """ Checks if input parameters plot_rays, save_fig and expor_cleanspec are valid. If any of them is not valid, it raises a ValueError indicating which parameter is incorrect and what the allowed values are.
+def check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges):
+    """ Checks if input parameters plot_rays, save_fig, export_cleanspec and exclude_ranges are valid. If any of them is not valid, it raises a ValueError indicating which parameter is incorrect and what the allowed values are.
 
     Parameters
     --------------
@@ -19,6 +19,8 @@ def check_pars(plot_rays, save_fig,export_cleanspec):
         Save all figures or just those for spectra in which cosmic rays were found
     export_cleanspec: bool
         Indicates whether to export de-rayed spectra or not
+    exclude_ranges: list of tuples
+        List of tuples that defines user-specified ranges to ignore during filtering (i.e., secondary peaks)
 
     Returns
     -------------
@@ -31,6 +33,8 @@ def check_pars(plot_rays, save_fig,export_cleanspec):
         raise ValueError("save_fig can only be 'all' or 'rays_only', please correct")
     if not isinstance(export_cleanspec, bool):
         raise ValueError("export_cleanspec can only be True or False, please correct")
+    if not isinstance(exclude_ranges,(list,type(None))):
+        raise ValueError("exclude_ranges can only be a list of tuples (i.e., [(1145,1155),(1080,1090)]), an empty list or None, please correct")
 ## This function is the main filter, runs on one spectrum
 
 def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude_ranges=[], filetype='headless_txt',n=1,dynfact=0.01,dynfact_2=0.003,
@@ -77,7 +81,7 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
 
     """
     try:
-        check_pars(plot_rays, save_fig,export_cleanspec)
+        check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges)
     except ValueError as e:
         print(str(e))
         raise e
@@ -421,7 +425,7 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
 
     """
     try:
-        check_pars(plot_rays, save_fig,export_cleanspec)
+        check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges)
     except ValueError as e:
         print(str(e))
         raise e
