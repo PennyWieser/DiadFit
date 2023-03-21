@@ -411,9 +411,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     'Diad1_abs_prom', 'Diad2_abs_prom', 'HB1_abs_prom', 'HB2_abs_prom', 'C13_abs_prom',
     'Mean_abs_HB_prom', 'Diad2_HB2_abs_prom_ratio', 'Diad1_HB1_abs_prom_ratio',
     'Diad1_rel_prom', 'Diad2_rel_prom', 'HB1_rel_prom', 'HB2_rel_prom', 'C13_rel_prom',
-     'Diad1_HB1_abs_prom_ratio','Diad2_HB2_abs_prom_ratio',
-    'Diad1_HB1_Valley_prom', 'Diad2_HB2_abs_prom_ratio',
-    'Mean_Diad_HB_Valley_prom','Mean_abs_HB_prom',
+    'Diad1_HB1_Valley_prom',
+    'Mean_Diad_HB_Valley_prom',
     'Diad1_prom/std_betweendiads', 'Diad2_prom/std_betweendiads',
     'Av_Diad_prom/std_betweendiads', 'C13_prom/HB2_prom', 'Av_Diad_HB_prom_ratio', 'Left_vs_Right']
 
