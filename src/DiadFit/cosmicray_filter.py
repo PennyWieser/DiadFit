@@ -402,6 +402,10 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
         The folder path of the spectrum files
     Diad_files: pd.Series
         'filename' column of fit_params variable output by pf.loop_approx_diad_fits
+    filetype: str
+        Identifies type of file
+        choose from 'Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII',
+        'HORIBA_txt', 'Renishaw_txt'
     diad_peaks: pd.DataFrame
         Dataframe containing the peaks of interest for each file subset from fit_params variable output by pf.loop_approx_diad_fits(columns Diad1_pos,	Diad2_pos,HB1_pos,HB2_pos,C13_pos)
     fit_params: pd.DataFrame
@@ -443,10 +447,10 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
     spectra_df=pd.DataFrame([])
 
     for i in tqdm(Diad_files.index.tolist()):
-        
+
 
         filename_select=Diad_files.iloc[i]
-        print(filename_select)
+
         rays_found,spectrum=filter_singleray(path=spectra_path,Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,exclude_ranges=exclude_ranges,plot_rays=plot_rays,
                                  export_cleanspec=export_cleanspec,save_fig=save_fig,dynfact=dynfact,dynfact_2=dynfact_2,n=n,xlims=xlims,filetype=filetype)
         ray_list=pd.concat([ray_list,rays_found])

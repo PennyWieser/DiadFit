@@ -607,7 +607,7 @@ const_params=True, spec_res=0.4) :
         if block_print is False:
             print('first iteration, peak Amplitude='+str(np.round(Amp_p0, 4)))
         fwhm_p0=result0.params.get('p0_fwhm')
-        print(Center_p0_error)
+
 
         pattern = r"\+/-\s*([\d.]+)"
         match = re.search(pattern, str(Center_p0_error))
@@ -617,8 +617,7 @@ const_params=True, spec_res=0.4) :
             Center_p0_errorval=np.nan
 
 
-        #Center_p0_errorval=float(str(Center_p0_error).split()[4].replace(",", ""))
-        print(Center_p0_errorval)
+
         #Ne_center=Ne_center
         #rough_peak_positions=Ne_center-2
         if model_name == 'PseudoVoigtModel':
@@ -1415,6 +1414,11 @@ def reg_Ne_lines_time(df, fit='poly', N_poly=None, spline_fit=None):
 
 
 def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):
+    """ This function discards Ne lines with a correction factor more than 
+    offset away from the median value of the N points (number_av) either side of it.
+    
+
+    """
     Corr_factor_Filt=np.empty(len(Corr_factor), dtype=float)
     median_loop=np.empty(len(Corr_factor), dtype=float)
 
