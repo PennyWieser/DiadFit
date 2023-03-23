@@ -2094,9 +2094,6 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
 
-    print('residual')
-    print(residual_diad_coords)
-    print(type(residual_diad_coords))
 
     return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, residual_diad_coords, ydat_inrange,  xdat_inrange
 

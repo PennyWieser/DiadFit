@@ -407,6 +407,7 @@ def extract_24hr_time_horiba(*, path, filename):
             break
     return line
 def extract_spectraname_horiba(*, path, filename):
+    """ This function """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:

@@ -41,7 +41,11 @@ def check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges):
 
 def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude_ranges=[], filetype='headless_txt',n=1,dynfact=0.01,dynfact_2=0.003,
                         export_cleanspec=True,plot_rays='all',save_fig='rays_only',figsize=(20,5), xlims=None):
-    """ This function is used to filter out cosmic rays in single Raman spectra of CO2. It requires the input of pre-identified peaks to avoid excluding peaks of interest. The filter compares the intensity of each pixel in the spectrum to n surrounding pixels and calculates an intensity factor. Pixels that exceed a certain intensity factor threshold are removed from the spectrum. It repeats the process when a cosmic ray is found, so that "wide" cosmic rays can be excluded (when a cosmic ray encompasses more than a single pixel)
+    """ This function is used to filter out cosmic rays in single Raman spectra of CO2. 
+    It requires the input of pre-identified peaks to avoid excluding peaks of interest. 
+    The filter compares the intensity of each pixel in the spectrum to n surrounding pixels and calculates an intensity factor. 
+    Pixels that exceed a certain intensity factor threshold are removed from the spectrum. 
+    It repeats the process when a cosmic ray is found, so that "wide" cosmic rays can be excluded (when a cosmic ray encompasses more than a single pixel)
 
     Parameters
     --------------
@@ -60,9 +64,10 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
     n: int
         Neighbor pixels to consider, 1 is typically enough.
     dynfact: float or int
-        Intensity factor cutoff for the first filter pass (can adjust based on y axis of intensity factor plot)
+        Intensity factor cutoff for the first filter pass (can adjust based on y axis of intensity factor plot, i.e. the y axis on plot a) that this function produces).
+        It removes any peaks above this threshold except those within +-1 pixel of any entered peak positoin (or the input ranges)
     dynfact_2: float or int
-        Intensity factor cutoff for the second filter pass (can adjust based on y axis of intensity factor plot)
+        Intensity factor cutoff for the second filter pass (can adjust based on y axis of intensity factor plot, i.e. the y axis on plot d) this function produces) 
     export_cleanspec: bool
         Indicates whether to export de-rayed spectra or not
     plot_rays: str ('all' or 'rays_only')
@@ -248,11 +253,11 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
                     ax3.fill_between(r, y3_min, y3_max, color='blue', alpha=0.2)
                     ax4.fill_between(r, y4_min, y4_max, color='blue', alpha=0.2)
 
-                ax0.set_title('Intensity factor and rays')
-                ax1.set_title('Original spectrum')
-                ax2.set_title('De-rayed spectrum')
-                ax3.set_title('Intensity factor and rays - pass 2')
-                ax4.set_title('De-rayed spectrum - pass 2')
+                ax0.set_title('a) Intensity factor and rays')
+                ax1.set_title('b) Original spectrum')
+                ax2.set_title('c) De-rayed spectrum')
+                ax3.set_title('d) Intensity factor and rays - pass 2')
+                ax4.set_title('e) De-rayed spectrum - pass 2')
                 if xlims is not None:
                     ax0.set_xlim(xlims)
                     ax1.set_xlim(xlims)

@@ -14,6 +14,7 @@ from typing import Tuple, Optional
 from dataclasses import dataclass
 import matplotlib.patches as patches
 from tqdm.notebook import tqdm
+import re
 
 ## Test this
 
@@ -607,8 +608,17 @@ const_params=True, spec_res=0.4) :
             print('first iteration, peak Amplitude='+str(np.round(Amp_p0, 4)))
         fwhm_p0=result0.params.get('p0_fwhm')
         print(Center_p0_error)
-        Center_p0_errorval=float(str(Center_p0_error).split()[4].replace(",", ""))
 
+        pattern = r"\+/-\s*([\d.]+)"
+        match = re.search(pattern, str(Center_p0_error))
+        if match:
+            Center_p0_errorval = float(match.group(1))
+        else:
+            Center_p0_errorval=np.nan
+
+
+        #Center_p0_errorval=float(str(Center_p0_error).split()[4].replace(",", ""))
+        print(Center_p0_errorval)
         #Ne_center=Ne_center
         #rough_peak_positions=Ne_center-2
         if model_name == 'PseudoVoigtModel':
