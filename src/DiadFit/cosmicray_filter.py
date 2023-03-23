@@ -441,8 +441,10 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
     spectra_df=pd.DataFrame([])
 
     for i in tqdm(Diad_files.index.tolist()):
+        
 
         filename_select=Diad_files.iloc[i]
+        print(filename_select)
         rays_found,spectrum=filter_singleray(path=spectra_path,Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,exclude_ranges=exclude_ranges,plot_rays=plot_rays,
                                  export_cleanspec=export_cleanspec,save_fig=save_fig,dynfact=dynfact,dynfact_2=dynfact_2,n=n,xlims=xlims)
         ray_list=pd.concat([ray_list,rays_found])
