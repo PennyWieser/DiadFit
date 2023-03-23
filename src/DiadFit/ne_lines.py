@@ -606,6 +606,7 @@ const_params=True, spec_res=0.4) :
         if block_print is False:
             print('first iteration, peak Amplitude='+str(np.round(Amp_p0, 4)))
         fwhm_p0=result0.params.get('p0_fwhm')
+        print(Center_p0_error)
         Center_p0_errorval=float(str(Center_p0_error).split()[4].replace(",", ""))
 
         #Ne_center=Ne_center

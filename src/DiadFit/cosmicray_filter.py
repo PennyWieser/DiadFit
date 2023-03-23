@@ -3,7 +3,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-from tqdm.autonotebook import tqdm
+# from tqdm.autonotebook import tqdm - Gave error
+
+from tqdm import tqdm
 import DiadFit as pf
 
 encode="ISO-8859-1"
