@@ -23,6 +23,22 @@ encode="ISO-8859-1"
 
 ## Plotting Ne lines, returns peak position
 def find_closest(df, line1_shift):
+    """ 
+   This function finds the closest Raman shift value in the inputted dataframe to the inputted line position
+
+   Parameters
+   -------------
+    df: pd.DataFrame
+        Dataframe of Ne line positions based on laser wavelength from the function calculate_Ne_line_positions
+    
+    line1_shift: int, float
+        input line position
+
+   Returns
+   -------------
+   Closest theoretical line position
+
+    """
     dist = (df['Raman_shift (cm-1)'] - line1_shift).abs()
     return df.loc[dist.idxmin()]
 
@@ -30,7 +46,25 @@ def find_closest(df, line1_shift):
 
 def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447, cut_off_intensity=2000):
     """
-    Calculates ideal splitting in air between lines closest to user-specified line shift
+    Calculates ideal splitting in air between lines closest to user-specified line shift. E.g. if user enters
+    1117 and 1447 line, it looks for the nearest theoretical Ne line position based on your wavelength, 
+    and calculates the ideal splitting between these theoretical line positions. This is used to calculate the 
+    ideal Ne line splitting for doing the Ne correction routine of Lamadrid et al. (2017)
+
+    Parameters
+    -------------
+    Wavelength: int
+        Wavelength of your laser
+    line1_shift: int, float
+        Estimate of position of line 1
+    line2_shift: int, float
+        Estimate of position of line 2
+    cut_off_intensity: int, float
+        only searches through lines with a theoretical intensity from NIST grater than this value 
+
+    Returns
+    ----------
+    df of theoretical splitting, line positions used for this, and entered Ne line positions
     """
 
     df_Ne=calculate_Ne_line_positions(wavelength=wavelength, cut_off_intensity=cut_off_intensity)
@@ -51,7 +85,22 @@ def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447
 
 def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     """
-    Calculates Ne line positions using the theoretical lines from NIST for the user inputted wavelenth
+    Calculates Raman shift for a given laser wavelength of Ne lines, using the datatable from NIST of Ne line
+    emissoin in air and the intensity of each line.
+
+    Parameters
+    ---------------
+    Wavelength: float
+        Wavelength of laser
+    cut_off_intensity: float
+        Only chooses lines with intensities greater than this
+
+    Returns
+    ------------
+    pd.DataFrame
+        df wih Raman shift, intensity, and emission line position in air. 
+    
+
     """
 
     Ne_emission_line_air=np.array([
@@ -163,10 +212,24 @@ Ne_array=None):
 
     """
     Loads Ne line, uses scipy find peaks to identify peaks, overlays these,
-    and returns peak positions to feed into fitting algorithms
+    and returns approximate peak positions, prominences etc to feed into fitting algorithms
 
     Parameters
     -----------
+    config: from Neon_id_config
+        This is used to identify peaks using Scipy find peaks. Parameters that can be tweaked
+        exclude_range_1: None, or Tuple[float, float]
+            Range to exclude (e.g, cosmic ray, instrument noise)
+        exclude_range_2: None, or Tuple[float, float]
+            Range to exclude (e.g, cosmic ray, instrument noise)
+        height, distance, prominence, width, threshold: float
+            Scipy find peak parameters you can tweak
+        peak1_cent: float
+            Estimate of location of Ne line 1
+        peak2_cent: float
+            Estimate of location of Ne line 2
+        n_peaks: float
+            Looks through the largest N peaks of scipy in the entire spectra and identifies them on the plot
 
     path: str
         Folder user wishes to read data from
@@ -175,33 +238,23 @@ Ne_array=None):
         Specific file being read
 
     filetype: str
-        Identifies type of file
-        Witec_ASCII: Datafile from WITEC with metadata for first few lines
-        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
-        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
-        Renishaw_txt: Datafile from renishaw with column headings.
+        choose from 'Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII',
+        'HORIBA_txt', 'Renishaw_txt'
 
-    n_peaks: int
-        Number of peaks to return values for
+    plot_figure: bool
+        If True, plots a figure highlighting the identified peaks
 
-    peak1_cent: int or float, default 1118
-        Position to look for 1st peak in, finds peaks within +/- 5 of this
+    print_df: bool
+        if True, prints the positions of the N biggest peaks it found
 
-    peak2_cent: int or float, default 1447
-        Position to look for 2nd peak in, finds peaks within +/- 5 of this
+    Ne_array: np.array
+        Can also enter data as a numpy array, rather than as a filename, filepath and filetype
 
-
-    height, threshold, distance, prominence, width: int
-         parameters for scipy find peaks
-
-    exclude_range_1: None or list
-        users can enter a range (e.g [1100, 1112]) to exclude a part of their spectrum,
-        perhaps to remove cosmic rays
-
-    exclude_range_2: None or list
-        users can enter a range (e.g [1100, 1112]) to exclude a part of their spectrum,
-        perhaps to remove cosmic rays
-
+    Returns
+    --------------
+    Ne, df_fit_params
+    Ne: np.array of spectral data (with ranges excluded)
+    df_fit_params: DataFrame of approximate peak positions, prominences etc. 
 
 
     """
@@ -259,7 +312,7 @@ Ne_array=None):
     df_sort_Ne_trim=df_sort_Ne[0:n_peaks]
 
     if print_df is True:
-        print('Biggest 6 peaks:')
+        print('Biggest N peaks:')
         display(df_sort_Ne_trim)
 
     # Get peak within +-5
@@ -385,7 +438,7 @@ Ne_array=None):
 def remove_Ne_baseline_pk1(Ne, N_poly_pk1_baseline=None, Ne_center_1=None,
 lower_bck=None, upper_bck1=None, upper_bck2=None, sigma_baseline=None):
     """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
-    around the 1117 peak
+    around a specified peak
 
     Parameters
     -----------
@@ -410,6 +463,18 @@ lower_bck=None, upper_bck1=None, upper_bck2=None, sigma_baseline=None):
     upper_bck2: list (length 2). default [30, 50]
         position used for 2nd upper background relative to peak, so =[30, 50] takes a
         background +30 and +50 from the peak center
+
+    Returns
+    -----------
+    y_corr, Py_base, x,  Ne_short, Py_base, Baseline_y, Baseline_x
+    
+    y_corr (numpy.ndarray): The corrected y-values after subtracting the fitted polynomial baseline from the original data.
+    Py_base (numpy.ndarray): The y-values of the fitted polynomial baseline.
+    x (numpy.ndarray): The x-values of the trimmed data within the specified range.
+    Ne_short (numpy.ndarray): The trimmed data within the specified range.
+    Baseline_y (numpy.ndarray): The y-values of the baseline data points.
+    Baseline_x (numpy.ndarray): The x-values of the baseline data points
+
     """
 
     lower_0baseline_pk1=Ne_center_1+lower_bck[0]
@@ -456,7 +521,7 @@ def remove_Ne_baseline_pk2(Ne, N_poly_pk2_baseline=None, Ne_center_2=None, sigma
 lower_bck=None, upper_bck1=None, upper_bck2=None):
 
     """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
-    around the 1447 peak
+    around a second selected peak
 
     Parameters
     -----------
@@ -481,6 +546,19 @@ lower_bck=None, upper_bck1=None, upper_bck2=None):
     upper_bck2: list (length 2) Default [50, 51]
         position used for 2nd upper background relative to peak, so =[30, 50] takes a
         background +30 and +50 from the peak center
+
+    Returns
+    -----------
+    y_corr, Py_base, x,  Ne_short, Py_base, Baseline_y, Baseline_x
+
+    y_corr (numpy.ndarray): The corrected y-values after subtracting the fitted polynomial baseline from the original data.
+    Py_base (numpy.ndarray): The y-values of the fitted polynomial baseline.
+    x (numpy.ndarray): The x-values of the trimmed data within the specified range.
+    Ne_short (numpy.ndarray): The trimmed data within the specified range.
+    Baseline_y (numpy.ndarray): The y-values of the baseline data points.
+    Baseline_x (numpy.ndarray): The x-values of the baseline data points.
+
+    
     """
 
 
@@ -930,11 +1008,8 @@ plot_figure=True, loop=True,
         used to save filename in datatable, and to make a new folder.
 
     filetype: str
-        Identifies type of file
-        Witec_ASCII: Datafile from WITEC with metadata for first few lines
-        headless_txt: Txt file with no headers, just data with wavenumber in 1st col, int 2nd
-        HORIBA_txt: Datafile from newer HORIBA machines with metadata in first rows
-        Renishaw_txt: Datafile from renishaw with column headings.
+        choose from 'Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII',
+        'HORIBA_txt', 'Renishaw_txt'
 
     amplitude: int or float
         first guess of peak amplitude

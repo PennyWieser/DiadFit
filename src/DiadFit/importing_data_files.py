@@ -19,6 +19,21 @@ encode="ISO-8859-1"
 
 
 def check_for_duplicates(spectra_path, prefix=True, prefix_str=' '):
+    """    This function checks for duplicate filenames in a specified directory and prints the duplicates if found.
+    
+    Parameters:
+    spectra_path (str): 
+        The path of the directory containing the files to be checked for duplicates.
+    prefix (bool):
+        If True, the function will remove the specified prefix string from the filenames before checking for duplicates. Default is True.
+    prefix_str (str: 
+        The prefix string to be removed from filenames if 'prefix' is set to True. Default is a single space ' '.
+    
+    Returns:
+    file_m (numpy.ndarray): A numpy array containing the modified filenames after removing the prefix (if specified).
+    
+    
+    """
 
     All_files_spectra= [f for f in listdir(spectra_path) if isfile(join(spectra_path, f))]
 
@@ -63,7 +78,7 @@ def get_files(path, ID_str=None, file_ext='txt', exclude_str=None, exclude_type=
 
     Returns
     -----------
-    Returns file names as a list.
+    list: file names as a list.
 
     """
 
@@ -118,6 +133,19 @@ def get_all_txt_files(path):
 def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII'):
     """
     Extracts data as a np.array from user file of differen types
+
+    Parameters
+    ---------------
+    path: str
+        path with spectra in
+    filename: str
+        Filename of specific spectra
+    filetype: str
+        choose from 'Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII',
+        'HORIBA_txt', 'Renishaw_txt'
+    Diad_Files: 
+        Name of file, if you dont want to have to specify a path
+        
     """
     if Diad_files is None:
         if filetype == 'headless_txt':
@@ -168,7 +196,7 @@ def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII
 ## Reading different file formats
 def read_HORIBA_to_df(*,  path=None, filename):
     """ This function takes in a HORIBA .txt. file with headers with #, and looks down to the row where Data starts (no #),
-    and saves this to a new file called pandas_.... old file. It exports the data as a pandas dataframe
+    and saves this to a new csv file called pandas_.... old file. It exports the data as a pandas dataframe
 
     Parameters
     -----------
@@ -178,6 +206,11 @@ def read_HORIBA_to_df(*,  path=None, filename):
 
     filename: str
         Specific file being read
+
+    Returns
+    ------------
+    pd.DataFrame:  
+        Dataframe of x-y data
 
 
     """
@@ -233,6 +266,12 @@ def read_witec_to_df(*,  path=None, filename):
     filename: str
         Specific file being read
 
+
+        Returns
+    ------------
+    pd.DataFrame:  
+        Dataframe of x-y data
+
     """
     if path is None:
         path=os.getcwd()
@@ -286,7 +325,25 @@ def read_witec_to_df(*,  path=None, filename):
 
 
 def convert_datastamp_to_metadata(path, filename, creation=True, modification=False):
-    """ Gets file modification or creation time, outputs as metadata like for WITEC"
+    """ Gets file modification or creation time, outputs as metadata in the same format as for WITEC
+
+    Parameters
+    -------------
+    
+    path: str
+        Path where spectra files are stored
+    filename: str
+        Specific filename
+    creation: bool
+        If True, gets timestamp based on creation date of file
+    modification: bool
+        If True, gets timestamp based on modification date of file
+
+    Returns
+    ----------
+    df of timestamp, and other columns to have the same format as the WITEC metadata output
+
+
     """
     if creation is True and modification is True:
         raise Exception('select either Creation=True or modification=True, not both')
@@ -328,7 +385,25 @@ def convert_datastamp_to_metadata(path, filename, creation=True, modification=Fa
     return Time_Df
 
 def loop_convert_datastamp_to_metadata(path, files, creation=True, modification=False):
-    """ Loops over multiple files to get timestamp the file was created or modified"""
+    """ Loops over multiple files to get timestamp the file was created or modified
+    using the convert_datastamp_to_metadata function.
+
+    path: str
+        Path where spectra files are stored
+    files: list
+        list of filenames
+    creation: bool
+        If True, gets timestamp based on creation date of file
+    modification: bool
+        If True, gets timestamp based on modification date of file
+
+    Returns
+    ----------
+    df of timestamp, and other columns to have the same format as the WITEC metadata output
+
+   
+    
+    """
     df_meta=pd.DataFrame([])
     for file in files:
         df_loop=convert_datastamp_to_metadata(path=path, filename=file,
@@ -343,6 +418,7 @@ creation=creation, modification=modification)
 ## HORIBA acquisition time
 encode="ISO-8859-1"
 def extract_duration_horiba(*, path, filename):
+    """ This function extracts the duration from a HORIBA file by finding the line starting with #Acq. """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:
@@ -353,7 +429,7 @@ def extract_duration_horiba(*, path, filename):
     return line
 
 def extract_accumulations_horiba(*, path, filename):
-
+    """ This function extracts the accumulations from a HORIBA file by finding the line starting with #Accumu. """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:
@@ -364,7 +440,7 @@ def extract_accumulations_horiba(*, path, filename):
     return line
 
 def extract_objective_horiba(*, path, filename):
-
+    """ This function extracts the objective used from a HORIBA file by finding the line starting with #Object. """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:
@@ -375,7 +451,7 @@ def extract_objective_horiba(*, path, filename):
     return line
 
 def extract_date_horiba(*, path, filename):
-
+    """ This function extracts the date used from a HORIBA file by finding the line starting with #Date. """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:
@@ -386,7 +462,7 @@ def extract_date_horiba(*, path, filename):
     return line
 
 def extract_spectral_center_horiba(*, path, filename):
-
+    """ This function extracts the spectral center used from a HORIBA file by finding the line starting with #Spectro (cm-¹). """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:
@@ -397,7 +473,7 @@ def extract_spectral_center_horiba(*, path, filename):
     return line
 
 def extract_24hr_time_horiba(*, path, filename):
-
+    """ This function extracts the 24 hr time from a HORIBA file by finding the line starting with #Acquired. """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:
@@ -407,7 +483,7 @@ def extract_24hr_time_horiba(*, path, filename):
             break
     return line
 def extract_spectraname_horiba(*, path, filename):
-    """ This function """
+   """ This function extracts the spectral name from a HORIBA file by finding the line starting with #Title. """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:
@@ -419,7 +495,7 @@ def extract_spectraname_horiba(*, path, filename):
 
 
 def extract_acq_params_horiba(path, filename):
-    """ Extracts acquisition parameters from HORIBA files
+    """ Extracts all relevant acquisition parameters from a HORIBA file, returns as a dataframe. 
     """
     from datetime import datetime
     # Integration time in seconds
@@ -488,7 +564,18 @@ def extract_acq_params_horiba(path, filename):
 
 def stitch_metadata_in_loop_horiba(AllFiles, path=None):
 
-    """ Stitching all metadata together
+    """ Stitches acquisition parameters together from the function extract_acq_params_horiba for multiple files
+    Parameters
+    -------------
+    AllFiles: list
+        List of all file names
+
+    path: str
+        Path where files are found
+
+    Returns
+    -------------
+    df of aquisitoin parameters
     """
     if path is None:
         path=os.getcwd()
@@ -506,7 +593,7 @@ def stitch_metadata_in_loop_horiba(AllFiles, path=None):
 ## Functions to extract metadata from WITEC files (v instrument specific)
 
 def extract_time_stamp_witec(*, path, filename):
-    """ Extracts time stamps
+    """ Extracts time stamp from a WITEC file
     """
 
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -520,7 +607,7 @@ def extract_time_stamp_witec(*, path, filename):
     return line
 
 def extract_laser_power_witec(*, path, filename):
-    """ Extracts laser power
+    """ Extracts laser power from a WITEC file
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
@@ -533,7 +620,7 @@ def extract_laser_power_witec(*, path, filename):
     return line
 
 def extract_accumulations_witec(*, path, filename):
-    """ Extracts accumulations
+    """ Extracts accumulations from a WITEC file
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
@@ -547,7 +634,7 @@ def extract_accumulations_witec(*, path, filename):
 
 
 def extract_integration_time_witec(*, path, filename):
-    """ Extracts Integration time
+    """ Extracts Integration time from a WITEC file
     """
 
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -560,7 +647,7 @@ def extract_integration_time_witec(*, path, filename):
     return line
 
 def extract_spectral_center_witec(*, path, filename):
-    """ Extracts Spectral Center
+    """ Extracts Spectral Center from a WITEC file
     """
 
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -573,7 +660,7 @@ def extract_spectral_center_witec(*, path, filename):
     return line
 
 def extract_objective_witec(*, path, filename):
-    """ Extracts objective magnification
+    """ Extracts objective magnification from a WITEC file
     """
 
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -587,7 +674,7 @@ def extract_objective_witec(*, path, filename):
     return line
 
 def extract_duration_witec(*, path, filename):
-    """ Extracts analysis duration
+    """ Extracts analysis duration from a WITEC file
     """
 
     fr = open(path+'/'+filename,  'r', encoding=encode)
@@ -601,7 +688,7 @@ def extract_duration_witec(*, path, filename):
     return line
 
 def extract_date_witec(*, path, filename):
-    """ Extracts date"""
+    """ Extracts date from a WITEC file"""
 
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
@@ -615,7 +702,7 @@ def extract_date_witec(*, path, filename):
     return line
 
 def checks_if_video_witec(*, path, filename):
-    """ Checks if file is an image (as doesnt have all metadata)
+    """ Checks if a WITEC file is an image (as doesnt have all metadata)
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
     l1=fr.readline()
@@ -627,7 +714,7 @@ def checks_if_video_witec(*, path, filename):
         return 'not Video'
 
 def checks_if_imagescan_witec(*, path, filename):
-    """ Checks if file is an imagescan (as doesnt have all metadata)
+    """ Checks if a WITEC file is an imagescan (as doesnt have all metadata)
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
     l1=fr.readline()
@@ -639,7 +726,7 @@ def checks_if_imagescan_witec(*, path, filename):
         return 'not Scan'
 
 def checks_if_general_witec(*, path, filename):
-    """ Checks if file is a spectra file with all the right metadata
+    """ Checks if a WITEC file is a spectra file with all the right metadata
     """
     fr = open(path+'/'+filename,  'r', encoding=encode)
     l1=fr.readline()
@@ -653,7 +740,22 @@ def checks_if_general_witec(*, path, filename):
 
 def extract_acq_params_witec(*, path, filename, trupower=False):
     """ This function checks what type of file you have, and if its a spectra file,
-    uses the functions above to extract various bits of metadata
+    uses the functions above to extract various bits of metadata.
+
+    Parameters
+    --------------
+    path: str
+        Folder where spectra are stored
+    filename: str
+        Specific filename
+
+    Truepower: bool
+        True if your WITEC system has Trupower, else false, as no power in the metadata file
+
+    Returns
+    -------------
+    power, accums, integ, Obj, Dur, dat, spec
+    Values for each acquisition parameters. 
     """
     # Prints what it is, e.g. general if general, video if video
     if path is None:
@@ -722,7 +824,9 @@ def extract_acq_params_witec(*, path, filename, trupower=False):
 
 
 def calculates_time_witec(*, path, filename):
-    """ calculates time for non video files for WITEC files"""
+    """ calculates time as seconds after midnight for non video files for WITEC files
+    
+    """
 
 
 
@@ -776,7 +880,23 @@ def calculates_time_witec(*, path, filename):
     return line3_sec_int, line2
 
 def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False):
-    """ Stitches together WITEC metadata for all files in a loop
+    """ Stitches together WITEC metadata for all files in a loop using the function
+    extract_acq_params_witec and calculates_time_witec, exports as a dataframe
+
+    Parameters
+    -----------------
+    Allfiles:list
+        List of files to fit
+    path: str
+        Name of folder with files in
+    prefix: bool
+        If True, removes any characters in the name before the space ' '
+    trupower: bool
+        Can only be True if you have Trupower on your Witec Raman
+
+    Returns
+    -----------
+    DataFrame of metadata parameters with a row for each file. 
     """
     if path is None:
         path=os.getcwd()
@@ -894,17 +1014,20 @@ def extracting_filenames_generic(*, names, prefix=False,
     str_suffix=None,
    file_type=None):
     """
-    Takes filenames from metadata, and makes something consistent with spectra
+    Takes filenames from a panda series (e.g., a column of a dataframe of metadata), outputs a numpy array that is consistent with the same function for 
+    spectra, to allow stitching of spectra and metadata. 
+
 
     Parameters
     -----------
-    names: Pandas.Series of sample names from 'filename' column of metadata output
+    names: Pandas.Series 
+        Series of sample names, e.g., from 'filename' column of metadata output
 
     prefix: bool
         if True, has a number before the file name
 
     str_prefix: str
-        The string separating the prefix from the file name
+        The string separating the prefix from the file name (e.g. if file is 01 test, str_prefix=" ")
 
     suffix: bool
         if True, has a number or name after the filename
@@ -914,6 +1037,10 @@ def extracting_filenames_generic(*, names, prefix=False,
 
     file_type: str
         The file extension, e.g., '.csv'
+
+    Returns
+    -----------------
+    np.array of names, with prefix, suffix and filetype stripped away
 
     """
     if isinstance(names, list):
@@ -957,6 +1084,7 @@ def extracting_filenames_generic(*, names, prefix=False,
 
     return file_m
 
+# These are largely redundant.  
 def extract_temp_Aranet(df):
     """ Extracts temperature data from the aranet
     """
