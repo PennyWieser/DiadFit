@@ -180,7 +180,7 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
 
 
 
-def calculate_temperature_density_MC(sample_i=1,  N_dup=1000, 
+def calculate_temperature_density_MC(sample_i=0,  N_dup=1000, 
 CO2_dens_gcm3=None, error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
  T_K=None, error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='normal',
@@ -246,13 +246,21 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
 
     """
 
-
-    if len_loop==1:
-        df_c=pd.DataFrame(data={'T_K': T_K,
-                            'CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
-    else:
+    # print('entered T_K')
+    # print(T_K)
+    # print('entered CO2')
+    # print(CO2_dens_gcm3)
+    # If any of them are panda series or numpy nd array, you dont need an index
+    if isinstance(T_K, pd.Series) or isinstance(CO2_dens_gcm3, pd.Series) or isinstance(T_K, np.ndarray) or isinstance(CO2_dens_gcm3, np.ndarray):
         df_c=pd.DataFrame(data={'T_K': T_K,
                             'CO2_dens_gcm3': CO2_dens_gcm3})
+        
+    # you do need an index here
+    else:
+        #print('here')
+        df_c=pd.DataFrame(data={'T_K': T_K,
+                            'CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+        
 
 
     # Temperature error distribution
@@ -266,6 +274,7 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
         Noise_to_add_T_K = np.random.uniform(- error_T_K, +
                                                       error_T_K, N_dup)
 
+    
     T_K_with_noise=Noise_to_add_T_K+df_c['T_K'].iloc[sample_i]
     T_K_with_noise[T_K_with_noise < 0.0001] = 0.0001
 
@@ -497,7 +506,7 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 
 
 
-    #This loops through each fluid inclusion
+    #This loops through each fluid inclusion entered density
     for i in range(0, len_loop):
         if i % 20 == 0:
             print('working on sample number '+str(i))
@@ -540,8 +549,7 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
         T_K=T_K, error_T_K=error_T_K, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
         error_CO2_dens=error_CO2_dens, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
         crust_dens_kgm3=crust_dens_kgm3,  error_crust_dens=error_crust_dens, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
-        d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
-     plot_figure=plot_figure, len_loop=len_loop, model=model)
+    model=model)
 
         # Convert to densities for MC
 
