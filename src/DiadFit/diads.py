@@ -3436,7 +3436,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
         if True, finds max y coordinate in spectra. If its more than sigma*standard deviations above the
         median, it is classified as a peak.
 
-    ind_peaks_filter: bool
+    find_peaks_filter: bool
 
         if True, uses scipy find peaks to find peaks. Can tweak distance, prominence, width,
         threshold, and height.
@@ -3734,7 +3734,7 @@ skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, dpi=200):
 
 
     y_corr_diad1, Py_base_diad1, x_diad1,  Diad_short, Py_base_diad1, Pf_baseline,  Baseline_ysub_diad1, Baseline_x_diad1, Baseline, span=remove_diad_baseline(
-    path=path, filename=filename, filetype=filetype, exclude_range1=config.exclude_range1, exclude_range2=config.exclude_range2, N_poly=config1.N_poly_bck_diad1,
+    path=path, filename=filename, filetype=filetype, N_poly=config1.N_poly_bck_diad1,
     lower_bck=config1.lower_bck_diad1, upper_bck=config1.upper_bck_diad1, plot_figure=False)
 
 
@@ -3978,7 +3978,7 @@ skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, dpi=200):
 
 # First, do the background subtraction
     y_corr_diad2, Py_base_diad2, x_diad2,  Diad_short, Py_base_diad2, Pf_baseline,  Baseline_ysub_diad2, Baseline_x_diad2, Baseline, span=remove_diad_baseline(
-    path=path, filename=filename, filetype=filetype, exclude_range1=config1.exclude_range1, exclude_range2=config2.exclude_range2, N_poly=config1.N_poly_bck_diad2,
+    path=path, filename=filename, filetype=filetype, N_poly=config1.N_poly_bck_diad2,
     lower_bck=config1.lower_bck_diad2, upper_bck=config1.upper_bck_diad2, plot_figure=False)
 
 
