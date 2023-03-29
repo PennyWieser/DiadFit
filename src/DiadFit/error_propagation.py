@@ -352,10 +352,10 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
 
 
-def propagate_FI_uncertainty(sample_ID, N_dup=1000, EOS='SW96', 
-plot_figure=False, fig_i=0, CO2_dens_gcm3, 
+def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K,   N_dup=1000, EOS='SW96', 
+plot_figure=False, fig_i=0, 
 error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
-T_K, crust_dens_kgm3=None, model=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
+ crust_dens_kgm3=None, model=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
 error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='uniform',
 error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
                  ):

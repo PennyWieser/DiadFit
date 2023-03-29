@@ -25,8 +25,7 @@ from DiadFit.diads import *
 # This has densimeters from different instruments
 from DiadFit.densimeters import *
 
-# Skewness
-from DiadFit.skewness import *
+
 
 # H2O fitting
 from DiadFit.H2O_fitting import *

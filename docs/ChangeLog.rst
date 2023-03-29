@@ -2,7 +2,8 @@
 ================
 Change Log
 ================
-
+March 28th, 2023 - Penny Wieser
+Changed 'calculate_rho_gcm3_for_P_T' to 'calculate_rho_for_P_T' for EOS calcs
 
 March 22nd, 2023 - Penny Wieser
 __version__ = '0.0.53'

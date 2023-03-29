@@ -391,9 +391,12 @@ Ne_array=None):
         nearest_pk1=peak1_cent
 
 
-        ax1.annotate('peak=' + pos_pk1, xy=(df_fit_params['Peak1_cent'].iloc[0]+3,
-        Baseline_Neon1*1.5+700), xycoords="data", fontsize=10, rotation=90)
+        #ax1.annotate('peak=' + pos_pk1, xy=(df_fit_params['Peak1_cent'].iloc[0]+3,
+        #Baseline_Neon1*1.5+700), xycoords="data", fontsize=10, rotation=90)
 
+        ax1.annotate('peak=' + pos_pk1, xy=(0.8, 0.3),xycoords="axes fraction", fontsize=10, rotation=90)
+
+       
 
         ax1.plot(df_fit_params['Peak1_cent'], df_fit_params['Peak1_height'], '*k', mfc='yellow', ms=8, label='selected peak')
 
@@ -403,8 +406,9 @@ Ne_array=None):
         pos_pk2=str(np.round(df_fit_params['Peak2_cent'].iloc[0], 2))
         ax2.plot([peak2_cent-20, peak2_cent+20], [Baseline_Neon2, Baseline_Neon2], '-g')
 
-        ax2.annotate('peak=' + pos_pk2, xy=(df_fit_params['Peak2_cent'].iloc[0]-5,
-        Baseline_Neon1*2+700), xycoords="data", fontsize=10, rotation=90)
+        # ax2.annotate('peak=' + pos_pk2, xy=(df_fit_params['Peak2_cent'].iloc[0]-5,
+        # Baseline_Neon1*2+700), xycoords="data", fontsize=10, rotation=90)
+        ax2.annotate('peak=' + pos_pk2,xy=(0.8, 0.3),xycoords="axes fraction", fontsize=10, rotation=90)
 
 
 

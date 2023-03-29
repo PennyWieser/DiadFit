@@ -3126,6 +3126,8 @@ class generic_peak_config:
     # Return other parameteres e.g. intermediate outputs
     return_other_params: bool = False
 
+    N_peaks: int= 1
+
 
 
 
@@ -3474,6 +3476,8 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
 
     for file in Diad_Files:
+       
+        
 
 
         Diad_df=get_data(path=path, filename=file, filetype=filetype)
@@ -3501,21 +3505,28 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             # Find peaks for trimmed spectra (e.g. in region peaks have been asked for)
             peaks = find_peaks(y_trim,height = height, threshold = threshold,
             distance = distance, prominence=prominence, width=width)
-            height = peaks[1]['peak_heights'] #list of the heights of the peaks
+
+            
+            height_PEAK = peaks[1]['peak_heights'] #list of the heights of the peaks
             peak_pos = x_trim[peaks[0]] #list of the peaks positions
+
             df_sort=pd.DataFrame(data={'pos': peak_pos,
-                                'height': height})
+                                'height': height_PEAK})
 
             df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
 
             # Trim number of peaks based on user-defined N peaks
-            df_peak_sort_short=df_peak_sort[0:config.N_peaks]
+            
+
 
             #print(df_peak_sort_short)
-            if len(df_peak_sort_short>1):
+            if len(df_peak_sort>=1):
+                
+                df_peak_sort_short=df_peak_sort[0:1]
                 peak_pos_saved[i]=df_peak_sort_short['pos'].values
                 peak_height_saved[i]=df_peak_sort_short['height'].values
             else:
+                
                 peak_pos_saved[i]=np.nan
                 peak_height_saved[i]=np.nan
 
@@ -3526,7 +3537,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
             ax1.plot(x_plot, ((y_plot-np.min(y_plot))/Diff)+i, '-r')
             ax1.plot(x_plot, ((y_plot-np.min(y_plot))/Diff)+i, '.k', ms=1)
-            if len(height)>0:
+            if len(height_PEAK)>0:
 
 
                 ax1.plot(df_peak_sort_short['pos'], (df_peak_sort_short['height']-np.min(y_plot))/Diff+i, '*k', mfc='yellow', ms=10)

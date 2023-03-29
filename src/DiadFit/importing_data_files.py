@@ -482,8 +482,11 @@ def extract_24hr_time_horiba(*, path, filename):
             line=l
             break
     return line
+
 def extract_spectraname_horiba(*, path, filename):
-   """ This function extracts the spectral name from a HORIBA file by finding the line starting with #Title. """
+    """
+    This function extracts the spectral name from HORIBA files
+    """
     fr = open(path+'/'+filename,  'r', encoding=encode)
 
     while True:

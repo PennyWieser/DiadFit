@@ -125,7 +125,8 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
             homog_L=homog_to=='V'
             df.loc[homog_L, 'Bulk_gcm3']=gas_density
 
-
+    if Sample_ID is not None:
+        df['Sample_ID']=Sample_ID
 
 
     return df
@@ -277,7 +278,7 @@ def calculate_CO2_density_homog_T_SW96_NIST(T_h_C, Sample_ID=None, homog_to=None
 
 ## Calculating density for a given pressure and temperature - have a generic function, that calls the individual EOS depending on which one you select
 
-def calculate_rho_gcm3_for_P_T(P_kbar, T_K, EOS='SW96'):
+def calculate_rho_for_P_T(P_kbar, T_K, EOS='SW96', Sample_ID=None):
     """ This function calculates CO2 density in g/cm3 for a known Pressure (in kbar), a known T (in K), and a specified EOS
 
     Parameters
@@ -291,6 +292,9 @@ def calculate_rho_gcm3_for_P_T(P_kbar, T_K, EOS='SW96'):
     EOS: str
         'SW96' for Span and Wanger (1996), or 'SP94' for Sterner and Pitzer (1994)
 
+    Sample_ID: str, pd.Series
+        Sample ID to append onto outputted dataframe
+
     Returns
     --------------------
     pd.Series
@@ -299,12 +303,15 @@ def calculate_rho_gcm3_for_P_T(P_kbar, T_K, EOS='SW96'):
     """
 
     if EOS=='SW96':
-        CO2_dens_gcm3=calculate_rho_gcm3_for_P_T_SW96(P_kbar, T_K)
+        CO2_dens_gcm3=calculate_rho_for_P_T_SW96(P_kbar, T_K)
 
 
     if EOS=='SP94':
 
-        CO2_dens_gcm3=calculate_rho_gcm3_for_P_T_SP94(T_K=T_K, P_kbar=P_kbar)
+        CO2_dens_gcm3=calculate_rho_for_P_T_SP94(T_K=T_K, P_kbar=P_kbar)
+    
+    if Sample_ID is not None:
+        df['Sample_ID']=Sample_ID
 
     return pd.Series(CO2_dens_gcm3)
 
@@ -313,7 +320,7 @@ def calculate_rho_gcm3_for_P_T(P_kbar, T_K, EOS='SW96'):
 
 # Function for Span and Wanger (1996)
 
-def calculate_rho_gcm3_for_P_T_SW96(P_kbar, T_K):
+def calculate_rho_for_P_T_SW96(P_kbar, T_K):
     """ This function calculates CO2 density in g/cm3 for a known Pressure (in kbar), a known T (in K) for the Span and Wagner (1996) EOS
 
     Parameters
@@ -336,12 +343,18 @@ def calculate_rho_gcm3_for_P_T_SW96(P_kbar, T_K):
         T_K=np.array(T_K)
 
     P_Pa=P_kbar*10**8
+
+    try:
+        import CoolProp.CoolProp as cp
+    except ImportError:
+        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
+
     CO2_dens_gcm3=cp.PropsSI('D', 'P', P_Pa, 'T', T_K, 'CO2')/1000
 
     return pd.Series(CO2_dens_gcm3)
 
 # Function for Sterner and Pitzer, references functions down below
-def calculate_rho_gcm3_for_P_T_SP94(P_kbar, T_K):
+def calculate_rho_for_P_T_SP94(P_kbar, T_K):
     """ This function calculates CO2 density in g/cm3 for a known Pressure (in kbar), a known T (in K) for the Sterner and Pitzer EOS
     it references the objective functions to solve for density.
 
@@ -359,7 +372,7 @@ def calculate_rho_gcm3_for_P_T_SP94(P_kbar, T_K):
         CO2 density in g/cm3
 
     """
-    target_pressure_MPa=P_kbar*1000
+    target_pressure_MPa=P_kbar*100
     Density=calculate_SP19942(T_K=T_K, target_pressure_MPa=target_pressure_MPa)
     return  pd.Series(Density)
 
@@ -367,7 +380,7 @@ def calculate_rho_gcm3_for_P_T_SP94(P_kbar, T_K):
 
 ## Generic function for converting rho and T into Pressure
 
-def calculate_P_for_rho_T(CO2_dens_gcm3, T_K, EOS='SW96'):
+def calculate_P_for_rho_T(CO2_dens_gcm3, T_K, EOS='SW96', Sample_ID=None):
     """ This function calculates P in kbar for a specified CO2 density in g/cm3, a known T (in K), and a specified EOS
 
     Parameters
@@ -380,6 +393,9 @@ def calculate_P_for_rho_T(CO2_dens_gcm3, T_K, EOS='SW96'):
 
     EOS: str
         'SW96' for Span and Wanger (1996), or 'SP94' for Sterner and Pitzer (1994)
+
+    Sample_ID: str, pd.Series
+        Sample ID to be appended onto output dataframe
 
     Returns
     --------------------
@@ -395,6 +411,10 @@ def calculate_P_for_rho_T(CO2_dens_gcm3, T_K, EOS='SW96'):
         df=calculate_P_for_rho_T_SP94(CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K)
     else:
         raise TypeError('Please choose either SP94 or SW96 as an EOS')
+    
+    if Sample_ID is not None:
+        df['Sample_ID']=Sample_ID
+
     return df
 
 # Calculating P for a given density and Temperature using Coolprop
@@ -450,8 +470,9 @@ def calculate_P_for_rho_T_SW96(CO2_dens_gcm3, T_K):
                                 })
 
     return df
-
+# OVeral
 # Calculating P for a given density and Temp, Sterner and Pitzer
+
 def calculate_P_for_rho_T_SP94(T_K, CO2_dens_gcm3, scalar_return=False):
 
     """ This function calculates P in kbar for a specified CO2 density in g/cm3 and a known T (in K) for the Sterner and Pitzer (1994) EOS
@@ -495,7 +516,9 @@ def calculate_P_for_rho_T_SP94(T_K, CO2_dens_gcm3, scalar_return=False):
     +a9*MolConc**2*np.exp(-a10*MolConc)))
     if scalar_return is True:
         return P_MPa
-    else:
+    
+    elif isinstance(P_MPa, pd.Series) or isinstance(P_MPa, np.ndarray):
+    
 
         df=pd.DataFrame(data={'P_kbar': P_MPa/100,
                             'P_MPa': P_MPa,
@@ -503,7 +526,118 @@ def calculate_P_for_rho_T_SP94(T_K, CO2_dens_gcm3, scalar_return=False):
                             'CO2_dens_gcm3': CO2_dens_gcm3
 
                             })
-        return df
+        
+        
+    else:
+        df=pd.DataFrame(data={'P_kbar': P_MPa/100,
+                            'P_MPa': P_MPa,
+                            'T_K': T_K,
+                            'CO2_dens_gcm3': CO2_dens_gcm3
+
+                            }, index=[0])
+
+    return df
+
+
+
+## Inverting for temp if you know density and pressure
+def calculate_T_for_rho_P(CO2_dens_gcm3, P_kbar, EOS='SW96', Sample_ID=None):
+    """ This function calculates P in kbar for a specified CO2 density in g/cm3, a known T (in K), and a specified EOS
+
+    Parameters
+    ---------------------
+    CO2_dens_gcm3: int, float, pd.Series, np.array
+        CO2 density in g/cm3
+
+    P_kbar: int, float, pd.Series, np.array
+        Pressure in kbar
+
+    EOS: str
+        'SW96' for Span and Wanger (1996), or 'SP94' for Sterner and Pitzer (1994)
+
+    Sample_ID: str, pd.Series
+        Sample ID to be appended onto output dataframe
+
+    Returns
+    --------------------
+    pd.DataFrame
+        Temp in Kelvin and input parameters
+
+    """
+
+
+    if EOS=='SW96':
+        df=calculate_T_for_rho_P_SW96(CO2_dens_gcm3=CO2_dens_gcm3, P_kbar=P_kbar)
+    elif EOS=='SP94':
+        df=calculate_T_for_rho_P_SP94(CO2_dens_gcm3=CO2_dens_gcm3, P_kbar=P_kbar)
+    else:
+        raise TypeError('Please choose either SP94 or SW96 as an EOS')
+    
+    if Sample_ID is not None:
+        df['Sample_ID']=Sample_ID
+
+    return df
+
+def calculate_T_for_rho_P_SW96(CO2_dens_gcm3, P_kbar):
+    """ This function calculates Temperature for a known CO2 density in g/cm3  and a known Pressure (in kbar)
+    for the Span and Wagner (1996) EOS
+
+    Parameters
+    ---------------------
+    CO2_dens_gcm3: int, float, pd.Series, np.array
+        CO2 density in g/cm3
+
+    P_kbar: int, float, pd.Series, np.array
+        Pressure in kbar
+
+
+    Returns
+    --------------------
+    pd.Series
+        Pressure in kbar
+
+    """
+    if isinstance(P_kbar, pd.Series):
+        P_kbar=np.array(P_kbar)
+    if isinstance(CO2_dens_gcm3, pd.Series):
+        CO2_dens_gcm3=np.array(CO2_dens_gcm3)
+
+    P_Pa=P_kbar*10**8
+
+    try:
+        import CoolProp.CoolProp as cp
+    except ImportError:
+        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
+
+    Temp=cp.PropsSI('T', 'D', CO2_dens_gcm3*1000, 'P', P_Pa, 'CO2')
+  
+
+    return pd.Series(Temp)
+
+def calculate_T_for_rho_P_SP94(P_kbar, CO2_dens_gcm3):
+    """ This function calculates Temp for a known Pressure (in kbar) and a known CO2 density in g/cm3
+    using the Sterner and Pitzer EOS.
+    it references the objective functions to solve for density.
+
+    Parameters
+    ---------------------
+    P_kbar: int, float, pd.Series, np.array
+        Pressure in kbar
+
+   CO2_dens_gcm3: int, float, pd.Series, np.array
+        CO2 density in g/cm3
+
+    Returns
+    --------------------
+    pd.Series
+        Temp in K 
+
+    """
+    target_pressure_MPa=P_kbar*100
+    Temp=calculate_SP1994_Temp(CO2_dens_gcm3=CO2_dens_gcm3, target_pressure_MPa=target_pressure_MPa)
+    return  pd.Series(Temp)
+
+
 
 
 
@@ -605,10 +739,10 @@ T_h_C=None, phase=None, CO2_dens_gcm3=None, return_array=False):
 ## Sterner and Pitzer inverting for Density
 import scipy
 from scipy.optimize import minimize
-# What we are trying to do, is run at various densities, until pressure matches input pressure
+# What we are trying to do, is run at various CO2 densities, until pressure matches input pressure
 
-def objective_function(CO2_dens_gcm3, T_K, target_pressure_MPa):
-    """ This function minimises the offset between the calculated and target pressure to
+def objective_function_CO2_dens(CO2_dens_gcm3, T_K, target_pressure_MPa):
+    """ This function minimises the offset between the calculated and target pressure
     """
     # The objective function that you want to minimize
     calculated_pressure = calculate_P_for_rho_T_SP94(CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K, scalar_return=True)
@@ -619,17 +753,14 @@ def calculate_Density_Sterner_Pitzer_1994(T_K, target_pressure_MPa):
     """ This function uses the objective function above to solve for CO2 density for a given pressure and Temp
     """
     initial_guess = 1 # Provide an initial guess for the density
-    result = minimize(objective_function, initial_guess, bounds=((0, 2), ), args=(T_K, target_pressure_MPa))
+    result = minimize(objective_function_CO2_dens, initial_guess, bounds=((0, 2), ), args=(T_K, target_pressure_MPa))
     return result.x
-
-
 
 
 def calculate_SP19942(T_K, target_pressure_MPa):
     """ This function Solves for CO2 density for a given temp and pressure using the objective and minimise functions above.
     """
     if isinstance(target_pressure_MPa, float) or isinstance(target_pressure_MPa, int):
-        print('yes')
         target_p=np.array(target_pressure_MPa)
         Density=calculate_Density_Sterner_Pitzer_1994(T_K=T_K, target_pressure_MPa=target_p)
     else:
@@ -637,6 +768,42 @@ def calculate_SP19942(T_K, target_pressure_MPa):
         for i in range(0, len(target_pressure_MPa)):
             Density[i]=calculate_Density_Sterner_Pitzer_1994(T_K=T_K, target_pressure_MPa=target_pressure_MPa[i])
     return Density
+
+# Lets do the same to solve for tempreature here
+
+
+def objective_function_Temp(T_K, CO2_dens_gcm3, target_pressure_MPa):
+    """ This function minimises the offset between the calculated and target pressure
+    """
+    # The objective function that you want to minimize
+    calculated_pressure = calculate_P_for_rho_T_SP94(T_K=T_K, CO2_dens_gcm3=CO2_dens_gcm3, scalar_return=True)
+    objective = np.abs(calculated_pressure - target_pressure_MPa)
+    return objective
+
+
+def calculate_Temp_Sterner_Pitzer_1994(CO2_dens_gcm3, target_pressure_MPa):
+    """ This function uses the objective function above to solve for Temp for a given pressure and CO2 density
+    """
+    initial_guess = 1200 # Provide an initial guess for the density
+    result = minimize(objective_function_Temp, initial_guess, bounds=((0, 2000), ), args=(CO2_dens_gcm3, target_pressure_MPa))
+    return result.x
+
+def calculate_SP1994_Temp(CO2_dens_gcm3, target_pressure_MPa):
+    """ This function Solves for Temp for a given CO2 density and pressure using the objective and minimise functions above.
+    """
+    if isinstance(target_pressure_MPa, float) or isinstance(target_pressure_MPa, int):
+        target_p=np.array(target_pressure_MPa)
+        Density=calculate_Temp_Sterner_Pitzer_1994(CO2_dens_gcm3=CO2_dens_gcm3, target_pressure_MPa=target_p)
+    else:
+        Density=np.empty(len(target_pressure_MPa))
+        for i in range(0, len(target_pressure_MPa)):
+            Density[i]=calculate_Temp_Sterner_Pitzer_1994(CO2_dens_gcm3=CO2_dens_gcm3, target_pressure_MPa=target_pressure_MPa[i])
+    return Density
+
+
+
+
+
 
 
 
