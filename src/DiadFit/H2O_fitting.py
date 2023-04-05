@@ -45,8 +45,12 @@ def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
     file_simple=pf.extracting_filenames_generic(names=files,
     prefix=prefix, str_prefix=str_prefix,
    file_type=file_type)
+    
+
+
     xstal=np.empty(len(file_simple), dtype=object)
     MI=np.empty(len(file_simple), dtype=object)
+
     for i in range(0, len(file_simple)):
         name=file_simple[i]
         xstal[i]=name.split(char_xstal)[pos_xstal]
@@ -105,7 +109,7 @@ def find_olivine_peak_trough_pos(smoothed_ol_y, x_new, height=1):
 
     return peak_pos_Ol, peak_height_Ol, trough_y, trough_x
 
-def smooth_and_trim_around_olivine(filename, x_range=[800,900], x_max=900, Ol_spectra=None,
+def smooth_and_trim_around_olivine(filename=None, x_range=[800,900], x_max=900, Ol_spectra=None,
                                    MI_spectra=None, plot_figure=True):
     """
     Takes melt inclusion and olivine spectra, and trims into the region around the olivine peaks,
@@ -121,6 +125,9 @@ def smooth_and_trim_around_olivine(filename, x_range=[800,900], x_max=900, Ol_sp
 
     MI_spectra: nd.array
         numpy array of melt inclusion spectra (x is wavenumber, y is intensity)
+
+    filename:str
+        name of file for saving figure
 
 
 
@@ -172,7 +179,8 @@ def smooth_and_trim_around_olivine(filename, x_range=[800,900], x_max=900, Ol_sp
 
     if plot_figure is True:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,3.5))
-        fig.suptitle('file='+filename)
+        if filename is not None:
+            fig.suptitle('file='+filename)
         ax1.plot(Ol_spectra[:, 0], Ol_spectra[:, 1], '-g', label='Ol Spectra')
         ax1.plot(MI_spectra[:, 0], MI_spectra[:, 1], '-',
                 color='salmon', label='MI Spectra')
@@ -332,6 +340,9 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
 
     N_steps: int
         Number of mixing steps to use between X_Max and X_Max. E.g. Precisoin of mixed value.
+
+    av_width: int
+        averages +- 1 width either side of the peak and troughs when doing assesment and regression
 
 
 
@@ -556,6 +567,7 @@ override=False, flip=False, plot_figure=True, dpi=200):
 
 
             file=filename
+            fig.tight_layout()
             fig.savefig(path3+'/'+'Check_if_negative_{}.png'.format(filename), dpi=dpi)
 
     return Spectra
@@ -1006,6 +1018,13 @@ def fit_area_for_water_region(*, path, filename, Spectra=None, config1: water_bc
         2D array representing the spectrum data
     config1 : object
         Configuration object for water peak and background positions. Default parameters stored in water_bck_pos, user can tweak.
+        Parameters that need tweaking:
+
+        fit_water: str 'poly', 
+        N_poly_water: str, degree of polynomial to fit to background
+        lower_bck_water: [float, float], background position to left of water peak
+        upper_bck_water: [float, float], background position to right of water peak
+
     exclude_range1_water : list of float, optional
         List of two numbers representing the start and end of a range of wavenumbers to be excluded from the spectrum
     exclude_range2_water : list of float, optional

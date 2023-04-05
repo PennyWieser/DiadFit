@@ -1013,7 +1013,7 @@ def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False
 ## Getting nice names from any file types
 
 def extracting_filenames_generic(*, names, prefix=False,
-    str_prefix=None, suffix=False,
+    str_prefix=None, suffix=False, CRR_filter=True,
     str_suffix=None,
    file_type=None):
     """
@@ -1046,10 +1046,25 @@ def extracting_filenames_generic(*, names, prefix=False,
     np.array of names, with prefix, suffix and filetype stripped away
 
     """
+    
+
     if isinstance(names, list):
         names_df=pd.DataFrame(data={'name': names})
         names=names_df['name']
 
+    if CRR_filter is True:
+        names = names.str.replace('_CRR_DiadFit', '')
+
+    # if prefix is True:
+    #     names=names.str.split(str_prefix).str[1]
+
+    # if suffix is True:
+    #     names=names.str.split(str_suffix).str[1]
+
+    # if file_type is not None:
+    #     names=names.str.replace(file_type, '')
+
+    file_m=list(names)
 
     file_m=np.empty(len(names), dtype=object)
     for i in range(0, len(names)):

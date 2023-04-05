@@ -1476,7 +1476,10 @@ def reg_Ne_lines_time(df, fit='poly', N_poly=None, spline_fit=None):
                               N_poly))
 
     if fit == 'spline':
-            Pf = interp1d(df['sec since midnight'], df['Ne_Corr'], kind=spline_fit)
+            if spline_fit is None:
+                raise TypeError('If you choose spline you also need to choose the type of spline fit. do help of this function to get the options')
+            else:
+                Pf = interp1d(df['sec since midnight'], df['Ne_Corr'], kind=spline_fit)
 
     Py=Pf(Px)
 

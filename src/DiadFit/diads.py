@@ -3097,6 +3097,7 @@ class generic_peak_config:
     upper_bck: Tuple[float, float]=(1120, 1130)
 
     #
+    model_name: str='PseudoVoigtModel'
     x_range_bck: float=10
 
     # Background degree of polynomial
@@ -3134,12 +3135,15 @@ class generic_peak_config:
 
 
 def fit_generic_peak(*, config: generic_peak_config=generic_peak_config(),
-path=None, filename=None, filetype=None, model_name='VoigtModel',
+path=None, filename=None, filetype=None,
  plot_figure=True, dpi=200):
 
     """ This function fits a generic peak with a gaussian, and returns a plot
 
     config: from dataclass generic_peak_config
+
+        model_name: str, 'GaussianModel', 'VoigtModel', 'PseudoVoigtModel'
+            Fits Gaussian, Voigt, or PseudoVoigt
 
         name: str
             Name of feature you are fitting. Used to make column headings in output (e.g., if SO2, outputs are Peak_Cent_SO2, Peak_Area_SO2)
@@ -3287,11 +3291,17 @@ path=None, filename=None, filetype=None, model_name='VoigtModel',
     y_corr= Spectra_short[:, 1]-Py_base
     x=Spectra_short[:, 0]
 
+    if config.model_name not in ['GaussianModel', 'VoigtModel', 'PseudoVoigtModel']:
+        raise TypeError('model_name not a permitted input, Please select either GaussianModel, VoigtModel Or PseudoVoigtModel') 
+
+
     # NOw into the voigt fitting
-    if model_name=='VoigtModel':
+    if config.model_name=='VoigtModel':
         model0 = VoigtModel()#+ ConstantModel()
-    if model_name == 'PseudoVoigtModel':
+    if config.model_name == 'PseudoVoigtModel':
         model0 = PseudoVoigtModel()
+    if config.model_name=='GaussianModel':
+        model0=GaussianModel()
 
     # create parameters with initial values
     pars0 = model0.make_params()
