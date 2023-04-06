@@ -15,6 +15,9 @@ from dataclasses import dataclass
 import matplotlib.patches as patches
 import warnings as w
 from tqdm import tqdm
+from numpy import trapz
+from scipy.integrate import simps
+from scipy.interpolate import interp1d
 
 # For debuggin
 
@@ -3142,8 +3145,8 @@ path=None, filename=None, filetype=None,
 
     config: from dataclass generic_peak_config
 
-        model_name: str, 'GaussianModel', 'VoigtModel', 'PseudoVoigtModel'
-            Fits Gaussian, Voigt, or PseudoVoigt
+        model_name: str, 'GaussianModel', 'VoigtModel', 'PseudoVoigtModel', 'Spline', 'Poly',
+            Fits Gaussian, Voigt, or PseudoVoigt, or fits a spline or polynomail and gets area underneath
 
         name: str
             Name of feature you are fitting. Used to make column headings in output (e.g., if SO2, outputs are Peak_Cent_SO2, Peak_Area_SO2)
@@ -3226,13 +3229,15 @@ path=None, filename=None, filetype=None,
 
     # Filter out spectra outside these baselines
     Spectra_short=Spectra[ (Spectra[:,0]>lower_0baseline) & (Spectra[:,0]<upper_1baseline) ]
+    Spectra_fit=Spectra[ (Spectra[:,0]>upper_0baseline) & (Spectra[:,0]<lower_1baseline) ]
 
     # To make a nice plot, give 50 wavenumber units on either side as a buffer
     Spectra_plot=Spectra[ (Spectra[:,0]>lower_0baseline-50) & (Spectra[:,0]<upper_1baseline+50) ]
 
     # Find peaks using Scipy find peaks
-    y=Spectra_plot[:, 1]
-    x=Spectra_plot[:, 0]
+    y=Spectra_fit[:, 1]
+    x=Spectra_fit[:, 0]
+    spec_res=np.abs(x[0]-x[1])
 
 
     peaks = find_peaks(y,height = config.height, threshold = config.threshold,
@@ -3285,46 +3290,143 @@ path=None, filename=None, filetype=None,
     # Fits a polynomial to the baseline of degree
     Pf_baseline = np.poly1d(np.polyfit(Baseline[:, 0], Baseline[:, 1], config.N_poly_carb_bck))
     Py_base =Pf_baseline(Spectra_short[:, 0])
+    Py_base_fit =Pf_baseline(Spectra_fit[:, 0])
+
+
 
     Baseline_ysub=Pf_baseline(Baseline[:, 0])
     Baseline_x=Baseline[:, 0]
     y_corr= Spectra_short[:, 1]-Py_base
-    x=Spectra_short[:, 0]
-
-    if config.model_name not in ['GaussianModel', 'VoigtModel', 'PseudoVoigtModel']:
-        raise TypeError('model_name not a permitted input, Please select either GaussianModel, VoigtModel Or PseudoVoigtModel') 
-
-
-    # NOw into the voigt fitting
-    if config.model_name=='VoigtModel':
-        model0 = VoigtModel()#+ ConstantModel()
-    if config.model_name == 'PseudoVoigtModel':
-        model0 = PseudoVoigtModel()
-    if config.model_name=='GaussianModel':
-        model0=GaussianModel()
-
-    # create parameters with initial values
-    pars0 = model0.make_params()
-    pars0['center'].set(config.cent, min=config.cent-30, max=config.cent+30)
-    pars0['amplitude'].set(config.amplitude, min=0)
-
-
-    init0 = model0.eval(pars0, x=x)
-    result0 = model0.fit(y_corr, pars0, x=x)
-    Center_p0=result0.best_values.get('center')
-    area_p0=result0.best_values.get('amplitude')
+    y_corr_fit=Spectra_fit[:, 1]-Py_base_fit
+    x_fit=Spectra_fit[:, 0]
+    x_corr=Spectra_short[:, 0]
 
 
 
-    # Make a nice linspace for plotting with smooth curves.
-    xx_carb=np.linspace(min(x), max(x), 2000)
-    y_carb=result0.eval(x=xx_carb)
-    height=np.max(y_carb)
+    if config.model_name not in ['GaussianModel', 'VoigtModel', 'PseudoVoigtModel', 'Spline', 'Poly']:
+        raise TypeError('model_name not a permitted input, Please select either GaussianModel, VoigtModel, PseudoVoigtModel, or Spline or Poly')
 
-    df=pd.DataFrame(data={'filename': filename,
+
+    if config.model_name in ['GaussianModel', 'VoigtModel', 'PseudoVoigtModel']:
+
+
+        # NOw into the voigt fitting
+        if config.model_name=='VoigtModel':
+            model0 = VoigtModel()#+ ConstantModel()
+        if config.model_name == 'PseudoVoigtModel':
+            model0 = PseudoVoigtModel()
+        if config.model_name=='GaussianModel':
+            model0=GaussianModel()
+
+        # create parameters with initial values
+        pars0 = model0.make_params()
+        pars0['center'].set(config.cent, min=config.cent-30, max=config.cent+30)
+        pars0['amplitude'].set(config.amplitude, min=0)
+
+
+        init0 = model0.eval(pars0, x=x)
+        result0 = model0.fit(y_corr_fit, pars0, x=x)
+        Center_p0=result0.best_values.get('center')
+        area_p0=result0.best_values.get('amplitude')
+
+
+
+        # Make a nice linspace for plotting with smooth curves.
+        xx_carb=np.linspace(min(x), max(x), 2000)
+        y_carb=result0.eval(x=xx_carb)
+        height=np.max(y_carb)
+
+        df=pd.DataFrame(data={'filename': filename,
     'Peak_Cent_{}'.format(name): Center_p0,
     'Peak_Area_{}'.format(name): area_p0,
-    'Peak_Height_{}'.format(name): height}, index=[0])
+    'Peak_Height_{}'.format(name): height,
+    'Model_name': config.model_name}, index=[0])
+
+    else:
+
+        if  config.model_name == 'Spline':
+            from scipy.interpolate import CubicSpline
+            # fit a spline first to find intensity cut off
+            mix_spline_sil = interp1d(x_corr, y_corr,
+                                    kind='cubic')
+            x_new=np.linspace(np.min(x_corr), np.max(x_corr), 1000)
+            Baseline_ysub_sil=mix_spline_sil(x_new)
+
+            x_max = x_new[np.argmax(Baseline_ysub_sil)]
+            cent=x_max
+            Peak_Center=x_max
+
+            max_y=np.max(y_corr_fit)
+
+            # Lets trim x and y based on intensity values
+        # Find intensity cut off
+            int_cut_off=0.1
+            y_int_cut=max_y*int_cut_off
+
+        # Split the array into a LHS and a RHS
+
+            LHS_y=Baseline_ysub_sil[x_new<=Peak_Center]
+            RHS_y=Baseline_ysub_sil[x_new>Peak_Center]
+
+            LHS_x=x_new[x_new<=Peak_Center]
+            RHS_x=x_new[x_new>Peak_Center]
+
+            # Need to flip LHS to put into the find closest function
+            LHS_y_flip=np.flip(LHS_y)
+            LHS_x_flip=np.flip(LHS_x)
+
+
+            val=np.argmax(LHS_y_flip<y_int_cut)
+
+            val2=np.argmax(RHS_y<y_int_cut)
+
+            # Find nearest x unit to this value
+            y_nearest_LHS=LHS_y_flip[val]
+            x_nearest_LHS=LHS_x_flip[val]
+
+            y_nearest_RHS=RHS_y[val2]
+            x_nearest_RHS=RHS_x[val2]
+
+            diff_LHS=Peak_Center-x_nearest_LHS
+            diff_RHS=x_nearest_RHS-Peak_Center
+            print(x_nearest_RHS)
+            print(x_nearest_LHS)
+
+
+            n_res=3
+            x_new_skewness=np.linspace(x_nearest_LHS-spec_res*n_res, x_nearest_RHS+spec_res*n_res)
+
+            x_new=x_new_skewness
+            Baseline_ysub_sil=mix_spline_sil(x_new_skewness)
+
+
+
+
+
+
+            N_poly_sil='Spline'
+
+
+        xspace_sil=x_new[1]-x_new[0]
+        area_trap = trapz(Baseline_ysub_sil, dx=xspace_sil)
+        area_simps = simps(Baseline_ysub_sil, dx=xspace_sil)
+
+
+
+        area_p0=area_trap
+
+
+
+
+        df=pd.DataFrame(data={'filename': filename,
+    'Peak_Cent_{}'.format(name): x_max,
+    'Peak_Area_{}'.format(name): area_p0,
+    'Peak_Height_{}'.format(name): max_y,
+    'Model_name': config.model_name}, index=[0])
+
+
+
+
 
     if area_p0 is None:
         area_p0=np.nan
@@ -3344,22 +3446,34 @@ path=None, filename=None, filetype=None,
         ax1.set_title('Background fit')
 
         ax1.plot(Spectra_plot[:, 0], Spectra_plot[:, 1], '-r', label='Spectra')
-        ax1.plot(RH_baseline_filt[:, 0], RH_baseline_filt[:, 1], '-b',
-        lw=3,  label='bck points')
+        ax1.plot(RH_baseline_filt[:, 0], RH_baseline_filt[:, 1], '.b',
+        label='bck points')
         ax1.plot(LH_baseline_filt[:, 0], LH_baseline_filt[:, 1], '-b',
         lw=3, label='_bck points')
+
+        #ax2.plot(x, y_corr_fit, '-r', label='Bck-sub data', lw=0.5)
+        ax2.plot(x, y_corr_fit, '.r', label='Bck-sub data')
         ax1.plot(Spectra_short[:, 0], Py_base, '-k', label='Bck Poly')
+
+
+        if config.model_name != 'Spline' and config.model_name != 'Poly':
+            ax2.plot(xx_carb, y_carb, '-k', label='Peak fit')
+            cent=df['Peak_Cent_{}'.format(name)].iloc[0]
+            ax2.set_xlim([cent-config.x_range_bck, cent+config.x_range_bck])
+        else:
+            ax2.plot(x_new, Baseline_ysub_sil, '-k')
+            ax2.fill_between(x_new, Baseline_ysub_sil, color='yellow', label='fit', alpha=0.5)
 
 
         ax2.set_title('Bkg-subtracted, ' + name + ' peak fit')
 
-        ax2.plot(xx_carb, y_carb, '-k', label='Peak fit')
-        ax2.plot(x, y_corr, '.r', label='Bck-sub data')
 
 
 
-        cent=df['Peak_Cent_{}'.format(name)].iloc[0]
-        ax2.set_xlim([cent-config.x_range_bck, cent+config.x_range_bck])
+
+
+
+
         # ax2.set_ylim([min(y_carb)-0.5*(max(y_carb)-min(y_carb)),
         #             max(y_carb)+0.1*max(y_carb),
         # ])
@@ -3486,8 +3600,8 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
 
     for file in Diad_Files:
-       
-        
+
+
 
 
         Diad_df=get_data(path=path, filename=file, filetype=filetype)
@@ -3516,7 +3630,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             peaks = find_peaks(y_trim,height = height, threshold = threshold,
             distance = distance, prominence=prominence, width=width)
 
-            
+
             height_PEAK = peaks[1]['peak_heights'] #list of the heights of the peaks
             peak_pos = x_trim[peaks[0]] #list of the peaks positions
 
@@ -3526,17 +3640,17 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
 
             # Trim number of peaks based on user-defined N peaks
-            
+
 
 
             #print(df_peak_sort_short)
             if len(df_peak_sort>=1):
-                
+
                 df_peak_sort_short=df_peak_sort[0:1]
                 peak_pos_saved[i]=df_peak_sort_short['pos'].values
                 peak_height_saved[i]=df_peak_sort_short['height'].values
             else:
-                
+
                 peak_pos_saved[i]=np.nan
                 peak_height_saved[i]=np.nan
 
