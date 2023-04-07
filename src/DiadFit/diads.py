@@ -870,6 +870,7 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
         if sum(~grp1)>0:
 
+
             if sum(~grp1)==1:
                 j=0
                 av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_abs_prom'])/intc)
@@ -3336,6 +3337,14 @@ path=None, filename=None, filetype=None,
         y_carb=result0.eval(x=xx_carb)
         height=np.max(y_carb)
 
+        # Moved this form down below, think it belongs here
+        if area_p0 is None:
+            area_p0=np.nan
+            if area_p0 is not None:
+                if area_p0<0:
+                    area_p0=np.nan
+
+
         df=pd.DataFrame(data={'filename': filename,
     'Peak_Cent_{}'.format(name): Center_p0,
     'Peak_Area_{}'.format(name): area_p0,
@@ -3347,9 +3356,9 @@ path=None, filename=None, filetype=None,
         if  config.model_name == 'Spline':
             from scipy.interpolate import CubicSpline
             # fit a spline first to find intensity cut off
-            mix_spline_sil = interp1d(x_corr, y_corr,
+            mix_spline_sil = interp1d(x_fit, y_corr_fit,
                                     kind='cubic')
-            x_new=np.linspace(np.min(x_corr), np.max(x_corr), 1000)
+            x_new=np.linspace(np.min(x_fit), np.max(x_fit), 1000)
             Baseline_ysub_sil=mix_spline_sil(x_new)
 
             x_max = x_new[np.argmax(Baseline_ysub_sil)]
@@ -3363,78 +3372,92 @@ path=None, filename=None, filetype=None,
             int_cut_off=0.1
             y_int_cut=max_y*int_cut_off
 
-        # Split the array into a LHS and a RHS
+            # Check peak isnt at edge of window, else wont work
 
-            LHS_y=Baseline_ysub_sil[x_new<=Peak_Center]
-            RHS_y=Baseline_ysub_sil[x_new>Peak_Center]
-
-            LHS_x=x_new[x_new<=Peak_Center]
-            RHS_x=x_new[x_new>Peak_Center]
-
-            # Need to flip LHS to put into the find closest function
-            LHS_y_flip=np.flip(LHS_y)
-            LHS_x_flip=np.flip(LHS_x)
-
-
-            val=np.argmax(LHS_y_flip<y_int_cut)
-
-            val2=np.argmax(RHS_y<y_int_cut)
-
-            # Find nearest x unit to this value
-            y_nearest_LHS=LHS_y_flip[val]
-            x_nearest_LHS=LHS_x_flip[val]
-
-            y_nearest_RHS=RHS_y[val2]
-            x_nearest_RHS=RHS_x[val2]
-
-            diff_LHS=Peak_Center-x_nearest_LHS
-            diff_RHS=x_nearest_RHS-Peak_Center
-            print(x_nearest_RHS)
-            print(x_nearest_LHS)
-
-
-            n_res=3
-            x_new_skewness=np.linspace(x_nearest_LHS-spec_res*n_res, x_nearest_RHS+spec_res*n_res)
-
-            x_new=x_new_skewness
-            Baseline_ysub_sil=mix_spline_sil(x_new_skewness)
+            if Peak_Center==np.max(x_fit) or Peak_Center==np.min(x_fit):
+                print('peak at edge of window, setting params to nans')
 
 
 
+                df=pd.DataFrame(data={'filename': filename,
+            'Peak_Cent_{}'.format(name): np.nan,
+            'Peak_Area_{}'.format(name): np.nan,
+            'Peak_Height_{}'.format(name): np.nan,
+            'Model_name': config.model_name}, index=[0])
+
+            else:
 
 
 
-            N_poly_sil='Spline'
+            # Split the array into a LHS and a RHS
+
+                LHS_y=Baseline_ysub_sil[x_new<=Peak_Center]
+                RHS_y=Baseline_ysub_sil[x_new>Peak_Center]
+
+                LHS_x=x_new[x_new<=Peak_Center]
+                RHS_x=x_new[x_new>Peak_Center]
+
+                # Need to flip LHS to put into the find closest function
+                LHS_y_flip=np.flip(LHS_y)
+                LHS_x_flip=np.flip(LHS_x)
 
 
-        xspace_sil=x_new[1]-x_new[0]
-        area_trap = trapz(Baseline_ysub_sil, dx=xspace_sil)
-        area_simps = simps(Baseline_ysub_sil, dx=xspace_sil)
+                val=np.argmax(LHS_y_flip<y_int_cut)
+
+                val2=np.argmax(RHS_y<y_int_cut)
+
+                # Find nearest x unit to this value
+                y_nearest_LHS=LHS_y_flip[val]
+                x_nearest_LHS=LHS_x_flip[val]
+
+                y_nearest_RHS=RHS_y[val2]
+                x_nearest_RHS=RHS_x[val2]
+
+                diff_LHS=Peak_Center-x_nearest_LHS
+                diff_RHS=x_nearest_RHS-Peak_Center
 
 
 
-        area_p0=area_trap
+                n_res=3
+                x_new_skewness=np.linspace(x_nearest_LHS-spec_res*n_res, x_nearest_RHS+spec_res*n_res)
+
+                x_new=x_new_skewness
 
 
-
-
-        df=pd.DataFrame(data={'filename': filename,
-    'Peak_Cent_{}'.format(name): x_max,
-    'Peak_Area_{}'.format(name): area_p0,
-    'Peak_Height_{}'.format(name): max_y,
-    'Model_name': config.model_name}, index=[0])
+                Baseline_ysub_sil=mix_spline_sil(x_new_skewness)
 
 
 
 
 
-    if area_p0 is None:
-        area_p0=np.nan
-        if area_p0 is not None:
-            if area_p0<0:
-                area_p0=np.nan
+
+                N_poly_sil='Spline'
+
+
+                xspace_sil=x_new[1]-x_new[0]
+                area_trap = trapz(Baseline_ysub_sil, dx=xspace_sil)
+                area_simps = simps(Baseline_ysub_sil, dx=xspace_sil)
+
+
+
+                area_p0=area_trap
+
+
+
+
+                df=pd.DataFrame(data={'filename': filename,
+            'Peak_Cent_{}'.format(name): x_max,
+            'Peak_Area_{}'.format(name): area_p0,
+            'Peak_Height_{}'.format(name): max_y,
+            'Model_name': config.model_name}, index=[0])
+
+
+
+
+
 
     # Plotting what its doing
+
     if plot_figure is True:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
         fig.suptitle('Secondary Phase, file= '+ str(filename), fontsize=12, x=0.5, y=1.0)
@@ -3474,9 +3497,9 @@ path=None, filename=None, filetype=None,
 
 
 
-        # ax2.set_ylim([min(y_carb)-0.5*(max(y_carb)-min(y_carb)),
-        #             max(y_carb)+0.1*max(y_carb),
-        # ])
+    # ax2.set_ylim([min(y_carb)-0.5*(max(y_carb)-min(y_carb)),
+    #             max(y_carb)+0.1*max(y_carb),
+    # ])
 
 
 
@@ -3753,6 +3776,9 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
     ax1.plot([1131, 1131], [0, yplot[-1]+2], '-', color='grey', lw=1, label='CaSO$_4$')
     ax1.plot([1136, 1136], [0, yplot[-1]+2], '--', color='rosybrown', lw=1, label='MgSO$_4$')
     ax1.plot([1151, 1151], [0, yplot[-1]+2], '-k', lw=1, label='SO$_2$')
+
+
+    ax1.fill_between(xlim_peaks, -0.5, yplot[-1]+3, color='blue', alpha=0.1)
 
 
     ax1.legend(ncol=7,loc='upper center', fontsize=10,  bbox_to_anchor=[0.5, 1.05])
