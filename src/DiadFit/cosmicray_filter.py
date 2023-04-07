@@ -10,7 +10,7 @@ import DiadFit as pf
 
 encode="ISO-8859-1"
 
-def check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges):
+def check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges,Diad_files,diad_peaks):
     """ Checks if input parameters plot_rays, save_fig, export_cleanspec and exclude_ranges are valid. If any of them is not valid, it raises a ValueError indicating which parameter is incorrect and what the allowed values are.
 
     Parameters
@@ -37,6 +37,10 @@ def check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges):
         raise ValueError("export_cleanspec can only be True or False, please correct")
     if not isinstance(exclude_ranges,(list,type(None))):
         raise ValueError("exclude_ranges can only be a list of tuples (i.e., [(1145,1155),(1080,1090)]), an empty list or None, please correct")
+    if not isinstance(Diad_files,pd.core.series.Series):
+        raise ValueError("Diad_files can only be a pandas Series, please correct")
+    if not isinstance(diad_peaks,(pd.core.frame.DataFrame,type(None))):
+        raise ValueError("diad_peaks can only be a pandas DataFrame or None, please correct")
 ## This function is the main filter, runs on one spectrum
 
 def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude_ranges=[], filetype='headless_txt',n=1,dynfact=0.01,dynfact_2=0.003,
@@ -88,10 +92,13 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
 
     """
     try:
-        check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges)
+        check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges,Diad_files,diad_peaks)
     except ValueError as e:
         print(str(e))
         raise e
+
+    if type(diad_peaks)==type(None):
+        diad_peaks=pd.DataFrame()
 
     file=Diad_files.iloc[i]
     #open the spectrum in form of array
@@ -113,24 +120,6 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
                         'maxpx_fact': maxpx_fact,
                         'maxpx_fact*minpx_fact':combo_fact})
 
-    # this creates a three pixel range for the peaks around the identify peak spot, "signal region"
-    res=np.round(max(np.diff(Diad_array[:,0])),1) # resolution of the spectrum - max distance between two pixels, rounded up.
-    snr_diad1=[diad_peaks['Diad1_pos']-res,diad_peaks['Diad1_pos']+res]
-    snr_diad2=[diad_peaks['Diad2_pos']-res,diad_peaks['Diad2_pos']+res]
-    snr_hb1=[diad_peaks['HB1_pos']-res,diad_peaks['HB1_pos']+res]
-    snr_hb2=[diad_peaks['HB2_pos']-res,diad_peaks['HB2_pos']+res]
-    snr_c13=[diad_peaks['C13_pos']-res,diad_peaks['C13_pos']+res]
-
-
-
-    # These identifies regions that aren't the peak regions
-    not_diad1=~pxdf.Wavenumber.between(snr_diad1[0][i],snr_diad1[1][i])
-    not_diad2=~pxdf.Wavenumber.between(snr_diad2[0][i],snr_diad2[1][i])
-
-    not_hb1=~pxdf.Wavenumber.between(snr_hb1[0][i],snr_hb1[1][i])
-    not_hb2=~pxdf.Wavenumber.between(snr_hb2[0][i],snr_hb2[1][i])
-    not_c13=~pxdf.Wavenumber.between(snr_c13[0][i],snr_c13[1][i])
-
     #This is for the extra ranges defined by the user
     if exclude_ranges==None:
         exclude_ranges=[]
@@ -139,8 +128,33 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
     for r in exclude_ranges:
         exclude_mask |= (pxdf.Wavenumber >= r[0]) & (pxdf.Wavenumber <= r[1])
     not_exclude_mask=~exclude_mask
-    #This filters wavenumbers, intensities and intensity factors based on the query criteria.
-    query_str='maxpx_fact*minpx_fact > @dynfact & @not_diad1 & @not_diad2 & @not_hb1 & @not_hb2 & @not_c13 & @not_exclude_mask'
+
+    # this creates a three pixel range for the peaks around the identify peak spot, "signal region"
+    res=np.round(max(np.diff(Diad_array[:,0])),1) # resolution of the spectrum - max distance between two pixels, rounded up.
+
+    if diad_peaks.empty==True:
+        query_str='maxpx_fact*minpx_fact > @dynfact & @not_exclude_mask'
+    else:
+        snr_diad1=[diad_peaks['Diad1_pos']-res,diad_peaks['Diad1_pos']+res]
+        snr_diad2=[diad_peaks['Diad2_pos']-res,diad_peaks['Diad2_pos']+res]
+        snr_hb1=[diad_peaks['HB1_pos']-res,diad_peaks['HB1_pos']+res]
+        snr_hb2=[diad_peaks['HB2_pos']-res,diad_peaks['HB2_pos']+res]
+        snr_c13=[diad_peaks['C13_pos']-res,diad_peaks['C13_pos']+res]
+
+
+
+        # These identifies regions that aren't the peak regions
+        not_diad1=~pxdf.Wavenumber.between(snr_diad1[0][i],snr_diad1[1][i])
+        not_diad2=~pxdf.Wavenumber.between(snr_diad2[0][i],snr_diad2[1][i])
+
+        not_hb1=~pxdf.Wavenumber.between(snr_hb1[0][i],snr_hb1[1][i])
+        not_hb2=~pxdf.Wavenumber.between(snr_hb2[0][i],snr_hb2[1][i])
+        not_c13=~pxdf.Wavenumber.between(snr_c13[0][i],snr_c13[1][i])
+
+
+        #This filters wavenumbers, intensities and intensity factors based on the query criteria.
+        query_str='maxpx_fact*minpx_fact > @dynfact & @not_diad1 & @not_diad2 & @not_hb1 & @not_hb2 & @not_c13 & @not_exclude_mask'
+
     rays_wavenumber=pxdf.query(query_str)['Wavenumber']
     rays_intensity=pxdf.query(query_str)['Intensity']
     rays_fact=pxdf.query(query_str)['maxpx_fact*minpx_fact']
@@ -178,13 +192,6 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
                             'minpx_fact_pass2': minpx_fact_pass2,
                             'maxpx_fact_pass2': maxpx_fact_pass2,
                             'maxpx_fact_pass2*minpx_fact_pass2':combo_fact_pass2})
-
-        not_diad1=~pxdf_pass2.Wavenumber.between(snr_diad1[0][i],snr_diad1[1][i])
-        not_diad2=~pxdf_pass2.Wavenumber.between(snr_diad2[0][i],snr_diad2[1][i])
-
-        not_hb1=~pxdf_pass2.Wavenumber.between(snr_hb1[0][i],snr_hb1[1][i])
-        not_hb2=~pxdf_pass2.Wavenumber.between(snr_hb2[0][i],snr_hb2[1][i])
-        not_c13=~pxdf_pass2.Wavenumber.between(snr_c13[0][i],snr_c13[1][i])
         #This is for the extra ranges defined by the user
         if exclude_ranges==None:
             exclude_ranges=[]
@@ -193,8 +200,20 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
         for r in exclude_ranges:
             exclude_mask2 |= (pxdf_pass2.Wavenumber >= r[0]) & (pxdf_pass2.Wavenumber <= r[1])
         not_exclude_mask2=~exclude_mask2
-        #This filters the dataframe
-        query_str2='maxpx_fact_pass2*minpx_fact_pass2 > @dynfact_2 & @not_diad1 & @not_diad2 & @not_hb1 & @not_hb2 and @not_c13 & @not_exclude_mask2'
+
+        #
+        if diad_peaks.empty==True:
+            query_str2='maxpx_fact_pass2*minpx_fact_pass2 > @dynfact_2 & @not_exclude_mask2'
+        else:
+            not_diad1=~pxdf_pass2.Wavenumber.between(snr_diad1[0][i],snr_diad1[1][i])
+            not_diad2=~pxdf_pass2.Wavenumber.between(snr_diad2[0][i],snr_diad2[1][i])
+
+            not_hb1=~pxdf_pass2.Wavenumber.between(snr_hb1[0][i],snr_hb1[1][i])
+            not_hb2=~pxdf_pass2.Wavenumber.between(snr_hb2[0][i],snr_hb2[1][i])
+            not_c13=~pxdf_pass2.Wavenumber.between(snr_c13[0][i],snr_c13[1][i])
+
+            #This filters the dataframe
+            query_str2='maxpx_fact_pass2*minpx_fact_pass2 > @dynfact_2 & @not_diad1 & @not_diad2 & @not_hb1 & @not_hb2 and @not_c13 & @not_exclude_mask2'
 
         rays_wavenumber_pass2=pxdf_pass2.query(query_str2)['Wavenumber']
         rays_intensity_pass2=pxdf_pass2.query(query_str2)['Intensity']
@@ -393,7 +412,7 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
 ## Filter rays in a loop
 
 def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_params=None,exclude_ranges=[],filetype='headless_txt',
-n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None):
+n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None,frame=None,filename_col=None):
     """ This function is used to filter out cosmic rays in multiple Raman spectra of CO2 in a loop.
 
     Parameters
@@ -438,7 +457,7 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
 
     """
     try:
-        check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges)
+        check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges,Diad_files,diad_peaks)
     except ValueError as e:
         print(str(e))
         raise e
@@ -451,8 +470,9 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
 
         filename_select=Diad_files.iloc[i]
 
-        rays_found,spectrum=filter_singleray(path=spectra_path,Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,exclude_ranges=exclude_ranges,plot_rays=plot_rays,
-                                 export_cleanspec=export_cleanspec,save_fig=save_fig,dynfact=dynfact,dynfact_2=dynfact_2,n=n,xlims=xlims,filetype=filetype)
+        rays_found,spectrum=pf.filter_singleray(path=spectra_path,Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,exclude_ranges=exclude_ranges,plot_rays=plot_rays,
+                                export_cleanspec=export_cleanspec,save_fig=save_fig,dynfact=dynfact,dynfact_2=dynfact_2,n=n,xlims=xlims,filetype=filetype)
+
         ray_list=pd.concat([ray_list,rays_found])
         spectra_df=pd.concat([spectra_df,spectrum['Intensity']],axis=1)
 
@@ -461,8 +481,10 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
     # this is the new data_y_all array, contains all intensities for the spectra, with rays removed.
     data_y_all_CRR_DiadFit=spectra_df.to_numpy()
 
-    # This merges the results of the CRR filtering loop back in with the fit_parameters (filenames for which CRR detected are replaced by filename_CRR_DiadFit
-    fit_params_CRR_DiadFit=pd.merge(ray_list, fit_params, on='filename', how='outer')
-    fit_params_CRR_DiadFit.loc[fit_params_CRR_DiadFit['rays_present']==True, 'filename']=fit_params_CRR_DiadFit['filename'].str.replace('.txt', '',regex=True)+'_CRR_DiadFit.txt'
+
+    # # This merges the results of the CRR filtering loop back in with the fit_parameters (filenames for which CRR detected are replaced by filename_CRR_DiadFit
+    fit_params_CRR_DiadFit=pd.merge(left=ray_list, right=frame, left_on='filename',right_on=filename_col, how='outer')
+    fit_params_CRR_DiadFit.loc[fit_params_CRR_DiadFit['rays_present']==True, filename_col]=fit_params_CRR_DiadFit[filename_col].str.replace('.txt', '',regex=True)+'_CRR_DiadFit.txt'
     display(fit_params_CRR_DiadFit.head())
+
     return data_y_all_CRR_DiadFit,fit_params_CRR_DiadFit
