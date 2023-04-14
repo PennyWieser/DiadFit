@@ -411,7 +411,7 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
 
 ## Filter rays in a loop
 
-def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,fit_params=None,exclude_ranges=[],filetype='headless_txt',
+def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,exclude_ranges=[],filetype='headless_txt',
 n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None,frame=None,filename_col=None):
     """ This function is used to filter out cosmic rays in multiple Raman spectra of CO2 in a loop.
 
@@ -427,8 +427,10 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
         'HORIBA_txt', 'Renishaw_txt'
     diad_peaks: pd.DataFrame
         Dataframe containing the peaks of interest for each file subset from fit_params variable output by pf.loop_approx_diad_fits(columns Diad1_pos,	Diad2_pos,HB1_pos,HB2_pos,C13_pos)
-    fit_params: pd.DataFrame
-        Dataframe output as fit_params from pf.loop_approx_diad_fits
+    frame: pd.DataFrame
+        Dataframe containing peak fits and filenames
+    filename_col: str
+        Column name that contains the filenames in frame, this is used to merge the new CRR filenames
     exclude_ranges: tuple list
         List of tuples containing ranges for user-defined peaks of interest to exclude from ray-filtering.
     filetype: str ('headless_txt')
