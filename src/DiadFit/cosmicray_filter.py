@@ -412,7 +412,7 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
 ## Filter rays in a loop
 
 def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,exclude_ranges=[],filetype='headless_txt',
-n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None,frame=None,filename_col=None):
+n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None,frame=None,fit_params=None, filename_col='filename'):
     """ This function is used to filter out cosmic rays in multiple Raman spectra of CO2 in a loop.
 
     Parameters
@@ -428,7 +428,7 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
     diad_peaks: pd.DataFrame
         Dataframe containing the peaks of interest for each file subset from fit_params variable output by pf.loop_approx_diad_fits(columns Diad1_pos,	Diad2_pos,HB1_pos,HB2_pos,C13_pos)
     frame: pd.DataFrame
-        Dataframe containing peak fits and filenames
+        Dataframe containing peak fits and filenames. Used to be called fit_params, still works.
     filename_col: str
         Column name that contains the filenames in frame, this is used to merge the new CRR filenames
     exclude_ranges: tuple list
@@ -458,6 +458,11 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
         fit_params DataFrame output from pf.loop_approx_diad_fits with updated filenames when cosmic rays were found and a new column indicating if cosmic rays were found
 
     """
+
+    if fit_params is not None and frame is not None:
+        raise TypeError('we left fit_params to maintain back compatability, dont enter this and frame')
+    if fit_params is not None:
+        frame=fit_params
     try:
         check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges,Diad_files,diad_peaks)
     except ValueError as e:
