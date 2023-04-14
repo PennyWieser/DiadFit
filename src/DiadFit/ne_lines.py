@@ -16,7 +16,7 @@ import matplotlib.patches as patches
 from tqdm.notebook import tqdm
 import re
 
-## Test this
+
 
 
 encode="ISO-8859-1"
@@ -29,7 +29,7 @@ def find_closest(df, line1_shift):
    Parameters
    -------------
     df: pd.DataFrame
-        Dataframe of Ne line positions based on laser wavelength from the function calculate_Ne_line_positions
+        Dataframe of Ne line positions based on laser wavelength from the function calculate_Ne_line_positions, or calculate_Ar_line_positions
     
     line1_shift: int, float
         input line position
@@ -1079,8 +1079,26 @@ plot_figure=True, loop=True,
         x_span_pk2: list length 2. Default [-10, 8]
             Span either side of peak center used for fitting,
             e.g. by default, fits to 10 wavenumbers below peak, 8 above.
+            
     """
 
+    # check they havent messed up background
+    if config.lower_bck_pk1[0]>config.lower_bck_pk1[1]:
+        raise TypeError('Your left hand number needs to be a smaller number than the right, e.g. you can have [2, 5] but you cant have [5, 2]')
+    if config.upper_bck1_pk1[0]>config.upper_bck1_pk1[1]:
+        raise TypeError('Your left hand number needs to be a smaller number than the right, e.g. you can have [2, 5] but you cant have [5, 2]')
+    if config.upper_bck2_pk1[0]>config.upper_bck2_pk1[1]:
+        raise TypeError('Your left hand number needs to be a smaller number than the right, e.g. you can have [2, 5] but you cant have [5, 2]')
+
+    # check they havent messed up background
+    if config.lower_bck_pk2[0]>config.lower_bck_pk2[1]:
+        raise TypeError('Your left hand number needs to be a smaller number than the right, e.g. you can have [2, 5] but you cant have [5, 2]')
+    if config.upper_bck1_pk2[0]>config.upper_bck1_pk2[1]:
+        raise TypeError('Your left hand number needs to be a smaller number than the right, e.g. you can have [2, 5] but you cant have [5, 2]')
+    if config.upper_bck2_pk2[0]>config.upper_bck2_pk2[1]:
+        raise TypeError('Your left hand number needs to be a smaller number than the right, e.g. you can have [2, 5] but you cant have [5, 2]')
+   
+    
     x=Ne[:, 0]
     spec_res=np.abs(x[1]-x[0])
     # Getting things from config file
@@ -1130,7 +1148,9 @@ plot_figure=True, loop=True,
     # Calculate difference between peak centers, and Delta Ne
     DeltaNe=cent_pk2-cent_pk1
 
+
     Ne_Corr=DeltaNe_ideal/DeltaNe
+
 
     # Calculate maximum splitting (+1 sigma)
     DeltaNe_max=(cent_pk2+error_pk2)-(cent_pk1-error_pk1)

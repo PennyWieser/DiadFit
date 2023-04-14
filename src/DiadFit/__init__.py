@@ -16,7 +16,7 @@ from DiadFit.importing_data_files import *
 
 # This does the work associated with fitting Ne lines
 from DiadFit.ne_lines import *
-
+from DiadFit.argon_lines import *
 
 # This does the work associated with fitting Diads
 from DiadFit.diads import *
