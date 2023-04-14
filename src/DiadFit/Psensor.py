@@ -215,11 +215,14 @@ def get_p_medians(*,pdata,sdata,export_all=False):
         pressure_data = df1[(df1['unix_timestamp'] >= start_time_P) & (df1['unix_timestamp'] <= end_time_P)]
         median_pressure = pressure_data['Pressure / MPa'].median()
         mad_pressure = (pressure_data['Pressure / MPa'] - pressure_data['Pressure / MPa'].mean()).abs().mean()
+        median_temp = pressure_data['Temperature / °C'].median()
+        mad_temp = (pressure_data['Temperature / °C'] - pressure_data['Temperature / °C'].mean()).abs().mean()
+
         # Append a new row to the new dataframe
         if export_all==True:
-            new_row = pd.DataFrame({'filename_x': filename, 'start_time_S':start_time_S,'start_time_P': start_time_P, 'duration': duration,'end_time_P':end_time_P, 'median_pressure': median_pressure, 'mad_pressure': mad_pressure},index=[0])
+            new_row = pd.DataFrame({'filename_x': filename, 'start_time_S':start_time_S,'start_time_P': start_time_P, 'duration': duration,'end_time_P':end_time_P, 'median_pressure': median_pressure, 'mad_pressure': mad_pressure,'median_temp': median_temp, 'mad_temp': mad_temp},index=[0])
             new_data=pd.concat([new_data,new_row],ignore_index=True)
         else:
-            new_row = pd.DataFrame({'filename_x': filename, 'start_time_P': start_time_P, 'end_time_P':end_time_P, 'median_pressure': median_pressure, 'mad_pressure': mad_pressure},index=[0])
+            new_row = pd.DataFrame({'filename_x': filename, 'start_time_P': start_time_P, 'end_time_P':end_time_P, 'median_pressure': median_pressure, 'mad_pressure': mad_pressure,'median_temp': median_temp, 'mad_temp': mad_temp},index=[0])
             new_data=pd.concat([new_data,new_row],ignore_index=True)
     return new_data
