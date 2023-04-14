@@ -8,7 +8,6 @@ try:
 except ImportError:
     ImportError('Not installed')
 
-#from docx import Document
 import datetime
 import warnings
 
@@ -16,7 +15,7 @@ encode="ISO-8859-1"
 
 ## Function for getting file names
 
-def get_files(*,path=None,filetype=None):
+def get_files(*,path,filetype):
     """
     Returns a list of files with specific file type(s) in the specified directory
     Parameters
@@ -38,7 +37,7 @@ def get_files(*,path=None,filetype=None):
     return file_ls
 
 ## Function for extracting information from the docx reports
-def report_info (*,path=None,report=None):
+def report_info (*,path,report):
     """
     Reads a word document report (exported from ESI-TEC software), extracts and returns the start date and time of the pressure recording and the serial number of the sensor.
     Parameters
@@ -57,7 +56,7 @@ def report_info (*,path=None,report=None):
     """
 
     # Open the Word document
-    document = Document(path+'/'+report)
+    document = docx.Document(path+'/'+report)
 
     # Iterate over all paragraphs in the document
     for para in document.paragraphs:
@@ -76,7 +75,7 @@ def report_info (*,path=None,report=None):
 
 ## Function for reading in data
 
-def read_pfiles(*,path=None,file=None,start_time=None,sn_name='0132212'): #UCB '0132212', cornell '0830903'
+def read_pfiles(*,path,file,start_time,sn_name='0132212'): #UCB '0132212', cornell '0830903'
     """
     Reads a csv or xlsx file of pressure data exported from ESI-TEC software and returns a dataframe with two extra columns "Date and Time" (datetime object) and "unix_timestamp" (timestamp expressed as UNIX time, or time in seconds since the epoch time Jan 1st, 1970 00:00:00 UTC) based on the start_time of the pressure recording and time since start in the file. It also renames the time column to Time_sincestart.
     Parameters
@@ -115,7 +114,7 @@ def read_pfiles(*,path=None,file=None,start_time=None,sn_name='0132212'): #UCB '
 
 ## Function for calculating datetime and duration from metadata file
 
-def add_datetime_and_duration_cols(*,df=None,raman_cpu_offset='none',offset_hms=[0,0,0]):
+def add_datetime_and_duration_cols(*,df,raman_cpu_offset='none',offset_hms=[0,0,0]):
     """
     Takes a DataFrame and adds columns for "Date and Time", "unix_timestamp" and "duration_s". The input frame should be either the complete DataFrame with spectra metadata and fits output by DiadFit or just the spectral metadata. "Date and Time" contains datetime objects; 'unix_timestamp' contains the numeric (float) timestamp for the date and time in standard UNIX time or seconds since epoch time (Jan 1st 1970 00:00:00 UTC), this is plottable; and "duration_s" is the duration of the analysis in seconds.
 
@@ -173,7 +172,7 @@ def add_datetime_and_duration_cols(*,df=None,raman_cpu_offset='none',offset_hms=
 
 ## Function for calculating the pressure median for each analysis
 
-def get_p_medians(*,pdata=None,sdata=None,export_all=False):
+def get_p_medians(*,pdata,sdata,export_all=False):
     """
     Takes two DataFrames and returns a new DataFrame containing the median and median absolute deviation of the pressure values for each Raman analysis. It finds the closest matching rows in the two DataFrames based on timestamp and filters the pressure data between the matched timestamps. It then calculates the median and mean absolute deviation of the filtered pressure data. If export_all==True, it also includes the start time, end time, duration, and filename in the output DataFrame.
 
