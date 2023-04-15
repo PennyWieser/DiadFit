@@ -412,7 +412,7 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
 ## Filter rays in a loop
 
 def filter_raysinloop(*,spectra_path=None,Diad_files=None, diad_peaks=None,exclude_ranges=[],filetype='headless_txt',
-n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None,frame=None,fit_params=None, filename_col='filename'):
+n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_fig='all', xlims=None,fit_params=None, filename_col='filename'):
     """ This function is used to filter out cosmic rays in multiple Raman spectra of CO2 in a loop.
 
     Parameters
@@ -427,10 +427,10 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
         'HORIBA_txt', 'Renishaw_txt'
     diad_peaks: pd.DataFrame
         Dataframe containing the peaks of interest for each file subset from fit_params variable output by pf.loop_approx_diad_fits(columns Diad1_pos,	Diad2_pos,HB1_pos,HB2_pos,C13_pos)
-    frame: pd.DataFrame
+    fit_params: pd.DataFrame
         Dataframe containing peak fits and filenames. Used to be called fit_params, still works.
     filename_col: str
-        Column name that contains the filenames in frame, this is used to merge the new CRR filenames
+        Column name that contains the filenames in fit_params, this is used to merge the new CRR filenames
     exclude_ranges: tuple list
         List of tuples containing ranges for user-defined peaks of interest to exclude from ray-filtering.
     filetype: str ('headless_txt')
@@ -459,10 +459,6 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
 
     """
 
-    if fit_params is not None and frame is not None:
-        raise TypeError('we left fit_params to maintain back compatability, dont enter this and frame')
-    if fit_params is not None:
-        frame=fit_params
     try:
         check_pars(plot_rays, save_fig,export_cleanspec,exclude_ranges,Diad_files,diad_peaks)
     except ValueError as e:
@@ -490,7 +486,7 @@ n=1,dynfact=0.01, dynfact_2=0.0005, export_cleanspec=True,plot_rays='all', save_
 
 
     # # This merges the results of the CRR filtering loop back in with the fit_parameters (filenames for which CRR detected are replaced by filename_CRR_DiadFit
-    fit_params_CRR_DiadFit=pd.merge(left=ray_list, right=frame, left_on='filename',right_on=filename_col, how='outer')
+    fit_params_CRR_DiadFit=pd.merge(left=ray_list, right=fit_params, left_on='filename',right_on=filename_col, how='outer')
     fit_params_CRR_DiadFit.loc[fit_params_CRR_DiadFit['rays_present']==True, filename_col]=fit_params_CRR_DiadFit[filename_col].str.replace('.txt', '',regex=True)+'_CRR_DiadFit.txt'
     display(fit_params_CRR_DiadFit.head())
 
