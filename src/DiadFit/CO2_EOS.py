@@ -43,6 +43,20 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
         colums for Liq_gcm3 and gas_gcm3, bulk density if homog_to specified
 
     """
+    if isinstance(homog_to, str):
+        if homog_to=='L' or homog_to=='V':
+            a=1
+        else:
+            raise TypeError('unsupported input for homog_to, has to be L or V')
+
+    if isinstance(T_h_C, float) or isinstance(T_h_C, int):
+        if T_h_C>=30.9782: # 29.878:
+        #print('Sorry, algorithm cant converge for Ts above 29.878')
+            raise TypeError('Sorry, algorithm cant converge for Ts above 30.9782')
+    if isinstance(T_h_C, pd.Series) or isinstance(T_h_C, np.ndarray):
+        if any(T_h_C)>=30.9782:
+            raise TypeError('Sorry, algorithm cant converge for Ts above 30.9782')
+
     if EOS!='SW96':
         raise TypeError('At the moment, only Span and Wanger (SW96) EOS can be used to convert T_h_C into density')
 
@@ -109,9 +123,10 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
         'T_h_C': T_h_C,
         'homog_to': homog_to})
 
+
+
         # If its a panda series
         else:
-
 
             df=pd.DataFrame(data={'Bulk_gcm3': np.nan,
         'Liq_gcm3': Liq_density,
@@ -309,7 +324,7 @@ def calculate_rho_for_P_T(P_kbar, T_K, EOS='SW96', Sample_ID=None):
     if EOS=='SP94':
 
         CO2_dens_gcm3=calculate_rho_for_P_T_SP94(T_K=T_K, P_kbar=P_kbar)
-    
+
     if Sample_ID is not None:
         df['Sample_ID']=Sample_ID
 
@@ -411,7 +426,7 @@ def calculate_P_for_rho_T(CO2_dens_gcm3, T_K, EOS='SW96', Sample_ID=None):
         df=calculate_P_for_rho_T_SP94(CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K)
     else:
         raise TypeError('Please choose either SP94 or SW96 as an EOS')
-    
+
     if Sample_ID is not None:
         df['Sample_ID']=Sample_ID
 
@@ -516,9 +531,9 @@ def calculate_P_for_rho_T_SP94(T_K, CO2_dens_gcm3, scalar_return=False):
     +a9*MolConc**2*np.exp(-a10*MolConc)))
     if scalar_return is True:
         return P_MPa
-    
+
     elif isinstance(P_MPa, pd.Series) or isinstance(P_MPa, np.ndarray):
-    
+
 
         df=pd.DataFrame(data={'P_kbar': P_MPa/100,
                             'P_MPa': P_MPa,
@@ -526,8 +541,8 @@ def calculate_P_for_rho_T_SP94(T_K, CO2_dens_gcm3, scalar_return=False):
                             'CO2_dens_gcm3': CO2_dens_gcm3
 
                             })
-        
-        
+
+
     else:
         df=pd.DataFrame(data={'P_kbar': P_MPa/100,
                             'P_MPa': P_MPa,
@@ -572,7 +587,7 @@ def calculate_T_for_rho_P(CO2_dens_gcm3, P_kbar, EOS='SW96', Sample_ID=None):
         df=calculate_T_for_rho_P_SP94(CO2_dens_gcm3=CO2_dens_gcm3, P_kbar=P_kbar)
     else:
         raise TypeError('Please choose either SP94 or SW96 as an EOS')
-    
+
     if Sample_ID is not None:
         df['Sample_ID']=Sample_ID
 
@@ -610,7 +625,7 @@ def calculate_T_for_rho_P_SW96(CO2_dens_gcm3, P_kbar):
         raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
 
     Temp=cp.PropsSI('T', 'D', CO2_dens_gcm3*1000, 'P', P_Pa, 'CO2')
-  
+
 
     return pd.Series(Temp)
 
@@ -630,7 +645,7 @@ def calculate_T_for_rho_P_SP94(P_kbar, CO2_dens_gcm3):
     Returns
     --------------------
     pd.Series
-        Temp in K 
+        Temp in K
 
     """
     target_pressure_MPa=P_kbar*100
