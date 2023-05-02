@@ -301,6 +301,8 @@ Ne_array=None):
     height = peaks[1]['peak_heights']
     # This gets a list of peak positions
     peak_pos = x[peaks[0]]
+    
+   
 
     # Lets combine them in a dataframe
     df=pd.DataFrame(data={'pos': peak_pos,
@@ -313,7 +315,7 @@ Ne_array=None):
 
     if print_df is True:
         print('Biggest N peaks:')
-        display(df_sort_Ne_trim)
+        print(df_sort_Ne_trim)
 
     # Get peak within +-5
     df_pk1=df_sort_Ne.loc[df['pos'].between(peak1_cent-10*spec_res, peak1_cent+10*spec_res)]
@@ -432,6 +434,8 @@ Ne_array=None):
 
     df_fit_params['Peak1_prom']=df_fit_params['Peak1_height']-Baseline_Neon1
     df_fit_params['Peak2_prom']=df_fit_params['Peak2_height']-Baseline_Neon2
+    
+    df_fit_params=df_fit_params.reset_index(drop=True)
 
 
     return Ne, df_fit_params
