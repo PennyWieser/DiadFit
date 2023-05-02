@@ -41,7 +41,7 @@ Welcome to DiadFits documentation!
    Examples/Example1b_CO2_Fluid_Inclusions/Step1_Fit_Your_Ne_Lines
    Examples/Example1b_CO2_Fluid_Inclusions/Step2_Filtering_Numerical
    Examples/Example1b_CO2_Fluid_Inclusions/Step3_FitAll_Together
-   Examples/Example1b_CO2_Fluid_Inclusions/Step3b_Secondary_Peaks
+   Examples/Example1b_CO2_Fluid_Inclusions/Step3b(optional)_Secondary_Peaks
    Examples/Example1b_CO2_Fluid_Inclusions/Step4_Stitch_Outputs_Together
    Examples/Example1b_CO2_Fluid_Inclusions/Step5_CO2_Density_to_pressure
    %
