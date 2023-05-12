@@ -1685,6 +1685,17 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     Peak1_Prop_Lor=result.best_values.get('lz1_fraction')
     Peak1_fwhm=result.params['lz1_fwhm'].value
 
+    Center_pk2_error=result.params.get('lz1_center')
+
+    error_pk2=np.nan
+
+    try:
+        error_pk2_str = str(Center_pk2_error).split('+/-')[1].split(' bounds')[0].strip()
+        error_pk2 = float(error_pk2_str.replace(",", ""))
+    except IndexError:
+        pass
+
+
     x_lin=np.linspace(span[0], span[1], 2000)
     y_best_fit=result.eval(x=x_lin)
     components=result.eval_components(x=x_lin)
@@ -1779,6 +1790,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
         if Peak2_Cent is None:
             df_out=pd.DataFrame(data={'Diad2_Voigt_Cent': Peak1_Cent,
+                                    'Diad2_cent_err': error_pk2,
                                     'Diad2_Voigt_Area': Peak1_Int,
                                 'Diad2_Voigt_Sigma': Peak1_Sigma,
                                 'Diad2_Voigt_Gamma': Peak1_gamma,
@@ -1848,6 +1860,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                     C13_Sigma=Peak3_Sigma
 
             df_out=pd.DataFrame(data={'Diad2_Voigt_Cent': Diad2_Cent,
+            'Diad2_cent_err': error_pk2,
                                     'Diad2_Voigt_Area': Diad2_Int,
                                     'Diad2_Voigt_Sigma': Peak1_Sigma,
                                     'Diad2_Voigt_Gamma': Peak1_gamma,
@@ -1980,6 +1993,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
         if Peak2_Cent is None:
             df_out=pd.DataFrame(data={'Diad1_Voigt_Cent': Peak1_Cent,
+            'Diad1_cent_err': error_pk2,
                                     'Diad1_Voigt_Area': Peak1_Int,
                                 'Diad1_Voigt_Sigma': Peak1_Sigma,
                                 'Diad1_Voigt_Gamma': Peak1_gamma,
@@ -1993,6 +2007,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
             df_out=pd.DataFrame(data={'Diad1_Voigt_Cent': Peak1_Cent,
+            'Diad1_cent_err': error_pk2,
                                     'Diad1_Voigt_Area': Peak1_Int,
                                     'Diad1_Voigt_Sigma': Peak1_Sigma,
                                     'Diad1_Voigt_Gamma': Peak1_gamma,
@@ -3039,7 +3054,9 @@ to_clipboard=False, path=None):
             combo['Diad2_Gauss_Sigma']=np.nan
 
         combo['Splitting']=combo['Diad2_Voigt_Cent']-combo['Diad1_Voigt_Cent']
-        cols_to_move = ['Splitting', 'Diad1_Combofit_Cent', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma',  'Diad1_Residual', 'Diad1_Prop_Lor', 'Diad1_fwhm', 'Diad1_refit','Diad2_Combofit_Cent', 'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Diad2_Residual', 'Diad2_Prop_Lor', 'Diad2_fwhm', 'Diad2_refit',
+        combo['Split_err_abs']=combo['Diad1_cent_err']+combo['Diad2_cent_err']
+        combo['Split_err_quadrature']=(combo['Diad1_cent_err']**2+combo['Diad2_cent_err']**2)**0.5
+        cols_to_move = ['Splitting', 'Split_err_abs', 'Split_err_quadrature', 'Diad1_Combofit_Cent', 'Diad1_cent_err', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma',  'Diad1_Residual', 'Diad1_Prop_Lor', 'Diad1_fwhm', 'Diad1_refit','Diad2_Combofit_Cent', 'Diad2_cent_err',  'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Diad2_Residual', 'Diad2_Prop_Lor', 'Diad2_fwhm', 'Diad2_refit',
                     'HB1_Cent', 'HB1_Area', 'HB1_Sigma', 'HB2_Cent', 'HB2_Area', 'HB2_Sigma', 'C13_Cent', 'C13_Area', 'C13_Sigma',
                     'Diad2_Gauss_Cent', 'Diad2_Gauss_Area','Diad2_Gauss_Sigma', 'Diad1_Gauss_Cent', 'Diad1_Gauss_Area','Diad1_Gauss_Sigma',]
         combo_f = combo[cols_to_move + [

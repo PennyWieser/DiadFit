@@ -33,7 +33,7 @@ def find_closest(df, line1_shift):
     
     line1_shift: int, float
         input line position
-
+error_pk2
    Returns
    -------------
    Closest theoretical line position
@@ -930,7 +930,17 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True) :
     # print(Center_pk2_error)
     # Center_pk2_errorval=float(str(Center_pk2_error).split()[4].replace(",", ""))
     # error_pk2=Center_pk2_errorval
-    error_pk2=1
+    
+    
+    error_pk2=np.nan
+    
+    try:
+        error_pk2_str = str(Center_pk2_error).split('+/-')[1].split(' bounds')[0].strip()
+        error_pk2 = float(error_pk2_str.replace(",", ""))
+    except IndexError:
+        pass
+    
+   
 
     # Evaluate the peak at 100 values for pretty plotting
     xx_pk2=np.linspace(lower_pk2, upper_pk2, 2000)
@@ -1456,6 +1466,7 @@ def loop_Ne_lines(*, files, spectra_path, filetype,
 
 
     df2=df.reset_index(drop=True)
+
 
     # Now lets reorder some columns
 
