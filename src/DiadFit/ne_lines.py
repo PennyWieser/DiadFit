@@ -1613,11 +1613,14 @@ def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=
 from scipy.stats import t
 import numpy as np
 
-def calculate_Ne_corr_std_err_values(*, pickle_str, new_x, N_poly=3, CI=0.67):
+def calculate_Ne_corr_std_err_values(*, pickle_str, new_x, CI=0.67):
     # Load the model and the data from the pickle file
     with open(pickle_str, 'rb') as f:
         data = pickle.load(f)
 
+    model = data['model']
+    N_poly = model.order - 1
+    print(N_poly)
     Pf = data['model']
     x = data['x']
     y = data['y']
