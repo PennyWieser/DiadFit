@@ -13,7 +13,7 @@ from os.path import isfile, join
 encode="ISO-8859-1"
 
 
-def calculate_density_cornell(temp='SupCrit', Split=None):
+def calculate_density_cornell(*, temp='SupCrit', Split, split_err=None):
     """ This function converts Diad Splitting into CO$_2$ density using the densimeters of DeVitre et al. (2021)
     This should only be used for the Cornell Raman, not other Ramans at present
 
@@ -170,4 +170,39 @@ def calculate_density_cornell(temp='SupCrit', Split=None):
     df.loc[SupCrit&Upper_Cal_SC, 'Notes']='Above upper Cali Limit'
     df.loc[SupCrit&Upper_Cal_SC, 'in range']='N'
 
+    if split_err is not None:
+        df2=calculate_dens_error(temp, Split, split_err)
+
+        df.insert(1, 'dens+1σ', df2['max_dens'])
+        df.insert(1, 'dens-1σ', df2['min_dens'])
+        df.insert(3, '1σ', (df2['max_dens']-df2['min_dens'])/2 )
+
     return df
+
+def calculate_dens_error(temp, Split, split_err):
+
+    max_dens=calculate_density_cornell(temp=temp, Split=Split+split_err)
+    min_dens=calculate_density_cornell(temp=temp, Split=Split-split_err)
+    df=pd.DataFrame(data={
+                        'max_dens': max_dens['Preferred D'],
+                        'min_dens': min_dens['Preferred D']})
+
+    return df
+
+
+def propagate_errors_for_splitting(Ne_corr, df_sorted):
+    """ This function propagates errors in your Ne correection model and peak fits by quadrature
+
+    """
+    Ne_err=(Ne_corr['upper_values']-Ne_corr['lower_values'])/2
+    Diad1_err=df_sorted['Diad1_cent_err'].fillna(0)
+    Diad2_err=df_sorted['Diad2_cent_err'].fillna(0)
+    split_err=(Diad1_err**2 + Diad2_err**2)**0.5
+    Combo_err= (((df_sorted['Splitting']* (Ne_err))**2) +  (Ne_corr['preferred_values'] *split_err  )**2 )**0.5
+
+    return Combo_err
+
+
+
+
+

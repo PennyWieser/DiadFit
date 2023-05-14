@@ -15,6 +15,8 @@ from dataclasses import dataclass
 import matplotlib.patches as patches
 from tqdm.notebook import tqdm
 import re
+import scipy.stats as stats
+import pickle
 
 
 
@@ -919,6 +921,8 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True) :
     Center_pk2_error=result.params.get('center')
 
     Peak2_Prop_Lor=result.best_values.get('fraction')
+    
+
 
     #print(result.best_values)
 
@@ -1554,6 +1558,163 @@ def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):
 
     return ds
 
+
+## Lets make a plotting function for this notebook 
+
+def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=False, std_error=True, N_bootstrap=500):
+# Define the x and y values
+    x_all   = np.array([time])
+    y_all = np.array([Ne_corr])
+
+    non_nan_indices = ~np.isnan(x_all) & ~np.isnan(y_all)
+
+    # Filter out NaN values
+    x = x_all[non_nan_indices]
+    y = y_all[non_nan_indices]
+    # Perform polynomial regression
+  
+    coefficients = np.polyfit(x, y, N_poly)
+    Pf = np.poly1d(coefficients)
+
+
+    # Save the model and the data to a pickle file
+    data = {'model': Pf, 'x': x, 'y': y}
+    with open('polyfit_data.pkl', 'wb') as f:
+        pickle.dump(data, f)
+        
+    if bootstrap is True:
+
+        new_x_plot=np.linspace(np.min(x), np.max(x), 100)
+        Ne_corr=calculate_Ne_corr_bootstrap_values(pickle_str='polyfit_data.pkl',
+            new_x=pd.Series(new_x_plot), N_poly=N_poly, CI=CI, N_bootstrap=N_bootstrap)
+
+    if std_error is True:
+        new_x_plot=np.linspace(np.min(x), np.max(x), 100)
+        Ne_corr=calculate_Ne_corr_std_err_values(pickle_str='polyfit_data.pkl',
+        new_x=pd.Series(new_x_plot), N_poly=N_poly, CI=CI)
+
+    
+
+    # Now lets plot the prediction interval
+    fig, (ax1) = plt.subplots(1, 1, figsize=(10,5))
+    
+    ax1.plot(new_x_plot, Ne_corr['preferred_values'], '-k', label='best fit')
+    ax1.plot(new_x_plot, Ne_corr['lower_values'], ':k', label='lower vals')
+    ax1.plot(new_x_plot, Ne_corr['upper_values'], ':k', label='upper vals')
+    ax1.set_xlabel('sec after midnight')
+    ax1.set_ylabel('Ne Corr factor')
+    ax1.set_title(str(100*CI) + ' % prediction interval')
+    ax1.legend()
+    ax1.plot(x, y, '+r', label='Ne lines')
+    ax1.ticklabel_format(useOffset=False)
+    
+
+    
+from scipy.stats import t
+import numpy as np
+
+def calculate_Ne_corr_std_err_values(*, pickle_str, new_x, N_poly=3, CI=0.67):
+    # Load the model and the data from the pickle file
+    with open(pickle_str, 'rb') as f:
+        data = pickle.load(f)
+
+    Pf = data['model']
+    x = data['x']
+    y = data['y']
+
+    # Calculate the residuals
+    residuals = y - Pf(x)
+
+    # Calculate the standard deviation of the residuals
+    residual_std = np.std(residuals)
+
+    # Calculate the standard errors for the new x values
+    mean_x = np.mean(x)
+    n = len(x)
+    standard_errors = residual_std * np.sqrt(1 + 1/n + (new_x - mean_x)**2 / np.sum((x - mean_x)**2))
+
+    # Calculate the degrees of freedom
+    df = len(x) - (N_poly + 1)
+
+    # Calculate the t value for the given confidence level
+    t_value = t.ppf((1 + CI) / 2, df)
+
+    # Calculate the prediction intervals
+    preferred_values = Pf(new_x)
+    lower_values = preferred_values - t_value * standard_errors
+    upper_values = preferred_values + t_value * standard_errors
+
+    df=pd.DataFrame(data={
+        'time': new_x,
+        'preferred_values': preferred_values,
+        'lower_values': lower_values,
+        'upper_values': upper_values
+    })
+
+    return df
+
+
+
+
+def calculate_Ne_corr_bootstrap_values(*, pickle_str, new_x, N_poly=3, CI=0.67, N_bootstrap=500):
+    # Load the model and the data from the pickle file
+    with open(pickle_str, 'rb') as f:
+        data = pickle.load(f)
+
+    Pf = data['model']
+    x = data['x']
+    y = data['y']
+
+    # Define the function
+
+    x_values=new_x
+    N_poly = N_poly  # degree of the polynomial
+    n_bootstrap = N_bootstrap  # number of bootstrap samples
+    confidence = CI  # confidence level
+
+    preferred_values = []
+    lower_values = []
+    upper_values = []
+
+    for new_x in x_values:
+        # Perform bootstrapping
+        bootstrap_predictions = []
+        for _ in range(n_bootstrap):
+            # Resample with replacement
+            bootstrap_indices = np.random.choice(len(x), size=len(x), replace=True)
+            bootstrap_x = x[bootstrap_indices]
+            bootstrap_y = y[bootstrap_indices]
+
+            # Perform polynomial regression on the bootstrap sample
+            bootstrap_coefficients = np.polyfit(bootstrap_x, bootstrap_y, N_poly)
+            bootstrap_Pf = np.poly1d(bootstrap_coefficients)
+
+            # Calculate predicted value for the new x
+            bootstrap_prediction = bootstrap_Pf(new_x)
+            bootstrap_predictions.append(bootstrap_prediction)
+
+        # Calculate prediction interval
+        lower_quantile = (1 - confidence) / 2
+        upper_quantile = 1 - lower_quantile
+        lower_index = int(lower_quantile * n_bootstrap)
+        upper_index = int(upper_quantile * n_bootstrap)
+        bootstrap_predictions_sorted = np.sort(bootstrap_predictions)
+        lower_value = bootstrap_predictions_sorted[lower_index]
+        upper_value = bootstrap_predictions_sorted[upper_index]
+
+        preferred_values.append(Pf(new_x))
+        lower_values.append(lower_value)
+        upper_values.append(upper_value)
+        
+    df=pd.DataFrame(data={'time': new_x,
+        'preferred_values': preferred_values,
+        'lower_values': lower_values,
+        'upper_values': upper_values}
+    )
+
+    return df
+    
+    
 
 
 

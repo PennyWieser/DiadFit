@@ -1667,8 +1667,12 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     # Regardless of fit, evaluate model
     init = model_F.eval(params, x=xdat)
-    result = model_F.fit(ydat, params, x=xdat)
+    result = model_F.fit(ydat, params, x=xdat, scale_covar=True)
     comps = result.eval_components()
+
+    #print(result.ci_report())
+
+    #print(result.conf_interval(method='bootstrap'))
 
     #print(result.fit_report(min_correl=0.5))
     # Check if function gives error bars
