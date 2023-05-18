@@ -438,6 +438,8 @@ Ne_array=None):
     df_fit_params['Peak2_prom']=df_fit_params['Peak2_height']-Baseline_Neon2
     
     df_fit_params=df_fit_params.reset_index(drop=True)
+    
+    
 
 
     return Ne, df_fit_params
@@ -697,6 +699,7 @@ const_params=True, spec_res=0.4) :
         fwhm_p0=result0.params.get('p0_fwhm')
 
 
+
         pattern = r"\+/-\s*([\d.]+)"
         match = re.search(pattern, str(Center_p0_error))
         if match:
@@ -742,6 +745,21 @@ const_params=True, spec_res=0.4) :
 
         model_combo=model1+peak
         pars1.update(pars)
+        
+        # Attempt at stabilizing peak fit
+        result = model_combo.fit(ydat, pars1, x=xdat)
+        
+        result.params['p2_center'].vary = False
+        result.params['p2_amplitude'].vary = False
+        result.params['p2_sigma'].vary = False
+        
+        model1_only = model1
+        
+        pars1.update(result.params)
+        
+        result_pk1 = model1_only.fit(ydat, pars1, x=xdat)
+                
+
 
 
     if peaks_pk1==1:
@@ -770,63 +788,51 @@ const_params=True, spec_res=0.4) :
     Error_bars=result.errorbars
 
 
+
     # Get center value
     Center_p1=result.best_values.get('p1_center')
-    Center_p1_error=result.params.get('p1_center')
+    
+    
+    
+    error_pk1 = result.params['p1_center'].stderr
+  
+    
 
     # Get mix of lorenz
     Peak1_Prop_Lor=result.best_values.get('p1_fraction')
 
 
-    if peaks_pk1==1:
-        Center_pk1=Center_p1
-        if Error_bars is False:
-            if block_print is False:
-                print('Error bars not determined by function')
-            error_pk1=np.nan
-        else:
-            error_pk1 = float(str(Center_p1_error).split()[4].replace(",", ""))
-
+   
 
     if peaks_pk1>1:
         Center_p2=result.best_values.get('p2_center')
         Center_p2_error=result.params.get('p2_center')
 
 
-        if Error_bars is False:
-            if block_print is False:
-                print('Error bars not determined by function')
-            Center_p1_errorval=np.nan
-            if peaks_pk1>1:
-                Center_p2_errorval=np.nan
-        else:
-            Center_p1_errorval=float(str(Center_p1_error).split()[4].replace(",", ""))
-            if peaks_pk1>1:
-                Center_p2_errorval=float(str(Center_p2_error).split()[4].replace(",", ""))
 
-        # Check if nonsense, e.g. if center 2 miles away, just use center 0
-        if Center_p2 is not None:
-            if Center_p2>Center_p0 or Center_p2<1112:
-                Center_pk1=Center_p0
-                error_pk1=Center_p0_errorval
-                if block_print is False:
-                    print('No  meaningful second peak found')
-
-            elif Center_p1 is None and Center_p2 is None:
-                if block_print is False:
-                    print('No peaks found')
-            elif Center_p1 is None and Center_p2>0:
-                Center_pk1=Center_p2
-                error_pk1=Center_p2_errorval
-            elif Center_p2 is None and Center_p1>0:
-                Center_pk1=Center_p1
-                error_pk1=Center_p1_errorval
-            elif Center_p1>Center_p2:
-                Center_pk1=Center_p1
-                error_pk1=Center_p1_errorval
-            elif Center_p1<Center_p2:
-                Center_pk1=Center_p2
-                error_pk1=Center_p2_errorval
+        # # Check if nonsense, e.g. if center 2 miles away, just use center 0
+        # if Center_p2 is not None:
+        #     if Center_p2>Center_p0 or Center_p2<1112:
+        #         Center_pk1=Center_p0
+        #         error_pk1=Center_p0_errorval
+        #         if block_print is False:
+        #             print('No  meaningful second peak found')
+        # 
+        #     elif Center_p1 is None and Center_p2 is None:
+        #         if block_print is False:
+        #             print('No peaks found')
+        #     elif Center_p1 is None and Center_p2>0:
+        #         Center_pk1=Center_p2
+        #         error_pk1=Center_p2_errorval
+        #     elif Center_p2 is None and Center_p1>0:
+        #         Center_pk1=Center_p1
+        #         error_pk1=Center_p1_errorval
+        #     elif Center_p1>Center_p2:
+        #         Center_pk1=Center_p1
+        #         
+        #     elif Center_p1<Center_p2:
+        #         Center_pk1=Center_p2
+                
 
     Area_pk1=result.best_values.get('p1_amplitude')
     sigma_pk1=result.best_values.get('p1_sigma')
@@ -842,6 +848,7 @@ const_params=True, spec_res=0.4) :
 
     result_pk1_origx=result.eval(x=Ne_pk1_reg_x)
 
+    Center_pk1=Center_p1
 
 
     return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor
@@ -1171,6 +1178,10 @@ plot_figure=True, loop=True,
 
 
     # Calculate maximum splitting (+1 sigma)
+    error_pk1 = error_pk1 if error_pk1 is not None else 0
+    error_pk2 = error_pk2 if error_pk2 is not None else 0
+
+    
     DeltaNe_max=(cent_pk2+error_pk2)-(cent_pk1-error_pk1)
     DeltaNe_min=(cent_pk2-error_pk2)-(cent_pk1+error_pk1)
     Ne_Corr_max=DeltaNe_ideal/DeltaNe_min
@@ -1341,8 +1352,10 @@ plot_figure=True, loop=True,
             plt.close(fig)
 
     if prefix is True:
-
         filename=filename.split(' ')[1:][0]
+        
+        
+        
     df=pd.DataFrame(data={'filename': filename,
                           'pk2_peak_cent':cent_pk2,
                           'pk2_amplitude': Area_pk2,
@@ -1365,6 +1378,26 @@ plot_figure=True, loop=True,
                          'residual_pk1': residual_pk1,
                          'residual_pk1+pk2':residual_pk1+residual_pk2,
                          }, index=[0])
+                         
+                         
+    df_combo=df
+    pk1_peak_cent_values = df_combo['pk1_peak_cent'].values
+    pk1_peak_cent_errors = df_combo['error_pk1'].fillna(0).values
+    pk2_peak_cent_values = df_combo['pk2_peak_cent'].values
+    pk2_peak_cent_errors = df_combo['error_pk2'].fillna(0).values
+    
+    constant=df_combo['deltaNe']
+    
+    # Calculate the error on Ne_Corr using error propagation (quadrature)
+    Ne_Corr_errors = np.sqrt((pk1_peak_cent_errors / constant) ** 2 + (pk2_peak_cent_errors / constant) ** 2)
+    
+    test_err=np.sqrt(pk1_peak_cent_errors ** 2 + pk2_peak_cent_errors ** 2)
+    
+    total_err=test_err/constant
+    
+    df.insert(1,'1σ_Ne_Corr', Ne_Corr_errors)
+    df.insert(1,'1σ_Ne_Corr_test', total_err)
+    
     if save_clipboard is True:
         df.to_clipboard(excel=True, header=False, index=False)
 
@@ -1383,12 +1416,20 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
     else:
         x=df.index
     fig, ((ax5, ax6), (ax1, ax2), (ax3, ax4), ) = plt.subplots(3, 2, figsize=(10, 12))
-    ax1.plot(x, df['Ne_Corr'], marker,  mec='k', mfc='grey')
+
+    ax1.errorbar(x, df['Ne_Corr'], xerr=0, yerr=df['1σ_Ne_Corr'].fillna(0),
+             fmt='o', ecolor='k', elinewidth=0.8, mfc='grey', ms=5, mec='k',capsize=3)
+    
     ax1.set_ylabel('Ne Correction factor')
     ax1.set_xlabel(x_label)
 
-    ax5.plot(x, df['pk1_peak_cent'], marker,  mec='k', mfc='b')
+    
+    ax5.errorbar(x, df['pk1_peak_cent'], xerr=0, yerr=df['error_pk1'].fillna(0),
+             fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
+             
     ax6.plot(x, df['pk2_peak_cent'], marker,  mec='k', mfc='r')
+    ax6.errorbar(x, df['pk2_peak_cent'], xerr=0, yerr=df['error_pk2'].fillna(0),
+             fmt='o', ecolor='k', elinewidth=0.8, mfc='r', ms=5, mec='k', capsize=3)
     ax5.set_xlabel(x_label)
     ax6.set_xlabel(x_label)
     ax5.set_ylabel('Peak 1 center')
@@ -1474,9 +1515,12 @@ def loop_Ne_lines(*, files, spectra_path, filetype,
 
     # Now lets reorder some columns
 
-    cols_to_move = ['filename', 'Ne_Corr', 'deltaNe', 'pk2_peak_cent', 'pk1_peak_cent', 'pk2_amplitude', 'pk1_amplitude', 'residual_pk2', 'residual_pk1']
+    cols_to_move = ['filename', 'Ne_Corr', '1σ_Ne_Corr', 'deltaNe', 'pk2_peak_cent', 'pk1_peak_cent', 'pk2_amplitude', 'pk1_amplitude', 'residual_pk2', 'residual_pk1']
     df2 = df2[cols_to_move + [
                 col for col in df2.columns if col not in cols_to_move]]
+                
+
+
 
 
     return df2
@@ -1564,8 +1608,8 @@ def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):
 def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=False, std_error=True, N_bootstrap=500):
 # Define the x and y values
     x_all   = np.array([time])
-    y_all = np.array([Ne_corr])
-
+    y_all = np.array([Ne_corr['Ne_Corr']])
+    y_err=Ne_corr['1σ_Ne_Corr']
     non_nan_indices = ~np.isnan(x_all) & ~np.isnan(y_all)
 
     # Filter out NaN values
@@ -1585,22 +1629,24 @@ def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=
     if bootstrap is True:
 
         new_x_plot=np.linspace(np.min(x), np.max(x), 100)
-        Ne_corr=calculate_Ne_corr_bootstrap_values(pickle_str='polyfit_data.pkl',
+        Ne_corr2=calculate_Ne_corr_bootstrap_values(pickle_str='polyfit_data.pkl',
             new_x=pd.Series(new_x_plot), N_poly=N_poly, CI=CI, N_bootstrap=N_bootstrap)
 
     if std_error is True:
         new_x_plot=np.linspace(np.min(x), np.max(x), 100)
-        Ne_corr=calculate_Ne_corr_std_err_values(pickle_str='polyfit_data.pkl',
-        new_x=pd.Series(new_x_plot), N_poly=N_poly, CI=CI)
+        Ne_corr2=calculate_Ne_corr_std_err_values(pickle_str='polyfit_data.pkl',
+        new_x=pd.Series(new_x_plot), CI=CI)
 
     
 
     # Now lets plot the prediction interval
     fig, (ax1) = plt.subplots(1, 1, figsize=(10,5))
+    ax1.errorbar(x, y, xerr=0, yerr=y_err,
+             fmt='o', ecolor='k', elinewidth=0.8, mfc='grey', ms=5, mec='k',capsize=3)
     
-    ax1.plot(new_x_plot, Ne_corr['preferred_values'], '-k', label='best fit')
-    ax1.plot(new_x_plot, Ne_corr['lower_values'], ':k', label='lower vals')
-    ax1.plot(new_x_plot, Ne_corr['upper_values'], ':k', label='upper vals')
+    ax1.plot(new_x_plot, Ne_corr2['preferred_values'], '-k', label='best fit')
+    ax1.plot(new_x_plot, Ne_corr2['lower_values'], ':k', label='lower vals')
+    ax1.plot(new_x_plot, Ne_corr2['upper_values'], ':k', label='upper vals')
     ax1.set_xlabel('sec after midnight')
     ax1.set_ylabel('Ne Corr factor')
     ax1.set_title(str(100*CI) + ' % prediction interval')

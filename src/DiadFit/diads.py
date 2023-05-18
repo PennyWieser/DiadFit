@@ -1419,6 +1419,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     """
 
+
     # Calculate the amplitude from the sigma and the prominence
     calc_diad_amplitude=((config1.diad_sigma)*(config1.diad_prom))/0.3939
     calc_HB_amplitude=((config1.diad_sigma)*(config1.HB_prom))/0.3939
@@ -1483,6 +1484,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                          max=config1.diad_sigma*config1.diad_sigma_max_allowance)
             params=pars1
 
+
         # If there is more than one peak
         else:
             # Set up Lz1 the same for all situations
@@ -1498,6 +1500,8 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
             pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
                         max=config1.diad_sigma*config1.diad_sigma_max_allowance)
+
+
 
 
 
@@ -1524,8 +1528,27 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
                 model_F=model1+peak
+
+                # updating pars 1 with values in pars
                 pars1.update(pars)
                 params=pars1
+
+
+                # Attempt at stabilizing peak fit
+                result = model_F.fit(ydat, pars1, x=xdat)
+                result.params['lz2_center'].vary = False
+                result.params['lz2_amplitude'].vary = False
+                result.params['lz2_sigma'].vary = False
+                final_result = model_F.fit(ydat, result.params, x=xdat)
+                params.update(final_result.params)
+                params.update(final_result.params)
+                result=final_result
+
+
+
+
+
+
 
             if fit_peaks==3:
                 if block_print is False:
@@ -1559,7 +1582,25 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                         model = peak+model
                         params.update(pars)
 
+
+
+
                 model_F=model
+
+
+
+                # Attempt at stabilizing peak fit
+                result = model_F.fit(ydat, pars1, x=xdat)
+                result.params['lz2_center'].vary = False
+                result.params['lz2_amplitude'].vary = False
+                result.params['lz2_sigma'].vary = False
+                result.params['lz3_center'].vary = False
+                result.params['lz3_amplitude'].vary = False
+                result.params['lz3_sigma'].vary = False
+                final_result = model_F.fit(ydat, result.params, x=xdat)
+                params.update(final_result.params)
+                params.update(final_result.params)
+                result=final_result
 
 
 
@@ -1607,6 +1648,27 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                     params.update(pars)
 
 
+            # Attempt at stabilizing peak fit
+# updating pars 1 with values in pars
+
+            result = model2.fit(ydat, params, x=xdat)
+
+
+            # Set the parameters of 'lz1' to be fixed
+            result.params['lz2_center'].vary = False
+            result.params['lz2_amplitude'].vary = False
+            result.params['lz2_sigma'].vary = False
+            result.params['bkg_center'].vary = False
+            result.params['bkg_amplitude'].vary = False
+            result.params['bkg_sigma'].vary = False
+
+            # Perform fitting using the entire model (model2) with the stabilized 'lz1' parameters
+            final_result = model2.fit(ydat, result.params, x=xdat)
+            center_error = final_result.params['lz1_center'].stderr
+            params.update(final_result.params)
+
+
+            result=final_result
             model_F=model2
 
 
@@ -1649,14 +1711,32 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                         min_amplitude=calc_C13_amplitude*(0.5*config1.HB_amp_min_allowance),
                         max_amplitude=calc_C13_amplitude*2*(config1.HB_amp_max_allowance),
                         model_name=config1.model_name)
-
-
-
-
-
                     model3 = peak+model2
                     params.update(pars)
+
+            result = model3.fit(ydat, params, x=xdat)
+
+
+            # Set the parameters of 'lz1' to be fixed
+            result.params['lz2_center'].vary = False
+            result.params['lz2_amplitude'].vary = False
+            result.params['lz2_sigma'].vary = False
+            result.params['lz3_center'].vary = False
+            result.params['lz3_amplitude'].vary = False
+            result.params['lz3_sigma'].vary = False
+            result.params['bkg_center'].vary = False
+            result.params['bkg_amplitude'].vary = False
+            result.params['bkg_sigma'].vary = False
+
+            # Perform fitting using the entire model (model2) with the stabilized 'lz1' parameters
+            final_result = model3.fit(ydat, result.params, x=xdat)
+            center_error = final_result.params['lz1_center'].stderr
+
+            result=final_result
             model_F=model3
+
+            params.update(final_result.params)
+
 
 
 
@@ -1667,7 +1747,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     # Regardless of fit, evaluate model
     init = model_F.eval(params, x=xdat)
-    result = model_F.fit(ydat, params, x=xdat, scale_covar=True)
+    result = model_F.fit(ydat, params, x=xdat)
     comps = result.eval_components()
 
     #print(result.ci_report())
@@ -1676,11 +1756,9 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     #print(result.fit_report(min_correl=0.5))
     # Check if function gives error bars
-    Error_bars=result.errorbars
-    if Error_bars is False:
-        if block_print is False:
-            print('Error bars not determined by function')
 
+
+    #print(result.best_values)
     # Get first peak center
     Peak1_Cent=result.best_values.get('lz1_center')
     Peak1_Int=result.best_values.get('lz1_amplitude')
@@ -1691,20 +1769,19 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     Center_pk2_error=result.params.get('lz1_center')
 
-    error_pk2=np.nan
+    error_pk2 = result.params['lz1_center'].stderr
 
-    try:
-        error_pk2_str = str(Center_pk2_error).split('+/-')[1].split(' bounds')[0].strip()
-        error_pk2 = float(error_pk2_str.replace(",", ""))
-    except IndexError:
-        pass
 
 
     x_lin=np.linspace(span[0], span[1], 2000)
     y_best_fit=result.eval(x=x_lin)
     components=result.eval_components(x=x_lin)
 
-    # Checking whether you need any flags.
+    #Checking whether you need any flags.
+    if error_pk2 is None:
+        refit=True
+        refit_param=str(refit_param)+' No Error'
+
 
     if Peak1_Int>=(calc_diad_amplitude*10-0.1):
         refit=True
@@ -1718,6 +1795,8 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     if Peak1_Sigma<=(config1.diad_sigma*config1.diad_sigma_min_allowance+0.001):
         refit=True
         refit_param=str(refit_param)+' V_input_TooHighSigma'
+
+    #if findme
 
 
     if config1.fit_gauss is not False:
@@ -2116,7 +2195,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         # Final check - that Gaussian isnt anywhere near the height of the diad
 
 
-
+    df_out=df_out.fillna(0)
 
     return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, residual_diad_coords, ydat_inrange,  xdat_inrange
 
@@ -2287,9 +2366,16 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     # Try Refitting once
     if str(df_out['Diad2_refit'].iloc[0])!='Flagged Warnings:':
         print('refit attempt 1')
-        print(str(df_out['Diad2_refit'].iloc[0]))
-        config_tweaked=config1
         factor=2
+
+        import copy
+        config_tweaked=config1
+        config_tweaked=copy.copy(config1)
+
+        if any(df_out['Diad2_refit'].str.contains(' No Error')):
+            if config1.fit_peaks>1:
+                config_tweaked.fit_peaks=config1.fit_peaks-1
+                fit_peaks=config_tweaked.fit_peaks
 
 
 
@@ -2320,14 +2406,15 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
         result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked, diad2=True, path=path, filename=filename,
          xdat=x_diad2, ydat=y_corr_diad2,
-    span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=fit_peaks)
+    span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=config_tweaked.fit_peaks)
         i=2
         while str(df_out['Diad2_refit'].iloc[0])!='Flagged Warnings:':
 
             print('refit attempt  ='+str(i) + ', '+str(df_out['Diad2_refit'].iloc[0]))
             print(df_out['Diad2_refit'].iloc[0])
 
-            config_tweaked2=config_tweaked
+
+            config_tweaked2=copy.copy(config_tweaked)
             factor2=factor*2
 
             #
@@ -2359,7 +2446,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
             result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked2, diad2=True, path=path, filename=filename,
-        xdat=x_diad2, ydat=y_corr_diad2, span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=fit_peaks)
+        xdat=x_diad2, ydat=y_corr_diad2, span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=config_tweaked.fit_peaks)
             i=i+1
             if i>5:
                 print('Got to 5 iteratoins and still couldnt adjust the fit parameters')
@@ -2376,197 +2463,198 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
     # Make nice figure
+    if plot_figure is True:
 
-    figure_mosaic="""
-    XY
-    AB
-    CD
-    EE
-    """
+        figure_mosaic="""
+        XY
+        AB
+        CD
+        EE
+        """
 
-    fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
-    if df_out['Diad2_refit'] is not False:
-        fig.suptitle('Diad 2, file= '+ str(filename) + ' \n' + str(df_out['Diad2_refit'].iloc[0]), fontsize=16, x=0.5, y=1.0)
-    else:
-        fig.suptitle('Diad 2, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
-    # Background plot for real
+        fig,axes=plt.subplot_mosaic(mosaic=figure_mosaic, figsize=(12, 16))
+        if df_out['Diad2_refit'] is not False:
+            fig.suptitle('Diad 2, file= '+ str(filename) + ' \n' + str(df_out['Diad2_refit'].iloc[0]), fontsize=16, x=0.5, y=1.0)
+        else:
+            fig.suptitle('Diad 2, file= '+ str(filename), fontsize=16, x=0.5, y=1.0)
+        # Background plot for real
 
-    # Plot best fit on the LHS, and individual fits on the RHS at the top
+        # Plot best fit on the LHS, and individual fits on the RHS at the top
 
-    axes['X'].set_title('a) Background fit')
-    axes['X'].plot(Diad[:, 0], Diad[:, 1], '-', color='grey')
-    axes['X'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '-r', label='Spectra')
+        axes['X'].set_title('a) Background fit')
+        axes['X'].plot(Diad[:, 0], Diad[:, 1], '-', color='grey')
+        axes['X'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '-r', label='Spectra')
 
-    #axes['X'].plot(Baseline[:, 0], Baseline[:, 1], '-b', label='Bck points')
-    axes['X'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b', label='bel. Bck. pts')
-    axes['X'].plot(Diad_short_diad2[:, 0], Py_base_diad2, '-k', label='bck. poly fit')
-
-
-
-    ax1_ymin=np.min(Baseline_diad2[:, 1])-10*np.std(Baseline_diad2[:, 1])
-    ax1_ymax=np.max(Baseline_diad2[:, 1])+10*np.std(Baseline_diad2[:, 1])
-    ax1_xmin=config1.lower_bck_diad2[0]-30
-    ax1_xmax=config1.upper_bck_diad2[1]+30
-    # Adding patches
-
-
-    rect_diad2_b1=patches.Rectangle((config1.lower_bck_diad2[0], ax1_ymin),config1.lower_bck_diad2[1]-config1.lower_bck_diad2[0],ax1_ymax-ax1_ymin,
-                            linewidth=1,edgecolor='none',facecolor='cyan', label='sel. bck. region', alpha=0.3, zorder=0)
-    axes['X'].add_patch(rect_diad2_b1)
-    rect_diad2_b2=patches.Rectangle((config1.upper_bck_diad2[0], ax1_ymin),config1.upper_bck_diad2[1]-config1.upper_bck_diad2[0],ax1_ymax-ax1_ymin,
-                            linewidth=1,edgecolor='none',facecolor='cyan', alpha=0.3, zorder=0)
-    axes['X'].add_patch(rect_diad2_b2)
-    axes['X'].set_xlim([ax1_xmin, ax1_xmax])
-    axes['X'].set_ylim([ax1_ymin, ax1_ymax])
-
-    axes['X'].set_ylabel('Intensity')
-    axes['Y'].set_ylabel('Intensity')
-    axes['Y'].set_xlabel('Wavenumber')
-    axes['X'].legend()
+        #axes['X'].plot(Baseline[:, 0], Baseline[:, 1], '-b', label='Bck points')
+        axes['X'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b', label='bel. Bck. pts')
+        axes['X'].plot(Diad_short_diad2[:, 0], Py_base_diad2, '-k', label='bck. poly fit')
 
 
 
-    axes['Y'].set_title('b) Background subtracted spectra')
-    axes['Y'].plot(x_diad2, y_corr_diad2, '-r')
-    height_p=np.max(Diad_short_diad2[:, 1])-np.min(Diad_short_diad2[:, 1])
-    axes['Y'].set_ylim([np.min(y_corr_diad2), 1.2*height_p ])
-    axes['X'].set_xlabel('Wavenumber')
+        ax1_ymin=np.min(Baseline_diad2[:, 1])-10*np.std(Baseline_diad2[:, 1])
+        ax1_ymax=np.max(Baseline_diad2[:, 1])+10*np.std(Baseline_diad2[:, 1])
+        ax1_xmin=config1.lower_bck_diad2[0]-30
+        ax1_xmax=config1.upper_bck_diad2[1]+30
+        # Adding patches
+
+
+        rect_diad2_b1=patches.Rectangle((config1.lower_bck_diad2[0], ax1_ymin),config1.lower_bck_diad2[1]-config1.lower_bck_diad2[0],ax1_ymax-ax1_ymin,
+                                linewidth=1,edgecolor='none',facecolor='cyan', label='sel. bck. region', alpha=0.3, zorder=0)
+        axes['X'].add_patch(rect_diad2_b1)
+        rect_diad2_b2=patches.Rectangle((config1.upper_bck_diad2[0], ax1_ymin),config1.upper_bck_diad2[1]-config1.upper_bck_diad2[0],ax1_ymax-ax1_ymin,
+                                linewidth=1,edgecolor='none',facecolor='cyan', alpha=0.3, zorder=0)
+        axes['X'].add_patch(rect_diad2_b2)
+        axes['X'].set_xlim([ax1_xmin, ax1_xmax])
+        axes['X'].set_ylim([ax1_ymin, ax1_ymax])
+
+        axes['X'].set_ylabel('Intensity')
+        axes['Y'].set_ylabel('Intensity')
+        axes['Y'].set_xlabel('Wavenumber')
+        axes['X'].legend()
 
 
 
-    axes['A'].plot(xdat, ydat,  '.k', label='bck. sub. data')
-    axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1, label='best fit')
-    axes['A'].legend()
-    axes['A'].set_ylabel('Intensity')
-    axes['A'].set_xlabel('Wavenumber')
-    axes['A'].set_xlim(ax1_xlim)
-    axes['A'].set_title('c) Overall Best Fit')
-
-   # individual fits
-    axes['B'].plot(xdat, ydat, '.k')
-
-    # This is for if there is more than 1 peak, this is when we want to plot the best fit
-
-    if fit_peaks>1:
-
-
-        axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='HB2')
-
-    axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Diad2')
-    if config1.fit_gauss is not False:
-        axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
-    #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
-    axes['B'].legend()
-
-    fitspan=max(y_best_fit)-min(y_best_fit)
-    axes['B'].set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
-
-    axes['B'].set_ylabel('Intensity')
-    axes['B'].set_xlabel('Wavenumber')
-
-
-    axes['B'].set_xlim(ax2_xlim)
-
-    # Dashed lines so matches part D
-
-    axes['B'].plot([df_out['Diad2_Voigt_Cent'], df_out['Diad2_Voigt_Cent']], [np.min(ydat), np.max(ydat)], ':b')
-
-
-    if fit_peaks>=2:
-            axes['B'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(ydat), np.max(ydat)], ':r')
-
-    axes['B'].set_title('c) Fit Components')
-
-    # Background fit
-
-    # First, set up x and y limits on axis
-
-    if config1.x_range_baseline is not None:
-        axc_xmin=df_out['Diad2_Voigt_Cent'][0]-config1.x_range_baseline
-        axc_xmax=df_out['Diad2_Voigt_Cent'][0]+config1.x_range_baseline
-    else:
-        axc_xmin=config1.lower_bck_diad2[0]
-        axc_xmax=config1.upper_bck_diad2[1]
-    axc_ymin=np.min(Baseline_diad2[:, 1])-config1.y_range_baseline/3
-    axc_ymax=np.max(Baseline_diad2[:, 1])+config1.y_range_baseline
-
-    rect_diad2_b1=patches.Rectangle((config1.lower_bck_diad2[0],axc_ymin),config1.lower_bck_diad2[1]-config1.lower_bck_diad2[0],axc_ymax-axc_ymin,
-                              linewidth=1,edgecolor='none',facecolor='cyan', label='bck', alpha=0.3, zorder=0)
+        axes['Y'].set_title('b) Background subtracted spectra')
+        axes['Y'].plot(x_diad2, y_corr_diad2, '-r')
+        height_p=np.max(Diad_short_diad2[:, 1])-np.min(Diad_short_diad2[:, 1])
+        axes['Y'].set_ylim([np.min(y_corr_diad2), 1.2*height_p ])
+        axes['X'].set_xlabel('Wavenumber')
 
 
 
-    axes['C'].set_title('d) Peaks overlain on data before subtraction')
-    axes['C'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '.r', label='data')
-    axes['C'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b', label='bck')
-    axes['C'].plot(Diad_short_diad2[:, 0], Py_base_diad2, '-k', label='Poly bck fit')
+        axes['A'].plot(xdat, ydat,  '.k', label='bck. sub. data')
+        axes['A'].plot( x_lin ,y_best_fit, '-g', linewidth=1, label='best fit')
+        axes['A'].legend()
+        axes['A'].set_ylabel('Intensity')
+        axes['A'].set_xlabel('Wavenumber')
+        axes['A'].set_xlim(ax1_xlim)
+        axes['A'].set_title('c) Overall Best Fit')
+
+    # individual fits
+        axes['B'].plot(xdat, ydat, '.k')
+
+        # This is for if there is more than 1 peak, this is when we want to plot the best fit
+
+        if fit_peaks>1:
 
 
-    axes['C'].set_ylabel('Intensity')
-    axes['C'].set_xlabel('Wavenumber')
+            axes['B'].plot(x_lin, components.get('lz2_'), '-r', linewidth=2, label='HB2')
+
+        axes['B'].plot(x_lin, components.get('lz1_'), '-b', linewidth=2, label='Diad2')
+        if config1.fit_gauss is not False:
+            axes['B'].plot(x_lin, components.get('bkg_'), '-m', label='Gaussian bck', linewidth=2)
+        #ax2.plot(xdat, result.best_fit, '-g', label='best fit')
+        axes['B'].legend()
+
+        fitspan=max(y_best_fit)-min(y_best_fit)
+        axes['B'].set_ylim([min(y_best_fit)-fitspan/5, max(y_best_fit)+fitspan/5])
+
+        axes['B'].set_ylabel('Intensity')
+        axes['B'].set_xlabel('Wavenumber')
 
 
-    if config1.fit_gauss is not False:
+        axes['B'].set_xlim(ax2_xlim)
 
-        axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
+        # Dashed lines so matches part D
 
-    axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
-    axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Diad2', linewidth=1)
-    if fit_peaks>1:
-        axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='HB2', linewidth=1)
-    if fit_peaks>2:
-        axes['C'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-c', label='C13', linewidth=1)
-
-    axes['C'].legend(ncol=3, loc='lower center')
+        axes['B'].plot([df_out['Diad2_Voigt_Cent'], df_out['Diad2_Voigt_Cent']], [np.min(ydat), np.max(ydat)], ':b')
 
 
+        if fit_peaks>=2:
+                axes['B'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(ydat), np.max(ydat)], ':r')
 
-    axes['C'].set_xlim([axc_xmin, axc_xmax])
-    axes['C'].set_ylim([axc_ymin, axc_ymax])
-    #axes['C'].plot(Diad_short[:, 0], Diad_short[:, 1], '"r', label='Data')
+        axes['B'].set_title('c) Fit Components')
 
+        # Background fit
 
-    # Residual on plot D
-    axes['D'].set_title('f) Residuals')
-    axes['D'].plot([df_out['Diad2_Voigt_Cent'], df_out['Diad2_Voigt_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':b')
-    if fit_peaks>1:
-            axes['D'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':r')
+        # First, set up x and y limits on axis
 
-    axes['D'].plot(xdat_inrange, residual_diad_coords, 'ok', mfc='c' )
-    axes['D'].plot(xdat_inrange, residual_diad_coords, '-c' )
-    axes['D'].set_ylabel('Residual')
-    axes['D'].set_xlabel('Wavenumber')
-    # axes['D'].set_xlim(ax1_xlim)
-    # axes['D'].set_xlim(ax2_xlim)
-    Local_Residual_diad2=residual_diad_coords[((xdat_inrange>(df_out['Diad2_Voigt_Cent'][0]-config1.x_range_residual))
-                                            &(xdat_inrange<df_out['Diad2_Voigt_Cent'][0]+config1.x_range_residual))]
-    axes['D'].set_xlim([df_out['Diad2_Voigt_Cent'][0]-config1.x_range_residual,
-                df_out['Diad2_Voigt_Cent'][0]+config1.x_range_residual])
-    #ax5.plot([cent_1117, cent_1117 ], [np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10], ':k')
-    axes['D'].set_ylim([np.min(Local_Residual_diad2)-10, np.max(Local_Residual_diad2)+10])
+        if config1.x_range_baseline is not None:
+            axc_xmin=df_out['Diad2_Voigt_Cent'][0]-config1.x_range_baseline
+            axc_xmax=df_out['Diad2_Voigt_Cent'][0]+config1.x_range_baseline
+        else:
+            axc_xmin=config1.lower_bck_diad2[0]
+            axc_xmax=config1.upper_bck_diad2[1]
+        axc_ymin=np.min(Baseline_diad2[:, 1])-config1.y_range_baseline/3
+        axc_ymax=np.max(Baseline_diad2[:, 1])+config1.y_range_baseline
 
-
+        rect_diad2_b1=patches.Rectangle((config1.lower_bck_diad2[0],axc_ymin),config1.lower_bck_diad2[1]-config1.lower_bck_diad2[0],axc_ymax-axc_ymin,
+                                linewidth=1,edgecolor='none',facecolor='cyan', label='bck', alpha=0.3, zorder=0)
 
 
 
-    # Overal spectra
-    axes['E'].set_title('g) Summary plot of raw spectra for file = ' + filename)
-    axes['E'].plot(Spectra[:, 0], Spectra[:, 1], '-r')
-    axes['E'].set_ylabel('Intensity')
-    axes['E'].set_xlabel('Wavenumber')
+        axes['C'].set_title('d) Peaks overlain on data before subtraction')
+        axes['C'].plot(Diad_short_diad2[:, 0], Diad_short_diad2[:, 1], '.r', label='data')
+        axes['C'].plot(Baseline_diad2[:, 0], Baseline_diad2[:, 1], '.b', label='bck')
+        axes['C'].plot(Diad_short_diad2[:, 0], Py_base_diad2, '-k', label='Poly bck fit')
+
+
+        axes['C'].set_ylabel('Intensity')
+        axes['C'].set_xlabel('Wavenumber')
+
+
+        if config1.fit_gauss is not False:
+
+            axes['C'].plot(x_lin, components.get('bkg_')+ybase_xlin, '-m', label='Gaussian bck', linewidth=2)
+
+        axes['C'].plot( x_lin ,y_best_fit+ybase_xlin, '-g', linewidth=2, label='Best Fit')
+        axes['C'].plot(x_lin, components.get('lz1_')+ybase_xlin, '-b', label='Diad2', linewidth=1)
+        if fit_peaks>1:
+            axes['C'].plot(x_lin, components.get('lz2_')+ybase_xlin, '-r', label='HB2', linewidth=1)
+        if fit_peaks>2:
+            axes['C'].plot(x_lin, components.get('lz3_')+ybase_xlin, '-c', label='C13', linewidth=1)
+
+        axes['C'].legend(ncol=3, loc='lower center')
+
+
+
+        axes['C'].set_xlim([axc_xmin, axc_xmax])
+        axes['C'].set_ylim([axc_ymin, axc_ymax])
+        #axes['C'].plot(Diad_short[:, 0], Diad_short[:, 1], '"r', label='Data')
+
+
+        # Residual on plot D
+        axes['D'].set_title('f) Residuals')
+        axes['D'].plot([df_out['Diad2_Voigt_Cent'], df_out['Diad2_Voigt_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':b')
+        if fit_peaks>1:
+                axes['D'].plot([df_out['HB2_Cent'], df_out['HB2_Cent']], [np.min(residual_diad_coords), np.max(residual_diad_coords)], ':r')
+
+        axes['D'].plot(xdat_inrange, residual_diad_coords, 'ok', mfc='c' )
+        axes['D'].plot(xdat_inrange, residual_diad_coords, '-c' )
+        axes['D'].set_ylabel('Residual')
+        axes['D'].set_xlabel('Wavenumber')
+        # axes['D'].set_xlim(ax1_xlim)
+        # axes['D'].set_xlim(ax2_xlim)
+        Local_Residual_diad2=residual_diad_coords[((xdat_inrange>(df_out['Diad2_Voigt_Cent'][0]-config1.x_range_residual))
+                                                &(xdat_inrange<df_out['Diad2_Voigt_Cent'][0]+config1.x_range_residual))]
+        axes['D'].set_xlim([df_out['Diad2_Voigt_Cent'][0]-config1.x_range_residual,
+                    df_out['Diad2_Voigt_Cent'][0]+config1.x_range_residual])
+        #ax5.plot([cent_1117, cent_1117 ], [np.min(Local_Residual_1117)-10, np.max(Local_Residual_1117)+10], ':k')
+        axes['D'].set_ylim([np.min(Local_Residual_diad2)-10, np.max(Local_Residual_diad2)+10])
 
 
 
 
-    path3=path+'/'+'diad_fit_images'
-    if os.path.exists(path3):
-        out='path exists'
-    else:
-        os.makedirs(path+'/'+ 'diad_fit_images', exist_ok=False)
 
-    fig.tight_layout()
+        # Overal spectra
+        axes['E'].set_title('g) Summary plot of raw spectra for file = ' + filename)
+        axes['E'].plot(Spectra[:, 0], Spectra[:, 1], '-r')
+        axes['E'].set_ylabel('Intensity')
+        axes['E'].set_xlabel('Wavenumber')
 
-    file=filename.rsplit('.txt', 1)[0]
-    fig.savefig(path3+'/'+'diad2_Fit_{}.png'.format(file), dpi=config1.dpi)
+
+
+
+        path3=path+'/'+'diad_fit_images'
+        if os.path.exists(path3):
+            out='path exists'
+        else:
+            os.makedirs(path+'/'+ 'diad_fit_images', exist_ok=False)
+
+        fig.tight_layout()
+
+        file=filename.rsplit('.txt', 1)[0]
+        fig.savefig(path3+'/'+'diad2_Fit_{}.png'.format(file), dpi=config1.dpi)
 
 
     if close_figure is True:
@@ -2707,18 +2795,28 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
                     span=span_diad1, plot_figure=False,
                     Diad_pos=Diad_pos, HB_pos=HB_pos,fit_peaks=fit_peaks)
 
+
+
+    # if df_out['Diad1_cent_err'].iloc[0]==0:
+    #     if config1.fit_peaks>1:
+    #         config_tweaked.fit_peaks=config1.fit_peaks-1
+    #         print('reducing peaks by 1 to try to get an error')
+
+
     # Try Refitting once
     if str(df_out['Diad1_refit'].iloc[0])!='Flagged Warnings:':
         print('refit attempt 1')
-        print(str(df_out['Diad1_refit'].iloc[0]))
-        config_tweaked=config1
         factor=2
+        import copy
+        config_tweaked=config1
+        config_tweaked=copy.copy(config1)
+
+        if any(df_out['Diad1_refit'].str.contains(' No Error')):
+            if config1.fit_peaks>1:
+                config_tweaked.fit_peaks=config1.fit_peaks-1
+                fit_peaks=config_tweaked.fit_peaks
 
 
-        # if any(df_out['Diad1_refit'].str.contains('V_LowAmp')):
-        #     config_tweaked.diad_amplitude=calc_diad_amplitude*10
-        # if any(df_out['Diad1_refit'].str.contains('V_HighAmp')):
-        #     config_tweaked.diad_amplitude=calc_diad_amplitude/10
         if any(df_out['Diad1_refit'].str.contains('V_input_TooLowSigma')):
             config_tweaked.diad_sigma=config1.diad_sigma*factor
         if any(df_out['Diad1_refit'].str.contains('V_input_TooHighSigma')):
@@ -2741,16 +2839,17 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
         # if any(df_out['Diad1_refit'].str.contains('HB1_HighAmp')):
         #     config_tweaked.HB_amplitude=calc_HB_amplitude*2
 
-        result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked,diad1=True, path=path, filename=filename,
+        result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked, diad1=True, path=path, filename=filename,
                     xdat=x_diad1, ydat=y_corr_diad1,
-                    span=span_diad1, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, fit_peaks=fit_peaks)
+                    span=span_diad1, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, fit_peaks=config_tweaked.fit_peaks)
         i=2
         while str(df_out['Diad1_refit'].iloc[0])!='Flagged Warnings:':
 
             print('refit attempt  ='+str(i) + ', '+str(df_out['Diad1_refit'].iloc[0]))
             print(df_out['Diad1_refit'].iloc[0])
 
-            config_tweaked2=config_tweaked
+            import copy
+            config_tweaked2=copy.copy(config_tweaked)
             factor2=factor*2
 
 
@@ -2783,7 +2882,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
             result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked2,diad1=True, path=path, filename=filename,
                     xdat=x_diad1, ydat=y_corr_diad1,
-                    span=span_diad1, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, fit_peaks=fit_peaks)
+                    span=span_diad1, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, fit_peaks=config_tweaked.fit_peaks)
             i=i+1
             if i>5:
                 print('Got to 5 iteratoins and still couldnt adjust the fit parameters')
