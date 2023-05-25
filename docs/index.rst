@@ -94,6 +94,12 @@ Welcome to DiadFits documentation!
    Examples/Example7_Useful_EOS_Calcs/EOS_Calcs1
 
    %
+.. toctree::
+   :maxdepth: 2
+   :caption: Melt inclusion vapour bubbles
+
+   Examples/Example8_Uncertainty_MI_Vapour_Bubbles/CO2_error_prop
+
 
 
 
