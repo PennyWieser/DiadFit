@@ -1605,7 +1605,7 @@ def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):
 
 ## Lets make a plotting function for this notebook 
 
-def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=False, std_error=True, N_bootstrap=500):
+def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=False, std_error=True, N_bootstrap=500,save_fig=False):
 # Define the x and y values
     x_all   = np.array([time])
     y_all = np.array([Ne_corr['Ne_Corr']])
@@ -1649,11 +1649,25 @@ def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=
     ax1.plot(new_x_plot, Ne_corr2['upper_values'], ':k', label='upper vals')
     ax1.set_xlabel('sec after midnight')
     ax1.set_ylabel('Ne Corr factor')
-    ax1.set_title(str(100*CI) + ' % prediction interval')
     ax1.legend()
     ax1.plot(x, y, '+r', label='Ne lines')
     ax1.ticklabel_format(useOffset=False)
+    # this sets the ordinal suffix for the polynomial degree in the title
+    if N_poly == 1:
+        suffix = 'st'
+    elif N_poly == 2:
+        suffix = 'nd'
+    elif N_poly == 3:
+        suffix = 'rd'
+    else:
+        suffix='th'
+        
+    ax1.set_title(f"{N_poly}$^{{{suffix}}}$ degree polynomial: "+str(100*CI) + ' % prediction interval')
+
     
+    if save_fig is True:
+        fig.savefig('Ne_line_correction.png')
+        
 
     
 from scipy.stats import t
