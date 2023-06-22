@@ -10,6 +10,7 @@ import re
 from os import listdir
 from os.path import isfile, join
 import pickle
+from pathlib import Path
 encode="ISO-8859-1"
 
 ## Cornell densimeters
@@ -225,18 +226,20 @@ def calculate_density_ucb(*, temp='SupCrit', Split, split_err=None):
     """
 
     # #if temp is "RoomT":
+    DiadFit_dir=Path(__file__).parent
+
     LowD_RT=-38.34631 + 0.3732578*Split
     HighD_RT=-41.64784 + 0.4058777*Split- 0.1460339*(Split-104.653)**2
 
     # IF temp is 37
     pickle_str='Lowrho_polyfit_data.pkl'
-    with open(pickle_str, 'rb') as f:
+    with open(DiadFit_dir/pickle_str, 'rb') as f:
         lowrho_pickle_data = pickle.load(f)
     pickle_str='Mediumrho_polyfit_data.pkl'
-    with open(pickle_str, 'rb') as f:
+    with open(DiadFit_dir/pickle_str, 'rb') as f:
         medrho_pickle_data = pickle.load(f)
     pickle_str='Highrho_polyfit_data.pkl'
-    with open(pickle_str, 'rb') as f:
+    with open(DiadFit_dir/pickle_str, 'rb') as f:
         highrho_pickle_data = pickle.load(f)
 
     lowrho_model = lowrho_pickle_data['model']
