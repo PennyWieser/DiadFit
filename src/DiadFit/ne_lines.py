@@ -619,7 +619,7 @@ lower_bck=None, upper_bck1=None, upper_bck2=None):
 
 
 
-def fit_pk1(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98, pk1_sigma=0.28,
+def fit_pk1(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98.1, pk1_sigma=0.28,
 LH_offset_mini=[1.5, 3], peaks_pk1=2, model_name='PseudoVoigtModel', block_print=True,
 const_params=True, spec_res=0.4) :
     """ This function fits the 1117 Ne line as 1 or two voigt peaks
@@ -685,7 +685,11 @@ const_params=True, spec_res=0.4) :
             model0 = PseudoVoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
         if model_name=="VoigtModel":
             model0 = VoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
-        pars0 = model0.make_params(p0_center=Ne_center, p0_amplitude=amplitude)
+        print(amplitude)
+        pars0 = model0.make_params()
+        pars0['p0_center'].set(Ne_center)
+        pars0['p0_amplitude'].set(amplitude)
+        
         init0 = model0.eval(pars0, x=xdat)
         result0 = model0.fit(ydat, pars0, x=xdat)
         Center_p0=result0.best_values.get('p0_center')
@@ -772,7 +776,8 @@ const_params=True, spec_res=0.4) :
 
 
         # create parameters with initial values
-        pars1 = model_combo.make_params(amplitude=amplitude)
+        pars1 = model_combo.make_params()
+        par1['p1_amplitude'].set(amplitude)
         pars1['p1_' + 'center'].set(Ne_center, min=Ne_center-2*spec_res,max=Ne_center+2*spec_res)
         pars1['p1_'+ 'sigma'].set(pk1_sigma, min=pk1_sigma*min_off, max=pk1_sigma*max_off)
 
@@ -912,15 +917,13 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True) :
 
 
     # create parameters with initial values
-    params = model.make_params(center=Ne_center, amplitude=amplitude, sigma=pk2_sigma)
+    params = model.make_params()
 
-    # Place bounds on center allowed
-    params['center'].min = Ne_center+x_span[0]
-    params['center'].max = Ne_center+x_span[1]
-    params['sigma'].max = pk2_sigma*max_off
-    params['sigma'].min = pk2_sigma*min_off
-    params['amplitude'].max = amplitude*max_off
-    params['amplitude'].min = amplitude*min_off
+    params['center'].set(Ne_center, min=Ne_center+x_span[0], max=Ne_center+x_span[1])
+    params['amplitude'].set(amplitude, min=amplitude*min_off, max=amplitude*max_off)
+    params['sigma'].set(pk2_sigma, min=pk2_sigma*min_off, max=pk2_sigma*max_off)
+
+
     result = model.fit(Ne_pk2_reg_y.flatten(), params, x=Ne_pk2_reg_x.flatten())
 
     # Get center value
