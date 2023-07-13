@@ -18,7 +18,7 @@ encode="ISO-8859-1"
 ## Functions for getting file names
 
 
-def check_for_duplicates(spectra_path, prefix=True, prefix_str=' '):
+def check_for_duplicates(spectra_path, prefix=True, prefix_str=' ', exception=True):
     """    This function checks for duplicate filenames in a specified directory and prints the duplicates if found.
     
     Parameters:
@@ -53,6 +53,8 @@ def check_for_duplicates(spectra_path, prefix=True, prefix_str=' '):
         print(file_m_s[file_m_s.duplicated()])
         print('OOPS. at least one of your file name is duplicated go back to your spectra, you named a file twice, this will confuse the stitching ')
         #raise Exception('Duplicate file')
+        if exception is True:
+            raise TypeError('SORT OUT YOUR DUPLICATES BEFORE PROCEEDING!')
 
     return file_m
 

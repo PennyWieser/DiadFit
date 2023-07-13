@@ -743,6 +743,7 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
 
     print('Keeping N='+str(len(fit_params_filt)))
     print('Discarding N='+str(len(fit_params_disc)))
+
     filt=reas_split&reas_heigh
     data_y_filt=data_y_all[:, (filt)]
     data_y_disc=data_y_all[:, ~(filt)]
@@ -750,7 +751,7 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
     intc=800
     prom_filt=0
     prom_disc=0
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,5))
     ax1.set_title('Spectra to Discard')
     ax2.set_title('Spectra to Keep')
     if sum(~filt)>0:
@@ -760,7 +761,13 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
             av_prom_Keep=fit_params_disc['Diad1_abs_prom'].iloc[i]
             prom_disc=prom_disc+av_prom_disc
             ax1.plot(x_cord+i*5, (data_y_disc[:, i]-np.nanmin(data_y_disc[:, i]))/Diff+i/3, '-r', lw=0.5)
-        ax1.set_xlim([1250, 1450+i*5])
+            yplot=np.quantile((data_y_disc[:, i]-np.nanmin(data_y_disc[:, i]))/Diff+i/3, 0.65)
+            file=fit_params_disc['filename'].iloc[i]
+            file = file.replace("_CRR_DiadFit", "")
+            ax1.annotate(str(file), xy=(1450+i*5, yplot),
+                    xycoords="data", fontsize=8, bbox=dict(facecolor='white', edgecolor='none', pad=2))
+
+        ax1.set_xlim([1250, 1500+i*5])
         ax1.set_xticks([])
         ax1.set_yticks([])
     if sum(filt)>0:
@@ -833,37 +840,58 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
 
         # Find ones in group1, in dataframe and numpy form
-        Group1_df=fit_params.loc[grp1]
+        Group1_df=fit_params.loc[grp1]#.reset_index(drop=True)
+        Group1_df_reset=fit_params.loc[grp1].reset_index(drop=True)
         index_Grp1=Group1_df.index
         Group1_np_y=data_y[:, index_Grp1]
 
         # Ones not in group1
-        Groupnot1_df=fit_params.loc[~grp1]
+        Groupnot1_df=fit_params.loc[~grp1]#.reset_index(drop=True)
+        Groupnot1_df_reset=fit_params.loc[~grp1].reset_index(drop=True)
         index_Grpnot1=Groupnot1_df.index
         Groupnot1_np_y=data_y[:, index_Grpnot1]
 
 
-        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(8, 2+y_fig_scale*len(fit_params)))
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 2+y_fig_scale*len(fit_params)))
         intc=8
+
 
         #
         if sum(grp1)>0:
+
+
+
             if sum(grp1)==1:
                 i=0
                 av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_abs_prom'])/intc)
                 Diff=np.nanmax(Group1_np_y[:, i])-np.nanmin(Group1_np_y[:, i])
                 ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
+                yplot=np.quantile((Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, 0.65)
+                file=Group1_df_reset['filename'].iloc[i]
+                file = file.replace("_CRR_DiadFit", "")
+                ax0.annotate(str(file), xy=(1450-i*5, yplot),
+                    xycoords="data", fontsize=8, bbox=dict(facecolor='white', edgecolor='none', pad=2))
 
 
             else:
                 for i in range(0, np.shape(Group1_np_y)[1]):
 
-                        av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_abs_prom'])/intc)
-                        Diff=np.nanmax(Group1_np_y[:, i])-np.nanmin(Group1_np_y[:, i])
-                        ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
-            ax0.set_xlim([1250-i*5, 1450])
+
+
+                    av_prom_disc=np.abs(np.nanmedian(Group1_df['Diad1_abs_prom'])/intc)
+                    Diff=np.nanmax(Group1_np_y[:, i])-np.nanmin(Group1_np_y[:, i])
+                    ax0.plot(x_cord-i*5, (Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, '-r', lw=0.5)
+
+                    yplot=np.quantile((Group1_np_y[:, i]-np.nanmin(Group1_np_y[:, i]))/Diff+i/3, 0.5)
+                    file=Group1_df_reset['filename'].iloc[i]
+                    file = file.replace("_CRR_DiadFit", "")
+                    ax0.annotate(str(file), xy=(1450-i*5, yplot),
+                        xycoords="data", fontsize=8, bbox=dict(facecolor='white', edgecolor='none', pad=2))
+            ax0.set_xlim([1250-i*5, 1550])
             ax0.set_xticks([])
             ax0.set_yticks([])
+
+
 
             # av_prom_Group1=np.abs(np.nanmedian(Group1_df[x_param])/intc)
             # ax0.plot(x_cord, Group1_np_y[:, i]+av_prom_Group1*i, '-r')
@@ -877,19 +905,28 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
                 Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
                 ax1.plot(x_cord-j*5,
                 (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
+                yplot=np.quantile((Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, 0.65)
+                file=Groupnot1_df_reset['filename'].iloc[j]
+                file = file.replace("_CRR_DiadFit", "")
+                ax1.annotate(str(file), xy=(1450-j*5, yplot),
+                    xycoords="data", fontsize=8, bbox=dict(facecolor='white', edgecolor='none', pad=2))
 
 
             else:
 
                 for j in range(0, np.shape(Groupnot1_np_y)[1]):
 
-
-
                     av_prom_disc=np.abs(np.nanmedian(Groupnot1_df['Diad1_abs_prom'])/intc)
                     Diff=np.nanmax(Groupnot1_np_y[:, j])-np.nanmin(Groupnot1_np_y[:, j])
                     ax1.plot(x_cord-j*5,
                     (Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, '-k', lw=0.5)
-            ax1.set_xlim([1250-j*5, 1450])
+                    yplot=np.quantile((Groupnot1_np_y[:, j]-np.nanmin(Groupnot1_np_y[:, j]))/Diff+j/3, 0.5)
+                    file=Groupnot1_df_reset['filename'].iloc[j]
+                    file = file.replace("_CRR_DiadFit", "")
+                    ax1.annotate(str(file), xy=(1450-j*5, yplot),
+                        xycoords="data", fontsize=8, bbox=dict(facecolor='white', edgecolor='none', pad=2))
+
+            ax1.set_xlim([1250-j*5, 1550])
             ax1.set_xticks([])
             ax1.set_yticks([])
 
@@ -1310,6 +1347,8 @@ class diad2_fit_config:
 
     # Degree of polynomial to use
     N_poly_bck_diad2: float =1
+    # Threshold intesnity
+    threshold_intensity=50
 
     # Background/baseline positions
     lower_bck_diad2: Tuple[float, float]=(1300, 1360)
@@ -1467,6 +1506,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     fwhm_ini=result_ini.params.get('fwhm')
 
 
+
     # For relatively weak peaks, you wont want a gaussian background
     if config1.fit_gauss is False:
 
@@ -1500,7 +1540,6 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
             pars1['lz1_'+ 'sigma'].set(config1.diad_sigma, min=config1.diad_sigma*config1.diad_sigma_min_allowance,
                         max=config1.diad_sigma*config1.diad_sigma_max_allowance)
-
 
 
 
@@ -1616,8 +1655,6 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         params['bkg_'+'sigma'].set(sigma_ini*15, min=sigma_ini*10, max=sigma_ini*25)
         params['bkg_'+'center'].set(initial_guess, min=initial_guess-7, max=initial_guess+7)
 
-        if fit_peaks==1:
-            raise TypeError('Dont ask for a gaussian background and only 1 peak, youll need to add a diad and HB minimum')
 
 
         if fit_peaks==2:
@@ -1777,26 +1814,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     y_best_fit=result.eval(x=x_lin)
     components=result.eval_components(x=x_lin)
 
-    #Checking whether you need any flags.
-    if error_pk2 is None:
-        refit=True
-        refit_param=str(refit_param)+' No Error'
 
-
-    if Peak1_Int>=(calc_diad_amplitude*10-0.1):
-        refit=True
-        refit_param=str(refit_param)+' V_LowAmp'
-    if Peak1_Sigma>=(calc_diad_amplitude*10-0.1):
-        refit=True
-        refit_param=str(refit_param)+' V_HighAmp'
-    if Peak1_Sigma>=(config1.diad_sigma*config1.diad_sigma_max_allowance-0.001):
-        refit=True
-        refit_param=str(refit_param)+' V_input_TooLowSigma'
-    if Peak1_Sigma<=(config1.diad_sigma*config1.diad_sigma_min_allowance+0.001):
-        refit=True
-        refit_param=str(refit_param)+' V_input_TooHighSigma'
-
-    #if findme
 
 
     if config1.fit_gauss is not False:
@@ -1807,7 +1825,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         max_Gauss=np.max(components.get('bkg_'))
         max_voigt=np.max(components.get('lz1_'))
         if max_Gauss>max_voigt/5:
-            refit_param=str(refit_param)+ ' G_input_TooHighRelativeToDiad'
+            refit_param=str(refit_param)+ ' G_higher_than_diad'
         # if Gauss_sigma>=(config1.gauss_sigma*10-0.1):
         #     refit=True
         #     refit_param=str(refit_param)+' G_input_TooLowSigma'
@@ -1820,7 +1838,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         #     refit_param=str(refit_param)+' G_input_TooLowAmp'
         # if Gauss_amp<=(config1.gauss_sigma+0.1):
         #     refit=True
-        #     refit_param=str(refit_param)+' G_input_TooHighAmp'
+        #     refit_param=str(refit_param)+' G_Amp_too_high'
         if Gauss_cent<=(config1.fit_gauss-30+0.5):
             refit=True
             refit_param=str(refit_param)+' G_InputTooLowCent'
@@ -1984,6 +2002,33 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             df_out['Diad2_Gauss_Sigma']=Gauss_sigma
 
 
+        #Checking whether you need any flags.
+        if error_pk2 is None:
+            refit=True
+            refit_param=str(refit_param)+' No Error'
+
+
+        if Peak1_Int>=(calc_diad_amplitude*10-0.1):
+            refit=True
+            refit_param=str(refit_param)+' V_LowAmp'
+        if Peak1_Sigma>=(calc_diad_amplitude*10-0.1):
+            refit=True
+            refit_param=str(refit_param)+' V_HighAmp'
+        if Peak1_Sigma>=(config1.diad_sigma*config1.diad_sigma_max_allowance-0.001):
+            refit=True
+            refit_param=str(refit_param)+' V_Sigma_too_Low'
+        if  diad_height>(3*config1.diad_prom):
+            refit_param=str(refit_param)+' V_Sigma_too_Low'
+        if  diad_height<(0.5*config1.diad_prom):
+            refit_param=str(refit_param)+' V_Sigma_too_High'
+        if Peak1_Sigma<=(config1.diad_sigma*config1.diad_sigma_min_allowance+0.001):
+            refit=True
+            refit_param=str(refit_param)+' V_Sigma_too_High'
+        if diad_height<config1.threshold_intensity:
+            refit_param=str(refit_param)+' Below threshold intensity'
+
+    #if findme
+
 
         if plot_figure is True:
 
@@ -2056,16 +2101,16 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             Peak2_Cent=result.best_values.get('lz2_center')
             Peak2_Int=result.best_values.get('lz2_amplitude')
             Peak2_Sigma=result.best_values.get('lz2_sigma')
-            # Checking parameters for hot bands
-            if Peak2_Sigma>(sigma_ini*5-0.1):
-                refit_param=str(refit_param)+' HB1_HighSigma'
-            if Peak2_Sigma<=(sigma_ini/20+0.1):
-                refit_param=str(refit_param)+' HB1_LowSigma'
-
-            if Peak2_Int>(Amplitude_ini/5-0.001):
-                refit_param=str(refit_param)+' HB1_HighAmp'
-            if Peak2_Int<=(Amplitude_ini/100+0.001):
-                refit_param=str(refit_param)+' HB1_LowAmp'
+            # # Checking parameters for hot bands
+            # if Peak2_Sigma>(sigma_ini*5-0.1):
+            #     refit_param=str(refit_param)+' HB1_HighSigma'
+            # if Peak2_Sigma<=(sigma_ini/20+0.1):
+            #     refit_param=str(refit_param)+' HB1_LowSigma'
+            #
+            # if Peak2_Int>(Amplitude_ini/5-0.001):
+            #     refit_param=str(refit_param)+' HB1_HighAmp'
+            # if Peak2_Int<=(Amplitude_ini/100+0.001):
+            #     refit_param=str(refit_param)+' HB1_LowAmp'
 
 
             Peak3_Cent=None
@@ -2317,6 +2362,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
             fit_peaks=1
             fit_gauss=False
 
+
+
     if fit_peaks==3:
         # This tests if HB is Nan and C13 is Nan
         if np.isnan(HB_pos)==True and np.isnan(C13_pos)==True:
@@ -2360,97 +2407,100 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     xdat=x_diad2, ydat=y_corr_diad2,
     span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=fit_peaks)
 
+    if any(df_out['Diad2_refit'].str.contains('Below threshold intensity')):
+        print('below your threshold intensity, we have filled with nans')
+
+
+    else:
+
+        # Try Refitting once
+        if str(df_out['Diad2_refit'].iloc[0])!='Flagged Warnings:':
+            print('refit attempt 1')
+            factor=2
+
+            import copy
+            config_tweaked=config1
+            config_tweaked=copy.copy(config1)
+
+            if any(df_out['Diad2_refit'].str.contains(' No Error')):
+                if fit_peaks>1:
+                    fit_peaks=fit_peaks-1
 
 
 
-    # Try Refitting once
-    if str(df_out['Diad2_refit'].iloc[0])!='Flagged Warnings:':
-        print('refit attempt 1')
-        factor=2
 
-        import copy
-        config_tweaked=config1
-        config_tweaked=copy.copy(config1)
-
-        if any(df_out['Diad2_refit'].str.contains(' No Error')):
-            if config1.fit_peaks>1:
-                config_tweaked.fit_peaks=config1.fit_peaks-1
-                fit_peaks=config_tweaked.fit_peaks
-
-
-
-        # if any(df_out['Diad2_refit'].str.contains('V_HighAmp')):
-        #     config_tweaked.diad_amplitude=calc_diad_amplitude/10
-        if any(df_out['Diad2_refit'].str.contains('V_input_TooLowSigma')):
-            config_tweaked.diad_sigma=config1.diad_sigma*factor
-        if any(df_out['Diad2_refit'].str.contains('V_input_TooHighSigma')):
-            config_tweaked.diad_sigma=config1.diad_sigma/factor
-        # Gaussian fit bits
-        if any(df_out['Diad2_refit'].str.contains('G_input_TooHighSigma')):
-            config_tweaked.gauss_sigma=config1.gauss_sigma/factor
-        if any(df_out['Diad2_refit'].str.contains('G_input_TooLowSigma')):
-            config_tweaked.gauss_sigma=config1.gauss_sigma*factor
-        if any(df_out['Diad2_refit'].str.contains('G_input_TooLowAmp')):
-            config_tweaked.gauss_amplitude=config1.gauss_amp*factor
-        if any(df_out['Diad2_refit'].str.contains('G_input_TooHighAmp')):
-            config_tweaked.gauss_amplitude=config1.gauss_amp/factor
-        if any(df_out['Diad2_refit'].str.contains('G_input_TooHighRelativeToDiad')):
-            config_tweaked.gauss_amplitude=config1.gauss_amp/factor
-            #config_tweaked.gauss_sigma=config1.gauss_sigma*factor
-           # Hot band fit bits
-        # if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
-        #     config_tweaked.HB_amplitude=calc_HB_amplitude/2
-        # if any(df_out['Diad2_refit'].str.contains('HB2_HighAmp')):
-        #     config_tweaked.HB_amplitude=calc_HB_amplitude*2
-
-
-        result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked, diad2=True, path=path, filename=filename,
-         xdat=x_diad2, ydat=y_corr_diad2,
-    span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=config_tweaked.fit_peaks)
-        i=2
-        while str(df_out['Diad2_refit'].iloc[0])!='Flagged Warnings:':
-
-            print('refit attempt  ='+str(i) + ', '+str(df_out['Diad2_refit'].iloc[0]))
-            print(df_out['Diad2_refit'].iloc[0])
-
-
-            config_tweaked2=copy.copy(config_tweaked)
-            factor2=factor*2
-
-            #
-            # if any(df_out['Diad2_refit'].str.contains('V_LowAmp')):
-            #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude*10
             # if any(df_out['Diad2_refit'].str.contains('V_HighAmp')):
-            #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude/10
-            if any(df_out['Diad2_refit'].str.contains('V_input_TooLowSigma')):
-                config_tweaked2.diad_sigma=config_tweaked.diad_sigma*factor2
-            if any(df_out['Diad2_refit'].str.contains('V_input_TooHighSigma')):
-                config_tweaked2.diad_sigma=config_tweaked.diad_sigma/factor2
+            #     config_tweaked.diad_amplitude=calc_diad_amplitude/10
+            if any(df_out['Diad2_refit'].str.contains('V_Sigma_too_Low')):
+                config_tweaked.diad_sigma=config1.diad_sigma*factor
+            if any(df_out['Diad2_refit'].str.contains('V_Sigma_too_High')):
+                config_tweaked.diad_sigma=config1.diad_sigma/factor
             # Gaussian fit bits
             if any(df_out['Diad2_refit'].str.contains('G_input_TooHighSigma')):
-                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma/factor2
+                config_tweaked.gauss_sigma=config1.gauss_sigma/factor
             if any(df_out['Diad2_refit'].str.contains('G_input_TooLowSigma')):
-                config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
+                config_tweaked.gauss_sigma=config1.gauss_sigma*factor
             if any(df_out['Diad2_refit'].str.contains('G_input_TooLowAmp')):
-                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp*factor2
-            if any(df_out['Diad2_refit'].str.contains('G_input_TooHighAmp')):
-                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
-            if any(df_out['Diad2_refit'].str.contains('G_input_TooHighRelativeToDiad')):
-                config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
-                #config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
-        # # Hot bands bits
-        #     if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
-        #         config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude/2
-        #     if any(df_out['Diad2_refit'].str.contains('HB2_HighAmp')):
-        #         config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude*2
+                config_tweaked.gauss_amplitude=config1.gauss_amp*factor
+            if any(df_out['Diad2_refit'].str.contains('G_Amp_too_high')):
+                config_tweaked.gauss_amplitude=config1.gauss_amp/factor
+            if any(df_out['Diad2_refit'].str.contains('G_higher_than_diad')):
+                config_tweaked.gauss_amplitude=config1.gauss_amp/factor
+                #config_tweaked.gauss_sigma=config1.gauss_sigma*factor
+            # Hot band fit bits
+            # if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
+            #     config_tweaked.HB_amplitude=calc_HB_amplitude/2
+            # if any(df_out['Diad2_refit'].str.contains('HB2_HighAmp')):
+            #     config_tweaked.HB_amplitude=calc_HB_amplitude*2
 
 
-            result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked2, diad2=True, path=path, filename=filename,
-        xdat=x_diad2, ydat=y_corr_diad2, span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=config_tweaked.fit_peaks)
-            i=i+1
-            if i>5:
-                print('Got to 5 iteratoins and still couldnt adjust the fit parameters')
-                break
+            result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked, diad2=True, path=path, filename=filename,
+            xdat=x_diad2, ydat=y_corr_diad2,
+        span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=fit_peaks)
+            i=2
+            while str(df_out['Diad2_refit'].iloc[0])!='Flagged Warnings:':
+
+                print('refit attempt  ='+str(i) + ', '+str(df_out['Diad2_refit'].iloc[0]))
+                print(df_out['Diad2_refit'].iloc[0])
+
+
+                config_tweaked2=copy.copy(config_tweaked)
+                factor2=factor*2
+
+                #
+                # if any(df_out['Diad2_refit'].str.contains('V_LowAmp')):
+                #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude*10
+                # if any(df_out['Diad2_refit'].str.contains('V_HighAmp')):
+                #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude/10
+                if any(df_out['Diad2_refit'].str.contains('V_Sigma_too_Low')):
+                    config_tweaked2.diad_sigma=config_tweaked.diad_sigma*factor2
+                if any(df_out['Diad2_refit'].str.contains('V_Sigma_too_High')):
+                    config_tweaked2.diad_sigma=config_tweaked.diad_sigma/factor2
+                # Gaussian fit bits
+                if any(df_out['Diad2_refit'].str.contains('G_input_TooHighSigma')):
+                    config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma/factor2
+                if any(df_out['Diad2_refit'].str.contains('G_input_TooLowSigma')):
+                    config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
+                if any(df_out['Diad2_refit'].str.contains('G_input_TooLowAmp')):
+                    config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp*factor2
+                if any(df_out['Diad2_refit'].str.contains('G_Amp_too_high')):
+                    config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
+                if any(df_out['Diad2_refit'].str.contains('G_higher_than_diad')):
+                    config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
+                    #config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
+            # # Hot bands bits
+            #     if any(df_out['Diad2_refit'].str.contains('HB2_LowAmp')):
+            #         config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude/2
+            #     if any(df_out['Diad2_refit'].str.contains('HB2_HighAmp')):
+            #         config_tweaked2.HB_amplitude=config_tweaked.HB_amplitude*2
+
+
+                result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim,residual_diad_coords, ydat_inrange,  xdat_inrange=fit_gaussian_voigt_generic_diad(config_tweaked2, diad2=True, path=path, filename=filename,
+            xdat=x_diad2, ydat=y_corr_diad2, span=span_diad2, plot_figure=False, Diad_pos=Diad_pos, HB_pos=HB_pos, C13_pos=C13_pos, fit_peaks=fit_peaks)
+                i=i+1
+                if i>5:
+                    print('Got to 5 iteratoins and still couldnt adjust the fit parameters')
+                    break
 
 
     # get a best fit to the baseline using a linspace from the peak fitting
@@ -2812,14 +2862,14 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
         config_tweaked=copy.copy(config1)
 
         if any(df_out['Diad1_refit'].str.contains(' No Error')):
-            if config1.fit_peaks>1:
+            if config1.fit_peaks>2:
                 config_tweaked.fit_peaks=config1.fit_peaks-1
                 fit_peaks=config_tweaked.fit_peaks
 
 
-        if any(df_out['Diad1_refit'].str.contains('V_input_TooLowSigma')):
+        if any(df_out['Diad1_refit'].str.contains('V_Sigma_too_Low')):
             config_tweaked.diad_sigma=config1.diad_sigma*factor
-        if any(df_out['Diad1_refit'].str.contains('V_input_TooHighSigma')):
+        if any(df_out['Diad1_refit'].str.contains('V_Sigma_too_High')):
             config_tweaked.diad_sigma=config1.diad_sigma/factor
         # Gaussian fit bits
         if any(df_out['Diad1_refit'].str.contains('G_input_TooHighSigma')):
@@ -2828,9 +2878,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
             config_tweaked.gauss_sigma=config1.gauss_sigma*factor
         if any(df_out['Diad1_refit'].str.contains('G_input_TooLowAmp')):
             config_tweaked.gauss_amplitude=config1.gauss_amp*factor
-        if any(df_out['Diad1_refit'].str.contains('G_input_TooHighAmp')):
+        if any(df_out['Diad1_refit'].str.contains('G_Amp_too_high')):
             config_tweaked.gauss_amplitude=config1.gauss_amp/factor
-        if any(df_out['Diad1_refit'].str.contains('G_input_TooHighRelativeToDiad')):
+        if any(df_out['Diad1_refit'].str.contains('G_higher_than_diad')):
             config_tweaked.gauss_amplitude=config1.gauss_amp/factor
             config_tweaked.gauss_sigma=config1.gauss_sigma*factor
         # # Hot band fit bits
@@ -2857,9 +2907,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
             #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude*10
             # if any(df_out['Diad1_refit'].str.contains('V_HighAmp')):
             #     config_tweaked2.diad_amplitude=config_tweaked.diad_amplitude/10
-            if any(df_out['Diad1_refit'].str.contains('V_input_TooLowSigma')):
+            if any(df_out['Diad1_refit'].str.contains('V_Sigma_too_Low')):
                 config_tweaked2.diad_sigma=config_tweaked.diad_sigma*factor2
-            if any(df_out['Diad1_refit'].str.contains('V_input_TooHighSigma')):
+            if any(df_out['Diad1_refit'].str.contains('V_Sigma_too_High')):
                 config_tweaked2.diad_sigma=config_tweaked.diad_sigma/factor2
             # Gaussian fit bits
             if any(df_out['Diad1_refit'].str.contains('G_input_TooHighSigma')):
@@ -2868,9 +2918,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
                 config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
             if any(df_out['Diad1_refit'].str.contains('G_input_TooLowAmp')):
                 config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp*factor2
-            if any(df_out['Diad1_refit'].str.contains('G_input_TooHighAmp')):
+            if any(df_out['Diad1_refit'].str.contains('G_Amp_too_high')):
                 config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
-            if any(df_out['Diad1_refit'].str.contains('G_input_TooHighRelativeToDiad')):
+            if any(df_out['Diad1_refit'].str.contains('G_higher_than_diad')):
                 config_tweaked2.gauss_amplitude=config_tweaked.gauss_amp/factor2
                 config_tweaked2.gauss_sigma=config_tweaked.gauss_sigma*factor2
             # Hot bands bits
@@ -3157,9 +3207,9 @@ to_clipboard=False, path=None):
             combo['Diad2_Gauss_Sigma']=np.nan
 
         combo['Splitting']=combo['Diad2_Voigt_Cent']-combo['Diad1_Voigt_Cent']
-        combo['Split_err_abs']=combo['Diad1_cent_err']+combo['Diad2_cent_err']
-        combo['Split_err_quadrature']=(combo['Diad1_cent_err']**2+combo['Diad2_cent_err']**2)**0.5
-        cols_to_move = ['Splitting', 'Split_err_abs', 'Split_err_quadrature', 'Diad1_Combofit_Cent', 'Diad1_cent_err', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma',  'Diad1_Residual', 'Diad1_Prop_Lor', 'Diad1_fwhm', 'Diad1_refit','Diad2_Combofit_Cent', 'Diad2_cent_err',  'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Diad2_Residual', 'Diad2_Prop_Lor', 'Diad2_fwhm', 'Diad2_refit',
+        #combo['Split_err_abs']=combo['Diad1_cent_err']+combo['Diad2_cent_err']
+        combo['Split_σ']=(combo['Diad1_cent_err']**2+combo['Diad2_cent_err']**2)**0.5
+        cols_to_move = ['Splitting', 'Split_σ',  'Diad1_Combofit_Cent', 'Diad1_cent_err', 'Diad1_Combofit_Height', 'Diad1_Voigt_Cent', 'Diad1_Voigt_Area', 'Diad1_Voigt_Sigma',  'Diad1_Residual', 'Diad1_Prop_Lor', 'Diad1_fwhm', 'Diad1_refit','Diad2_Combofit_Cent', 'Diad2_cent_err',  'Diad2_Combofit_Height', 'Diad2_Voigt_Cent', 'Diad2_Voigt_Area', 'Diad2_Voigt_Sigma', 'Diad2_Voigt_Gamma', 'Diad2_Residual', 'Diad2_Prop_Lor', 'Diad2_fwhm', 'Diad2_refit',
                     'HB1_Cent', 'HB1_Area', 'HB1_Sigma', 'HB2_Cent', 'HB2_Area', 'HB2_Sigma', 'C13_Cent', 'C13_Area', 'C13_Sigma',
                     'Diad2_Gauss_Cent', 'Diad2_Gauss_Area','Diad2_Gauss_Sigma', 'Diad1_Gauss_Cent', 'Diad1_Gauss_Area','Diad1_Gauss_Sigma',]
         combo_f = combo[cols_to_move + [

@@ -667,6 +667,10 @@ const_params=True, spec_res=0.4) :
     # Flatten x and y if needed
     xdat=x.flatten()
     ydat=y_corr.flatten()
+    
+    df=pd.DataFrame(data={'Xdata': xdat,
+    'Ydata': ydat})
+    df.to_clipboard(excel=True)
 
     # This defines the range you want to fit (e.g. how big the tails are)
     lower_pk1=Ne_center+x_span[0]
@@ -685,10 +689,12 @@ const_params=True, spec_res=0.4) :
             model0 = PseudoVoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
         if model_name=="VoigtModel":
             model0 = VoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
-        print(amplitude)
+        
         pars0 = model0.make_params()
         pars0['p0_center'].set(Ne_center)
         pars0['p0_amplitude'].set(amplitude)
+       
+        
         
         init0 = model0.eval(pars0, x=xdat)
         result0 = model0.fit(ydat, pars0, x=xdat)
@@ -738,30 +744,43 @@ const_params=True, spec_res=0.4) :
         maxp2=Center_p0-LH_offset_mini[0]
         if block_print is False:
             print('Trying to place second peak between '+str(np.round(minp2, 2))+'and'+ str(np.round(maxp2, 2)))
-        pars[prefix + 'center'].set(Center_p0, min=minp2,
+        
+
+        #pars['p2_fwhm'].set(fwhm_p0/2, min=0.001, max=fwhm_p0*5)
+
+        pars['p2_center'].set(Center_p0, min=minp2,
         max=maxp2)
-
-        pars['p2_'+ 'fwhm'].set(fwhm_p0/2, min=0.001, max=fwhm_p0*5)
-
-
-        pars[prefix + 'amplitude'].set(Amp_p0/5, min=0, max=Amp_p0/2)
-        pars[prefix + 'sigma'].set(0.2, min=0)
+        pars['p2_amplitude'].set(Amp_p0/4, min=Amp_p0/10, max=Amp_p0/2)
+        pars['p2_sigma'].set(pk1_sigma/2, min=pk1_sigma/3, max=2*pk1_sigma)
+       
 
         model_combo=model1+peak
+        # updating pars1, the fit to peak 1, with pars values
         pars1.update(pars)
+        
         
         # Attempt at stabilizing peak fit
         result = model_combo.fit(ydat, pars1, x=xdat)
         
+
+        # pars1['p2_center'].vary = False
+        # pars1['p2_amplitude'].vary = False
+        # pars1['p2_sigma'].vary = False
+        
+        # 
         result.params['p2_center'].vary = False
         result.params['p2_amplitude'].vary = False
         result.params['p2_sigma'].vary = False
+
+
         
         model1_only = model1
         
         pars1.update(result.params)
         
-        result_pk1 = model1_only.fit(ydat, pars1, x=xdat)
+        
+        #result_pk1 = model1_only.fit(ydat, pars1, x=xdat)
+        result = model_combo.fit(ydat, pars1, x=xdat)
                 
 
 
@@ -777,18 +796,20 @@ const_params=True, spec_res=0.4) :
 
         # create parameters with initial values
         pars1 = model_combo.make_params()
-        par1['p1_amplitude'].set(amplitude)
+        pars1['p1_amplitude'].set(amplitude)
         pars1['p1_' + 'center'].set(Ne_center, min=Ne_center-2*spec_res,max=Ne_center+2*spec_res)
         pars1['p1_'+ 'sigma'].set(pk1_sigma, min=pk1_sigma*min_off, max=pk1_sigma*max_off)
 
+        
 
 
 
 
 
-
-    init = model_combo.eval(pars1, x=xdat)
+    
     result = model_combo.fit(ydat, pars1, x=xdat)
+    
+    init = model_combo.eval(pars1, x=xdat)
     # Need to check errors output
     Error_bars=result.errorbars
 
@@ -1418,38 +1439,56 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
         x=x_axis
     else:
         x=df.index
-    fig, ((ax5, ax6), (ax1, ax2), (ax3, ax4), ) = plt.subplots(3, 2, figsize=(10, 12))
+    fig, ((ax5, ax6),  (ax3, ax4), (ax1, ax2)) = plt.subplots(3, 2, figsize=(10, 12))
 
+    # Pk1 center vs. X
+
+    ax5.errorbar(x, df['pk1_peak_cent'], xerr=0, yerr=df['error_pk1'].fillna(0),
+             fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
+    ax5.set_xlabel(x_label)
+    ax5.set_ylabel('Peak 1 center')
+             
+    # Pk2 center vs. X
+             
+    ax6.plot(x, df['pk2_peak_cent'], marker,  mec='k', mfc='r')
+    ax6.errorbar(x, df['pk2_peak_cent'], xerr=0, yerr=df['error_pk2'].fillna(0),
+             fmt='o', ecolor='k', elinewidth=0.8, mfc='r', ms=5, mec='k', capsize=3)
+    
+    ax6.set_xlabel(x_label)
+    ax6.set_ylabel('Peak 2 center')
+    
+    # 
+    ax3.errorbar(df['Ne_Corr'], df['pk2_peak_cent'], xerr=df['1σ_Ne_Corr'].fillna(0), 
+    yerr=df['error_pk2'].fillna(0),
+             fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
+             
+             
+    ax3.set_xlabel('Ne Correction factor')
+    ax3.set_ylabel('Peak 2 center')
+
+
+    ax4.errorbar(df['Ne_Corr'], df['pk1_peak_cent'], xerr=df['1σ_Ne_Corr'].fillna(0), 
+    yerr=df['error_pk1'].fillna(0),
+             fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
+    ax4.set_xlabel('Ne Correction factor')
+    ax4.set_ylabel('Peak 1 center')
+    
+    # Ne correction factor vs. time
     ax1.errorbar(x, df['Ne_Corr'], xerr=0, yerr=df['1σ_Ne_Corr'].fillna(0),
              fmt='o', ecolor='k', elinewidth=0.8, mfc='grey', ms=5, mec='k',capsize=3)
     
     ax1.set_ylabel('Ne Correction factor')
     ax1.set_xlabel(x_label)
 
-    
-    ax5.errorbar(x, df['pk1_peak_cent'], xerr=0, yerr=df['error_pk1'].fillna(0),
-             fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
-             
-    ax6.plot(x, df['pk2_peak_cent'], marker,  mec='k', mfc='r')
-    ax6.errorbar(x, df['pk2_peak_cent'], xerr=0, yerr=df['error_pk2'].fillna(0),
-             fmt='o', ecolor='k', elinewidth=0.8, mfc='r', ms=5, mec='k', capsize=3)
-    ax5.set_xlabel(x_label)
-    ax6.set_xlabel(x_label)
-    ax5.set_ylabel('Peak 1 center')
-    ax6.set_ylabel('Peak 2 center')
+    # Ne correction factor vs. residual
 
 
-    ax2.plot( df['residual_pk2']+df['residual_pk1'], df['Ne_Corr'], marker,  mec='k', mfc='r')
+   
     ax2.set_xlabel('Sum of pk1 and pk2 residual')
     ax2.set_ylabel('Ne Correction factor')
 
-    ax3.plot(df['Ne_Corr'], df['pk2_peak_cent'],marker,  mec='k', mfc='r')
-    ax3.set_xlabel('Ne Correction factor')
-    ax3.set_ylabel('Peak 2 center')
 
-    ax4.plot(df['Ne_Corr'], df['pk1_peak_cent'], marker,  mec='k', mfc='b')
-    ax4.set_xlabel('Ne Correction factor')
-    ax4.set_ylabel('Peak 1 center')
+
 
     plt.setp(ax3.get_xticklabels(), rotation=30, horizontalalignment='right')
     plt.setp(ax4.get_xticklabels(), rotation=30, horizontalalignment='right')
@@ -1472,8 +1511,9 @@ def loop_Ne_lines(*, files, spectra_path, filetype,
     if single_acq is True:
 
         for i in tqdm(range(0, np.shape(files)[1]-2)):
-            Ne=np.column_stack((files[:, 0], files[:, i+1]))
             filename=str(i)
+            Ne=np.column_stack((files[:, 0], files[:, i+1]))
+            
 
             Ne, df_fit_params=identify_Ne_lines(Ne_array=Ne,
             config=config_ID_peaks, print_df=False, plot_figure=False)
@@ -1485,6 +1525,7 @@ def loop_Ne_lines(*, files, spectra_path, filetype,
             Ne_center_2=df_fit_params['Peak2_cent'].iloc[0],
             Ne_prom_1=df_fit_params['Peak1_prom'].iloc[0],
             Ne_prom_2=df_fit_params['Peak2_prom'].iloc[0],
+            const_params=False,
             plot_figure=plot_figure)
             df = pd.concat([df, data], axis=0)
 
@@ -1503,6 +1544,7 @@ def loop_Ne_lines(*, files, spectra_path, filetype,
             Ne_center_2=df_fit_params['Peak2_cent'].iloc[0],
             Ne_prom_1=df_fit_params['Peak1_prom'].iloc[0],
             Ne_prom_2=df_fit_params['Peak2_prom'].iloc[0],
+            const_params=False,
             plot_figure=plot_figure)
             df = pd.concat([df, data], axis=0)
 
@@ -1608,7 +1650,7 @@ def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):
 
 ## Lets make a plotting function for this notebook 
 
-def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=False, std_error=True, N_bootstrap=500,save_fig=False):
+def generate_Ne_corr_model(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=False, std_error=True, N_bootstrap=500,save_fig=False, pkl_name='polyfit_data.pkl'):
 # Define the x and y values
     x_all   = np.array([time])
     y_all = np.array([Ne_corr['Ne_Corr']])
@@ -1626,18 +1668,18 @@ def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=
 
     # Save the model and the data to a pickle file
     data = {'model': Pf, 'x': x, 'y': y}
-    with open('polyfit_data.pkl', 'wb') as f:
+    with open(pkl_name, 'wb') as f:
         pickle.dump(data, f)
         
     if bootstrap is True:
 
         new_x_plot=np.linspace(np.min(x), np.max(x), 100)
-        Ne_corr2=calculate_Ne_corr_bootstrap_values(pickle_str='polyfit_data.pkl',
+        Ne_corr2=calculate_Ne_corr_bootstrap_values(pickle_str=pkl_name,
             new_x=pd.Series(new_x_plot), N_poly=N_poly, CI=CI, N_bootstrap=N_bootstrap)
 
     if std_error is True:
         new_x_plot=np.linspace(np.min(x), np.max(x), 100)
-        Ne_corr2=calculate_Ne_corr_std_err_values(pickle_str='polyfit_data.pkl',
+        Ne_corr2=calculate_Ne_corr_std_err_values(pickle_str=pkl_name,
         new_x=pd.Series(new_x_plot), CI=CI)
 
     
@@ -1674,7 +1716,7 @@ def plot_and_save_Ne_line_pickle(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=
 
     
 from scipy.stats import t
-import numpy as np
+
 
 def calculate_Ne_corr_std_err_values(*, pickle_str, new_x, CI=0.67):
     # Load the model and the data from the pickle file
@@ -1683,7 +1725,7 @@ def calculate_Ne_corr_std_err_values(*, pickle_str, new_x, CI=0.67):
 
     model = data['model']
     N_poly = model.order - 1
-    print(N_poly)
+    
     Pf = data['model']
     x = data['x']
     y = data['y']
