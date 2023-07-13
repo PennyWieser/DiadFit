@@ -884,7 +884,7 @@ def calculates_time_witec(*, path, filename):
 
     return line3_sec_int, line2
 
-def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False):
+def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False, str_prefix=' '):
     """ Stitches together WITEC metadata for all files in a loop using the function
     extract_acq_params_witec and calculates_time_witec, exports as a dataframe
 
@@ -925,7 +925,7 @@ def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False
     for i in tqdm(range(0, len(Allfiles))):
         filename1=Allfiles[i] #.rsplit('.',1)[0]
         if prefix is True:
-            filename=filename1.split(' ')[1:][0]
+            filename=filename1.split(str_prefix)[1:][0]
 
         else:
             filename=filename1
@@ -1017,7 +1017,7 @@ def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False
 def extracting_filenames_generic(*, names, prefix=False,
     str_prefix=None, suffix=False, CRR_filter=True,
     str_suffix=None,
-   file_type=None):
+   file_ext=None):
     """
     Takes filenames from a panda series (e.g., a column of a dataframe of metadata), outputs a numpy array that is consistent with the same function for 
     spectra, to allow stitching of spectra and metadata. 
@@ -1040,7 +1040,7 @@ def extracting_filenames_generic(*, names, prefix=False,
     str_suffix: str
         The string separating the filename from the suffix
 
-    file_type: str
+    file_ext: str
         The file extension, e.g., '.csv'
 
     Returns
@@ -1049,10 +1049,11 @@ def extracting_filenames_generic(*, names, prefix=False,
 
     """
     
+    
 
     if isinstance(names, list):
         names_df=pd.DataFrame(data={'name': names})
-        names=names_df['name']
+        names=names_df['name'].copy()
 
     if CRR_filter is True:
         names = names.str.replace('_CRR_DiadFit', '')
@@ -1090,8 +1091,8 @@ def extracting_filenames_generic(*, names, prefix=False,
 
                 file_m[i]=str_nof_name[0]
 
-        if file_type in file_m[i]:
-            file_m[i]=file_m[i].replace(file_type, '')
+        if file_ext in file_m[i]:
+            file_m[i]=file_m[i].replace(file_ext, '')
 
 
 

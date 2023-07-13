@@ -748,10 +748,10 @@ const_params=True, spec_res=0.4) :
 
         #pars['p2_fwhm'].set(fwhm_p0/2, min=0.001, max=fwhm_p0*5)
 
-        pars['p2_center'].set(Center_p0, min=minp2,
+        pars['p2_center'].set((maxp2+minp2)/2, min=minp2,
         max=maxp2)
-        pars['p2_amplitude'].set(Amp_p0/4, min=Amp_p0/10, max=Amp_p0/2)
-        pars['p2_sigma'].set(pk1_sigma/2, min=pk1_sigma/3, max=2*pk1_sigma)
+        pars['p2_amplitude'].set(Amp_p0/10, min=Amp_p0/15, max=Amp_p0/4)
+        pars['p2_sigma'].set(pk1_sigma/1.2, min=pk1_sigma/3, max=pk1_sigma)
        
 
         model_combo=model1+peak
@@ -781,7 +781,7 @@ const_params=True, spec_res=0.4) :
         
         #result_pk1 = model1_only.fit(ydat, pars1, x=xdat)
         result = model_combo.fit(ydat, pars1, x=xdat)
-                
+
 
 
 
@@ -1623,12 +1623,13 @@ def reg_Ne_lines_time(df, fit='poly', N_poly=None, spline_fit=None):
     return Pf, fig
 
 
-def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):
+def filter_Ne_Line_neighbours(df_combo, number_av=6, offset=0.00005, file_name_filt=None):
     """ This function discards Ne lines with a correction factor more than 
     offset away from the median value of the N points (number_av) either side of it.
     
 
     """
+    Corr_factor=df_combo['Ne_Corr']
     Corr_factor_Filt=np.empty(len(Corr_factor), dtype=float)
     median_loop=np.empty(len(Corr_factor), dtype=float)
 
@@ -1642,10 +1643,17 @@ def filter_Ne_Line_neighbours(Corr_factor, number_av=6, offset=0.00005):
         else:
             Corr_factor_Filt[i]=Corr_factor[i]
     ds=pd.Series(Corr_factor_Filt)
+    
+    # Filter based on file names
+    if file_name_filt is not None:
+        pattern = '|'.join(file_name_filt)
+        mask = df_combo['filename_x'].str.contains(pattern)
+        filtered_ds = ds.where(~mask, np.nan)
 
-
-
-    return ds
+    
+        return filtered_ds
+    else:
+        return ds
 
 
 ## Lets make a plotting function for this notebook 

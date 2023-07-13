@@ -700,7 +700,7 @@ def plot_peak_params(fit_params,
 def filter_splitting_prominence(*, fit_params, data_y_all,
                                 x_cord,
                                 splitting_limits=[100, 107],
-                                lower_diad1_prom=10):
+                                lower_diad1_prom=10, exclude_str):
     """ Filters Spectra based on approximate splitting.
 
     Parameters
@@ -737,14 +737,18 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
 
     reas_split=(fit_params['approx_split'].between(splitting_limits[0], splitting_limits[1]))
     reas_heigh=fit_params['Diad1_abs_prom']>lower_diad1_prom
+    if exclude_str is not None:
+        name_in_file=~fit_params['filename'].str.contains(exclude_str)
+    else:
+        name_in_file=reas_heigh
 
-    fit_params_filt=fit_params.loc[(reas_split&reas_heigh)].reset_index(drop=True)
-    fit_params_disc=fit_params.loc[~(reas_split&reas_heigh)].reset_index(drop=True)
+    fit_params_filt=fit_params.loc[(reas_split&reas_heigh&name_in_file)].reset_index(drop=True)
+    fit_params_disc=fit_params.loc[~(reas_split&reas_heigh&name_in_file)].reset_index(drop=True)
 
     print('Keeping N='+str(len(fit_params_filt)))
     print('Discarding N='+str(len(fit_params_disc)))
 
-    filt=reas_split&reas_heigh
+    filt=reas_split&reas_heigh&name_in_file
     data_y_filt=data_y_all[:, (filt)]
     data_y_disc=data_y_all[:, ~(filt)]
 

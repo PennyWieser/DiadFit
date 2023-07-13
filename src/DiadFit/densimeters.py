@@ -522,7 +522,7 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
 ## functions to neatly merge secondary phases in
 import os.path
 from os import path
-def merge_in_carb_SO2(df_combo, file1_name='Carb_Peak_fits.xlsx', file2_name='SO2_Peak_fits.xlsx', prefix=False, str_prefix=" "):
+def merge_in_carb_SO2(df_combo, file1_name='Carb_Peak_fits.xlsx', file2_name='SO2_Peak_fits.xlsx', prefix=False, str_prefix=" ", file_ext='.txt'):
     """
     This function checks for files with secondary phases in the path with names file1_name and file2_name, if they are there
     it will merge them together into a dataframe. It then merges this with the dataframe 'df_combo' of your other fits
@@ -552,23 +552,23 @@ def merge_in_carb_SO2(df_combo, file1_name='Carb_Peak_fits.xlsx', file2_name='SO
     # Remove these to get the pure file name
     if Sec_Phases is not None:
         file_sec_phase=extracting_filenames_generic(
-            prefix=prefix, str_prefix=str_prefix,
-            names=Sec_Phases['filename'].reset_index(drop=True),
-        file_type='.txt')
+            prefix=prefix, str_prefix=str_prefix, file_ext=file_ext,
+            names=Sec_Phases['filename'].reset_index(drop=True))
+
 
 
     else:
         df_combo_sec_phase=df_combo
 
-    df_combo['name_for_matching']=df_combo['Name_for_Secondary_Phases']
+
 
 
     if Sec_Phases is not None:
-        Sec_Phases['name_for_matching']=file_sec_phase
+        Sec_Phases['filename']=file_sec_phase
         df_combo_sec_phase=df_combo.merge(Sec_Phases,
-        on='name_for_matching', how='outer').reset_index(drop=True)
+        on='filename', how='outer').reset_index(drop=True)
 
-        print(Sec_Phases['name_for_matching'])
+
 
     else:
         df_combo_sec_phase=df_combo
@@ -616,5 +616,54 @@ def merge_fit_files():
 
 
 
+## Save settings files
+def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ext, TruPower):
+    # Get the current folder
+    folder = os.getcwd()
+
+    # Create the settings dictionary
+    settings = {
+        'meta_path': meta_path,
+        'spectra_path': spectra_path,
+        'filetype': filetype,
+        'prefix': prefix,
+        'prefix_str': prefix_str,
+        'file_ext': file_ext,
+        'TruPower': TruPower,
+    }
+
+    # Construct the settings file path
+    settings_file_path = os.path.join(folder, 'settings.txt')
+
+    # Write the settings to the file
+    with open(settings_file_path, 'w') as file:
+        for key, value in settings.items():
+            file.write(f"{key}={value}\n")
+
+def get_settings():
+    # Get the current folder
+    folder = os.getcwd()
+
+    # Construct the settings file path
+    settings_file_path = os.path.join(folder, 'settings.txt')
+
+    # Read the settings from the file
+    settings = {}
+    with open(settings_file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if line:
+                key, value = line.split('=')
+                settings[key] = value
+
+    if 'prefix' in settings:
+        settings['prefix'] = settings['prefix'].lower() == 'true'
+
+    if 'TruPower' in settings:
+        settings['TruPower'] = settings['TruPower'].lower() == 'true'
+
+    # Return the settings
+    return settings.get('meta_path'), settings.get('spectra_path'), settings.get('filetype'), \
+           settings.get('prefix'), settings.get('prefix_str'), settings.get('file_ext'), settings.get('TruPower')
 
 
