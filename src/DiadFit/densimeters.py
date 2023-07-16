@@ -627,7 +627,7 @@ def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ex
         'spectra_path': spectra_path,
         'filetype': filetype,
         'prefix': prefix,
-        'prefix_str': prefix_str,
+        'prefix_str': repr(prefix_str),
         'file_ext': file_ext,
         'TruPower': TruPower,
     }
@@ -654,6 +654,9 @@ def get_settings():
             line = line.strip()
             if line:
                 key, value = line.split('=')
+                settings[key] = value
+                if key == 'prefix_str':
+                    value = eval(value)  # Evaluate the string to retrieve the original value
                 settings[key] = value
 
     if 'prefix' in settings:
