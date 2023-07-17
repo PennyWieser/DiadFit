@@ -670,7 +670,7 @@ const_params=True, spec_res=0.4) :
     
     df=pd.DataFrame(data={'Xdata': xdat,
     'Ydata': ydat})
-    df.to_clipboard(excel=True)
+    #df.to_clipboard(excel=True)
 
     # This defines the range you want to fit (e.g. how big the tails are)
     lower_pk1=Ne_center+x_span[0]

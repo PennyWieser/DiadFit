@@ -1175,3 +1175,60 @@ def stitch_loop_individual_fits(*, fit_individually=True,
         df_Dense_Combo=df_Dense
 
     return df_Dense_Combo
+    
+    
+## Save settings files
+def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ext, TruPower):
+    # Get the current folder
+    folder = os.getcwd()
+
+    # Create the settings dictionary
+    settings = {
+        'meta_path': meta_path,
+        'spectra_path': spectra_path,
+        'filetype': filetype,
+        'prefix': prefix,
+        'prefix_str': repr(prefix_str),
+        'file_ext': file_ext,
+        'TruPower': TruPower,
+    }
+
+    # Construct the settings file path
+    settings_file_path = os.path.join(folder, 'settings.txt')
+
+    # Write the settings to the file
+    with open(settings_file_path, 'w') as file:
+        for key, value in settings.items():
+            file.write(f"{key}={value}\n")
+
+def get_settings():
+    # Get the current folder
+    folder = os.getcwd()
+
+    # Construct the settings file path
+    settings_file_path = os.path.join(folder, 'settings.txt')
+
+    # Read the settings from the file
+    settings = {}
+    with open(settings_file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if line:
+                key, value = line.split('=')
+                settings[key] = value
+                if key == 'prefix_str':
+                    value = eval(value)  # Evaluate the string to retrieve the original value
+                settings[key] = value
+
+    if 'prefix' in settings:
+        settings['prefix'] = settings['prefix'].lower() == 'true'
+
+    if 'TruPower' in settings:
+        settings['TruPower'] = settings['TruPower'].lower() == 'true'
+
+    # Return the settings
+    return settings.get('meta_path'), settings.get('spectra_path'), settings.get('filetype'), \
+           settings.get('prefix'), settings.get('prefix_str'), settings.get('file_ext'), settings.get('TruPower')
+
+
+

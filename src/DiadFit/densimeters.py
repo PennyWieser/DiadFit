@@ -585,88 +585,40 @@ def merge_in_carb_SO2(df_combo, file1_name='Carb_Peak_fits.xlsx', file2_name='SO
     return df_combo_sec_phase
 
 ## Merge peak fits together
-def merge_fit_files():
+def merge_fit_files(path):
     """
     This function merges the files Discarded_df.xlsx, Weak_Diads.xlsx, Medium_Diads.xlsx, Strong_Diads.xlsx
     if they exist into one combined dataframe
     """
-    import os.path
-    from os import path
-    if path.exists('Discarded_df.xlsx'):
-        discard=pd.read_excel('Discarded_df.xlsx')
+    import os
+    import pandas as pd
+
+    if os.path.exists(os.path.join(path, 'Discarded_df.xlsx')):
+        discard = pd.read_excel(os.path.join(path, 'Discarded_df.xlsx'))
     else:
-        discard=None
-    if path.exists('Weak_Diads.xlsx'):
-        grp1=pd.read_excel('Weak_Diads.xlsx')
+        discard = None
+
+    if os.path.exists(os.path.join(path, 'Weak_Diads.xlsx')):
+        grp1 = pd.read_excel(os.path.join(path, 'Weak_Diads.xlsx'))
     else:
-        grp1=None
-    if path.exists('Medium_Diads.xlsx'):
-        grp2=pd.read_excel('Medium_Diads.xlsx')
+        grp1 = None
+
+    if os.path.exists(os.path.join(path, 'Medium_Diads.xlsx')):
+        grp2 = pd.read_excel(os.path.join(path, 'Medium_Diads.xlsx'))
     else:
-        grp2=None
-    if path.exists('Strong_Diads.xlsx'):
-        grp3=pd.read_excel('Strong_Diads.xlsx')
+        grp2 = None
+
+    if os.path.exists(os.path.join(path, 'Strong_Diads.xlsx')):
+        grp3 = pd.read_excel(os.path.join(path, 'Strong_Diads.xlsx'))
     else:
-        grp3=None
-    df2=pd.concat([grp1, grp2, grp3], axis=0).reset_index(drop=True)
+        grp3 = None
+
+    df2 = pd.concat([grp1, grp2, grp3], axis=0).reset_index(drop=True)
+
     if discard is not None:
         discard_cols=discard[discard.columns.intersection(df2.columns)]
         df2=pd.concat([df2, discard_cols]).reset_index(drop=True)
     return df2
 
-
-
-## Save settings files
-def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ext, TruPower):
-    # Get the current folder
-    folder = os.getcwd()
-
-    # Create the settings dictionary
-    settings = {
-        'meta_path': meta_path,
-        'spectra_path': spectra_path,
-        'filetype': filetype,
-        'prefix': prefix,
-        'prefix_str': repr(prefix_str),
-        'file_ext': file_ext,
-        'TruPower': TruPower,
-    }
-
-    # Construct the settings file path
-    settings_file_path = os.path.join(folder, 'settings.txt')
-
-    # Write the settings to the file
-    with open(settings_file_path, 'w') as file:
-        for key, value in settings.items():
-            file.write(f"{key}={value}\n")
-
-def get_settings():
-    # Get the current folder
-    folder = os.getcwd()
-
-    # Construct the settings file path
-    settings_file_path = os.path.join(folder, 'settings.txt')
-
-    # Read the settings from the file
-    settings = {}
-    with open(settings_file_path, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if line:
-                key, value = line.split('=')
-                settings[key] = value
-                if key == 'prefix_str':
-                    value = eval(value)  # Evaluate the string to retrieve the original value
-                settings[key] = value
-
-    if 'prefix' in settings:
-        settings['prefix'] = settings['prefix'].lower() == 'true'
-
-    if 'TruPower' in settings:
-        settings['TruPower'] = settings['TruPower'].lower() == 'true'
-
-    # Return the settings
-    return settings.get('meta_path'), settings.get('spectra_path'), settings.get('filetype'), \
-           settings.get('prefix'), settings.get('prefix_str'), settings.get('file_ext'), settings.get('TruPower')
 
 
