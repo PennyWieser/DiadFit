@@ -52,6 +52,7 @@ def calculate_density_cornell(*, temp='SupCrit', Split, split_err=None):
 
         df=pd.DataFrame(data={'Preferred D': 0,
         'in range': 'Y',
+        'Corrected_Splitting': Split,
                                 'Notes': 'not in range',
                                 'LowD_RT': LowD_RT,
                                 'HighD_RT': HighD_RT,
@@ -66,6 +67,7 @@ def calculate_density_cornell(*, temp='SupCrit', Split, split_err=None):
     else:
         df=pd.DataFrame(data={'Preferred D': 0,
         'in range': 'Y',
+        'Corrected_Splitting': Split,
                                 'Notes': 'not in range',
                                 'LowD_RT': LowD_RT,
                                 'HighD_RT': HighD_RT,
@@ -274,7 +276,7 @@ def calculate_Densimeter_std_err_values(*, pickle_str, corrected_split, correcte
 
 
     df=pd.DataFrame(data={
-        str_d+'_Corrected_Splitting': new_x,
+
         str_d+'_Density': preferred_values,
         str_d + '_Density_σ': total_uncertainty,
         str_d+'_Density+1σ': preferred_values-total_uncertainty,
@@ -285,10 +287,9 @@ def calculate_Densimeter_std_err_values(*, pickle_str, corrected_split, correcte
     })
 
     return df
+## Function for if we dont have a densimeter yet
 
-
-## UCBerkeley densimeters
-def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67):
+def calculate_errors_no_densimeter(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67):
     """ This function converts Diad Splitting into CO$_2$ density using densimeters of UCB
 
     Parameters
@@ -320,11 +321,60 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
 
     # Lets calculate  corrected splitting and the error on this.
     Split=df_combo['Splitting']*Ne_corr['preferred_values']
-
+    df_combo['Corrected_Splitting']=Split
     Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo)
     df_combo['Corrected_Splitting_σ']=Split_err
     df_combo['Corrected_Splitting_σ_Ne']=(Ne_corr['upper_values']*df_combo['Splitting']-Ne_corr['lower_values']*df_combo['Splitting'])/2
     df_combo['Corrected_Splitting_σ_peak_fit']=pk_err
+
+    cols_to_move = ['filename',
+     'Corrected_Splitting', 'Corrected_Splitting_σ',
+    'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
+    df_merge = df_combo[cols_to_move + [
+        col for col in df_combo.columns if col not in cols_to_move]]
+
+    return df_combo
+
+
+## UCBerkeley densimeters
+def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67):
+    """ This function converts Diad Splitting into CO$_2$ density using densimeters of UCB
+
+    Parameters
+    -------------
+    df_combo_c: pandas DataFrame
+        data frame of peak fitting information
+
+    Ne_corr: pandas DataFrame
+        dataframe of Ne correction factors
+
+    temp: str
+        'SupCrit' if measurements done at 37C
+        'RoomT' if measurements done at 24C - Not supported at Berkeley.
+
+    Split: int, float, pd.Series, np.array
+
+    Returns
+    --------------
+    pd.DataFrame
+        Prefered Density (based on different equatoins being merged), and intermediate calculations
+
+
+
+
+    """
+    df_combo_c=df_combo.copy()
+    time=df_combo_c['sec since midnight']
+    Ne_corr=calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str,
+    new_x=time, CI=CI_neon)
+
+    # Lets calculate  corrected splitting and the error on this.
+    Split=df_combo_c['Splitting']*Ne_corr['preferred_values']
+
+    Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
+    df_combo_c['Corrected_Splitting_σ']=Split_err
+    df_combo_c['Corrected_Splitting_σ_Ne']=(Ne_corr['upper_values']*df_combo_c['Splitting']-Ne_corr['lower_values']*df_combo_c['Splitting'])/2
+    df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
 
     if temp=='RoomT':
         raise TypeError('Sorry, no UC Berkeley calibration at 24C, please enter temp=SupCrit')
@@ -362,6 +412,9 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
     pickle_str=pickle_str_highr,   CI_neon=CI_neon, CI_split=CI_split,  str_d='HighD')
     MedD_SC = pd.Series(medrho_model(Split), index=Split.index)
     HighD_SC = pd.Series(highrho_model(Split), index=Split.index)
+
+    print('testing')
+    #print(df_combo_c['Corrected_Splitting'])
 
 
 
@@ -493,7 +546,7 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
     df.loc[SupCrit&Upper_Cal_SC, 'in range']='N'
 
 
-    df_merge1=pd.concat([df_combo, Ne_corr], axis=1).reset_index(drop=True)
+    df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
     df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
 
     df_merge = df_merge.rename(columns={'Preferred D': 'Density g/cm3'})

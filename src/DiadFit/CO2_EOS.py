@@ -430,6 +430,9 @@ def calculate_P_for_rho_T(CO2_dens_gcm3, T_K, EOS='SW96', Sample_ID=None):
     if Sample_ID is not None:
         df['Sample_ID']=Sample_ID
 
+    # Replace infinities with nan
+    df = df.replace([np.inf, -np.inf], np.nan)
+
     return df
 
 # Calculating P for a given density and Temperature using Coolprop

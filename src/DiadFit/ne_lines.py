@@ -661,8 +661,8 @@ const_params=True, spec_res=0.4) :
         min_off=0.8
         max_off=1.2
     if const_params is False:
-        min_off=0
-        max_off=100
+        min_off=0.3
+        max_off=3
 
     # Flatten x and y if needed
     xdat=x.flatten()
@@ -691,7 +691,7 @@ const_params=True, spec_res=0.4) :
             model0 = VoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
         
         pars0 = model0.make_params()
-        pars0['p0_center'].set(Ne_center)
+        pars0['p0_center'].set(Ne_center, min=Ne_center-2*spec_res, max=Ne_center+2*spec_res)
         pars0['p0_amplitude'].set(amplitude)
        
         
@@ -727,7 +727,7 @@ const_params=True, spec_res=0.4) :
             model1 = VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
         pars1 = model1.make_params()
         pars1['p1_'+ 'amplitude'].set(Amp_p0, min=min_off*Amp_p0, max=max_off*Amp_p0)
-        pars1['p1_'+ 'center'].set(Center_p0, min=Center_p0-0.2, max=Center_p0+0.2)
+        pars1['p1_'+ 'center'].set(Center_p0, min=Center_p0-spec_res/2, max=Center_p0+spec_res/2)
         pars1['p1_'+ 'sigma'].set(pk1_sigma, min=pk1_sigma*min_off, max=pk1_sigma*max_off)
 
 
@@ -881,7 +881,7 @@ const_params=True, spec_res=0.4) :
 
 
 def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, pk2_sigma=0.4,
-model_name='PseudoVoigtModel', print_report=False, const_params=True) :
+model_name='PseudoVoigtModel', print_report=False, const_params=True, spec_res=0.4) :
     """ This function fits the 1447 Ne line as a single Voigt
 
     Parameters
@@ -1191,7 +1191,7 @@ plot_figure=True, loop=True,
 
 
     # Fit the 1447 peak
-    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, Peak2_Prop_Lor = fit_pk2( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, amplitude=Pk2_Amp, pk2_sigma=config.pk2_sigma, const_params=const_params)
+    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, Peak2_Prop_Lor = fit_pk2( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, amplitude=Pk2_Amp, pk2_sigma=config.pk2_sigma, const_params=const_params,spec_res=spec_res)
 
 
     # Calculate difference between peak centers, and Delta Ne
@@ -1504,7 +1504,7 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
 ## Looping Ne lines
 def loop_Ne_lines(*, files, spectra_path, filetype,
         config, config_ID_peaks, df_fit_params=None, prefix=False, print_df=False,
-                  plot_figure=True, single_acq=False):
+                  plot_figure=True, single_acq=False, const_params=True):
 
     df = pd.DataFrame([])
     # This is for repeated acquisition of Ne lines
@@ -1525,7 +1525,7 @@ def loop_Ne_lines(*, files, spectra_path, filetype,
             Ne_center_2=df_fit_params['Peak2_cent'].iloc[0],
             Ne_prom_1=df_fit_params['Peak1_prom'].iloc[0],
             Ne_prom_2=df_fit_params['Peak2_prom'].iloc[0],
-            const_params=False,
+            const_params=const_params,
             plot_figure=plot_figure)
             df = pd.concat([df, data], axis=0)
 
@@ -1544,7 +1544,7 @@ def loop_Ne_lines(*, files, spectra_path, filetype,
             Ne_center_2=df_fit_params['Peak2_cent'].iloc[0],
             Ne_prom_1=df_fit_params['Peak1_prom'].iloc[0],
             Ne_prom_2=df_fit_params['Peak2_prom'].iloc[0],
-            const_params=False,
+            const_params=const_params,
             plot_figure=plot_figure)
             df = pd.concat([df, data], axis=0)
 

@@ -1463,9 +1463,16 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     """
 
 
+
     # Calculate the amplitude from the sigma and the prominence
     calc_diad_amplitude=((config1.diad_sigma)*(config1.diad_prom))/0.3939
     calc_HB_amplitude=((config1.diad_sigma)*(config1.HB_prom))/0.3939
+
+    # If ask for Gaussian, but fit peaks is 1, remove gaussian
+    if fit_peaks==1 and config1.fit_gauss is True:
+        config1.fit_gauss=False
+
+
     if diad2 is True and fit_peaks==3:
         calc_C13_amplitude=(0.5*(config1.diad_sigma)*(config1.C13_prom))/0.3939
     # Gets overridden if you have triggered any of the warnings

@@ -1,0 +1,7 @@
+meta_path=g:\My Drive\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1bb_highbackground_FIs\MetaData
+spectra_path=g:\My Drive\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1bb_highbackground_FIs\Spectra
+filetype=headless_txt
+prefix=False
+prefix_str=' '
+file_ext=.txt
+TruPower=True

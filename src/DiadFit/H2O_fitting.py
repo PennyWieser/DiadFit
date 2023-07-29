@@ -13,7 +13,7 @@ from numpy import trapz
 from scipy.integrate import simps
 ##
 def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
-                         prefix=True, str_prefix=" ", file_type='.txt'):
+                         prefix=True, str_prefix=" ", file_ext='.txt'):
 
     """ Extracts the names of the crystal and MI samples from a list of filenames
 
@@ -44,8 +44,8 @@ def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
 
     file_simple=pf.extracting_filenames_generic(names=files,
     prefix=prefix, str_prefix=str_prefix,
-   file_type=file_type)
-    
+   file_ext=file_ext)
+
 
 
     xstal=np.empty(len(file_simple), dtype=object)
@@ -62,16 +62,16 @@ def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
 
 
 
-def find_olivine_peak_trough_pos(smoothed_ol_y, x_new, height=1):
+def find_host_peak_trough_pos(smoothed_host_y, x_new, height=1):
 
-    """" This function identifies the peaks and troughs in the Olivine spectra
+    """" This function identifies the peaks and troughs in the host mineral spectra
 
     Parameters
     -----------
 
-    path: smoothed_ol_y
-        Olivine spectra y values after applying a cubic spline, and trimming to the spectra region around the peaks
-        (from function smooth_and_trim_around_olivine)
+    path: smoothed_host_y
+        Host spectra y values after applying a cubic spline, and trimming to the spectra region around the peaks
+        (from function smooth_and_trim_around_host)
     x_new: X values corresponding to y values in smoothed_ol_y
 
     height: int
@@ -85,34 +85,34 @@ def find_olivine_peak_trough_pos(smoothed_ol_y, x_new, height=1):
 
     """
     # Find peaks with Scipy
-    peaks_Ol = find_peaks(smoothed_ol_y, height)
-    peak_height_Ol_unsort=peaks_Ol[1]['peak_heights']
-    peak_pos_Ol_unsort = x_new[peaks_Ol[0]]
+    peaks_Host= find_peaks(smoothed_host_y, height)
+    peak_height_Host_unsort=peaks_Host[1]['peak_heights']
+    peak_pos_Host_unsort = x_new[peaks_Host[0]]
 
-    df_peaks=pd.DataFrame(data={'pos': peak_pos_Ol_unsort,
-                            'height': peak_height_Ol_unsort})
+    df_peaks=pd.DataFrame(data={'pos': peak_pos_Host_unsort,
+                            'height': peak_height_Host_unsort})
     df_peaks_sort=df_peaks.sort_values('height', axis=0, ascending=False)
     df_peak_sort_short1=df_peaks_sort[0:2]
     df_peak_sort_short=df_peak_sort_short1.sort_values('pos', axis=0, ascending=True)
-    peak_pos_Ol=df_peak_sort_short['pos'].values
-    peak_height_Ol=df_peak_sort_short['height'].values
+    peak_pos_Host=df_peak_sort_short['pos'].values
+    peak_height_Host=df_peak_sort_short['height'].values
 
 
     # Find troughs - e..g find minimum point +3 from the 1st peak, -3 units from the 2nd peak
-    trim_y_cub_Ol=smoothed_ol_y[(x_new>(peak_pos_Ol[0]+3)) & (x_new<(peak_pos_Ol[1]-3))]
-    trim_x=x_new[(x_new>(peak_pos_Ol[0]+3)) & (x_new<(peak_pos_Ol[1]-3))]
+    trim_y_cub_Host=smoothed_host_y[(x_new>(peak_pos_Host[0]+3)) & (x_new<(peak_pos_Host[1]-3))]
+    trim_x=x_new[(x_new>(peak_pos_Host[0]+3)) & (x_new<(peak_pos_Host[1]-3))]
 
 
-    trough_y=np.min(trim_y_cub_Ol)
-    trough_x=trim_x[trim_y_cub_Ol==trough_y]
+    trough_y=np.min(trim_y_cub_Host)
+    trough_x=trim_x[trim_y_cub_Host==trough_y]
 
 
-    return peak_pos_Ol, peak_height_Ol, trough_y, trough_x
+    return peak_pos_Host, peak_height_Host, trough_y, trough_x
 
-def smooth_and_trim_around_olivine(filename=None, x_range=[800,900], x_max=900, Ol_spectra=None,
+def smooth_and_trim_around_host(filename=None, x_range=[800,900], x_max=900, Host_spectra=None,
                                    MI_spectra=None, plot_figure=True):
     """
-    Takes melt inclusion and olivine spectra, and trims into the region around the olivine peaks,
+    Takes melt inclusion and host spectra, and trims into the region around the host peaks,
     and fits a cubic spline (used for unmixing spectra)
 
     Parameters
@@ -120,8 +120,8 @@ def smooth_and_trim_around_olivine(filename=None, x_range=[800,900], x_max=900, 
     x_range: list
         range of x coordinates to smooth between (e.g. [800, 900] by default
 
-    Ol_spectra: nd.array
-        numpy array of olivine spectra (x is wavenumber, y is intensity)
+    Host_spectra: nd.array
+        numpy array of host spectra (x is wavenumber, y is intensity)
 
     MI_spectra: nd.array
         numpy array of melt inclusion spectra (x is wavenumber, y is intensity)
@@ -135,19 +135,19 @@ def smooth_and_trim_around_olivine(filename=None, x_range=[800,900], x_max=900, 
     -----------
     x_new: x coordinates of smoothed curves
     y_cub_MI: smoothed y coordinates using a cubic spline for MI
-    y_cub_Ol: smoothed y coordinates using a cubic spline for Ol
+    y_cub_Host: smoothed y coordinates using a cubic spline for Ol
 
-    peak_pos_Ol: x coordinates of 2 olivine peaks
-    peak_height_Ol: y coordinates of 2 olivine peaks
+    peak_pos_Host: x coordinates of 2 host peaks
+    peak_height_Host: y coordinates of 2 host peaks
     trough_x: x coordinate of minimum point between peaks
     trough_y: y coordinate of minimum point between peaks
     """
     x_min=x_range[0]
     x_max=x_range[1]
     # Trim to region of interest
-    Filt_Ol=Ol_spectra[~(
-        (Ol_spectra[:, 0]<x_min) |
-        (Ol_spectra[:, 0]>x_max)
+    Filt_Host=Host_spectra[~(
+        (Host_spectra[:, 0]<x_min) |
+        (Host_spectra[:, 0]>x_max)
     )]
     Filt_MI=MI_spectra[~(
         (MI_spectra[:, 0]<x_min) |
@@ -157,60 +157,60 @@ def smooth_and_trim_around_olivine(filename=None, x_range=[800,900], x_max=900, 
     # Fit spline to data
 
     x_MI=Filt_MI[:, 0]
-    x_Ol=Filt_Ol[:, 0]
+    x_Host=Filt_Host[:, 0]
 
     y_MI=Filt_MI[:, 1]
-    y_Ol=Filt_Ol[:, 1]
+    y_Host=Filt_Host[:, 1]
 
 
     # Fit a  cubic spline
     f2_MI = interp1d(x_MI, y_MI, kind='cubic')
-    f2_Ol = interp1d(x_Ol, y_Ol, kind='cubic')
+    f2_Host = interp1d(x_Host, y_Host, kind='cubic')
 
-    x_new=np.linspace(min(x_Ol),max(x_Ol), 100000)
+    x_new=np.linspace(min(x_Host),max(x_Host), 100000)
 
     y_cub_MI=f2_MI(x_new)
-    y_cub_Ol=f2_Ol(x_new)
+    y_cub_Host=f2_Host(x_new)
 
     # Plot peaks and troughs on this to check they are right
-    peak_pos_Ol, peak_height_Ol, trough_y, trough_x=find_olivine_peak_trough_pos(
-        smoothed_ol_y=y_cub_Ol, x_new=x_new, height=1)
+    peak_pos_Host, peak_height_Host, trough_y, trough_x=find_host_peak_trough_pos(
+        smoothed_host_y=y_cub_Host, x_new=x_new, height=1)
 
 
     if plot_figure is True:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,3.5))
         if filename is not None:
             fig.suptitle('file='+filename)
-        ax1.plot(Ol_spectra[:, 0], Ol_spectra[:, 1], '-g', label='Ol Spectra')
+        ax1.plot(Host_spectra[:, 0], Host_spectra[:, 1], '-g', label='Host Spectra')
         ax1.plot(MI_spectra[:, 0], MI_spectra[:, 1], '-',
                 color='salmon', label='MI Spectra')
 
         ax2.plot(Filt_MI[:, 0], Filt_MI[:, 1], '+', color='salmon')
-        ax2.plot(Filt_Ol[:, 0], Filt_Ol[:, 1], '+g')
-        ax2.plot(x_new, y_cub_MI, '-', color='salmon', label='MI Spectra')
-        ax2.plot(x_new, y_cub_Ol, '-g', label='Ol Spectra')
-        ax2.plot(peak_pos_Ol, peak_height_Ol, '*k',mfc='yellow', ms=10, label='Peaks')
+        ax2.plot(Filt_Host[:, 0], Filt_Host[:, 1], '+g')
+        ax2.plot(x_new, y_cub_MI, '-', color='salmon')
+        ax2.plot(x_new, y_cub_Host, '-g')
+        ax2.plot(peak_pos_Host, peak_height_Host, '*k',mfc='yellow', ms=10, label='Peaks')
         ax2.plot(trough_x, trough_y, 'dk', mfc='cyan', ms=10, label='Trough')
 
         ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
         ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
         ax1.set_ylabel('Intensity')
-        ax2.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
-                        ncol=2, mode="expand", borderaxespad=0.)
+        ax1.legend(fontsize=8)
+        ax2.legend(fontsize=8)
 
-        return x_new, y_cub_MI, y_cub_Ol, peak_pos_Ol, peak_height_Ol, trough_x, trough_y, fig
+        return x_new, y_cub_MI, y_cub_Host, peak_pos_Host, peak_height_Host, trough_x, trough_y, fig
     else:
-        return x_new, y_cub_MI, y_cub_Ol, peak_pos_Ol, peak_height_Ol, trough_x, trough_y
+        return x_new, y_cub_MI, y_cub_Host, peak_pos_Host, peak_height_Host, trough_x, trough_y
 
 
 
-## Unmix the olivine
+## Unmix the host
 def trough_or_peak_higher(spectra_x, spectra_y, peak_pos_x,
                           trough_pos_x, trough_pos_y, av_width=1, plot=False,
                          print_result=False):
     """
     This function assesses whether the line between the 2 peaks is above or below the trough position
-    Called by a loop to select the optimum unmixing ratio for olivine and melt
+    Called by a loop to select the optimum unmixing ratio for host and melt
 
 
     Parameters
@@ -219,11 +219,11 @@ def trough_or_peak_higher(spectra_x, spectra_y, peak_pos_x,
 
     spectra_y: y coordinates of spectra to test
 
-    peak_pos_x: x positions of 2 olivine peaks (from find_olivne_peak_trough_pos)
+    peak_pos_x: x positions of 2 host peaks (from find_host_peak_trough_pos)
 
-    trough_pos_x: x position of trough (from find_olivne_peak_trough_pos)
+    trough_pos_x: x position of trough (from find_host_peak_trough_pos)
 
-    trough_pos_y: y position of trough (from find_olivne_peak_trough_pos)
+    trough_pos_y: y position of trough (from find_host_peak_trough_pos)
 
     av_width: averages +- 1 width either side of the peak and troughs when doing assesment and regression
 
@@ -301,36 +301,36 @@ def trough_or_peak_higher(spectra_x, spectra_y, peak_pos_x,
 
 
 # Now lets mix up spectra
-def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
-                                Ol_spectra, MI_spectra, x_new, peak_pos_Ol,
+def make_evaluate_mixed_spectra(*, path, filename, smoothed_host_y, smoothed_MI_y,
+                                Host_spectra, MI_spectra, x_new, peak_pos_Host,
                       trough_x, trough_y, N_steps=20, av_width=2,
                                X_min=0, X_max=1, plot_figure=True, dpi=200):
 
     """
-    This function unmixes glass and olivine spectra, and fits the best fit proportion where the olivine peak and trough disapears. Specifically, it calculates the mixed spectra by taking the measured MI spectra and subtracting X*Ol spectra, where X is the mixing proportions
+    This function unmixes glass and host spectra, and fits the best fit proportion where the host peak and trough disapears. Specifically, it calculates the mixed spectra by taking the measured MI spectra and subtracting X*Ol spectra, where X is the mixing proportions
 
     Parameters
     -----------
-    smoothed_Ol_y: np.array
-        y coordinates of olivine around peak region (from the function smooth_and_trim_around_olivine)
+    smoothed_host_y: np.array
+        y coordinates of host around peak region (from the function smooth_and_trim_around_host)
 
     smoothed_MI_y: np.array
-        y coordinates of melt inclusion around peak region (from the function smooth_and_trim_around_olivine)
+        y coordinates of melt inclusion around peak region (from the function smooth_and_trim_around_host)
 
     x_new: np.array
-        x coordinates from smoothed Ol and MI curves (from the function smooth_and_trim_around_olivine)
+        x coordinates from smoothed Ol and MI curves (from the function smooth_and_trim_around_host)
 
-    Ol_Spectra: np.array
-        Full olivine spectra, not trimmed or smoothed (from the function get_data)
+    Host_Spectra: np.array
+        Full host spectra, not trimmed or smoothed (from the function get_data)
 
     MI_Spectra: np.array
         Full MI spectra, not trimmed or smoothed  (from the function get_data)
 
-    peak_pos_Ol: list
-        Peak positions (x) of Olivine peaks (from the function smooth_and_trim_around_olivine)
+    peak_pos_Host: list
+        Peak positions (x) of Olivine peaks (from the function smooth_and_trim_around_host)
 
     trough_x: float, int
-        Peak position (x) of Olivine trough (from the function smooth_and_trim_around_olivine)
+        Peak position (x) of Olivine trough (from the function smooth_and_trim_around_host)
 
     x_min:  float or int
         Minimum mixing proportion allowed
@@ -349,11 +349,11 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
     Returns:
     -----------
     MI_Mix_Best: np.array
-        Spectra of best-fit unmixed spectra (e.g. where olivine peak and trough the smallest)
+        Spectra of best-fit unmixed spectra (e.g. where host peak and trough the smallest)
     ideal_mix: float
         Best fit mixing proportion (i.e. X)
     Dist: float
-        Vertical distance between the olivine peak and trough (in intensity units)
+        Vertical distance between the host peak and trough (in intensity units)
     MI_Mix: np.array
         Umixed spectra for each of the N_steps
     X: np.array
@@ -376,11 +376,11 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
         # Geochemistry style mix
         #MI_Mix[i, :]=(smoothed_MI_y- smoothed_Ol_y*X[i])/(1-X[i])
         # True subtraction mix from Smith 2021
-        MI_Mix[i, :]=smoothed_MI_y- smoothed_Ol_y*X[i]
+        MI_Mix[i, :]=smoothed_MI_y- smoothed_host_y*X[i]
 
         Dist[i]=trough_or_peak_higher(spectra_x=x_new,
                           spectra_y=MI_Mix[i, :],
-                          peak_pos_x=peak_pos_Ol,
+                          peak_pos_x=peak_pos_Host,
                           trough_pos_x=trough_x,
                           trough_pos_y=trough_y,
                           av_width=2)
@@ -399,8 +399,8 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
     #print('best fit proportion')
     #print(ideal_mix)
 
-    MI_Mix_Best_syn=(smoothed_MI_y-smoothed_Ol_y*ideal_mix)/(1-ideal_mix)
-    MI_Mix_Best=(MI_spectra- Ol_spectra*ideal_mix)/(1-ideal_mix)
+    MI_Mix_Best_syn=(smoothed_MI_y-smoothed_host_y*ideal_mix)/(1-ideal_mix)
+    MI_Mix_Best=(MI_spectra- Host_spectra*ideal_mix)/(1-ideal_mix)
 
     if plot_figure is True:
 
@@ -408,8 +408,8 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
         fig.suptitle('file='+filename)
         for i in range(0, N_steps):
             ax1.plot(x_new, MI_Mix[i, :], '-k')
-            ax1.plot([peak_pos_Ol[0], peak_pos_Ol[0]], [0.7, 1.5], '-', color='yellow')
-            ax1.plot([peak_pos_Ol[1], peak_pos_Ol[1]], [0.7, 1.5], '-', color='yellow')
+            ax1.plot([peak_pos_Host[0], peak_pos_Host[0]], [0.7, 1.5], '-', color='yellow')
+            ax1.plot([peak_pos_Host[1], peak_pos_Host[1]], [0.7, 1.5], '-', color='yellow')
             ax1.plot([trough_x, trough_x], [0.7, 1.5], '-', color='cyan')
 
 
@@ -424,13 +424,13 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
 
         ax3.plot(MI_spectra[:, 0],MI_Mix_Best[:, 1], '-k')
         ax3.plot(MI_spectra[:, 0],MI_spectra[:, 1], '-', color='salmon')
-        ax3.plot(Ol_spectra[:, 0],Ol_spectra[:, 1], '-', color='g')
+        ax3.plot(Host_spectra[:, 0],Host_spectra[:, 1], '-', color='g')
         ax3.set_xlim([775, 900])
 
 
         ax4.plot(MI_spectra[:, 0],MI_Mix_Best[:, 1], '-k', label='Umixed glass')
         ax4.plot(MI_spectra[:, 0],MI_spectra[:, 1],  '-', color='salmon',label='Measured MI')
-        ax4.plot(Ol_spectra[:, 0],Ol_spectra[:, 1], '-', color='g', label='Measured Ol')
+        ax4.plot(Host_spectra[:, 0],Host_spectra[:, 1], '-', color='g', label='Measured Host')
         ax4.legend()
         ax3.set_xlabel('Wavenumber (cm$^{-1}$')
         ax4.set_xlabel('Wavenumber (cm$^{-1}$')
@@ -445,17 +445,17 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_Ol_y, smoothed_MI_y,
 
 
         file=filename
-        fig.savefig(path3+'/'+'Ol_Glass_Umixing_{}.png'.format(filename), dpi=dpi)
+        fig.savefig(path3+'/'+'Host_Glass_Umixing_{}.png'.format(filename), dpi=dpi)
 
     return MI_Mix_Best, ideal_mix, Dist, MI_Mix, X
 
 
 ## Fitting silica and water peak areas
-def check_if_spectra_negative(*, path, filename, Spectra=None, peak_pos_Ol=None, tie_x_cord=2000,
+def check_if_spectra_negative(*, path, filename, Spectra=None, peak_pos_Host=None, tie_x_cord=2000,
 override=False, flip=False, plot_figure=True, dpi=200):
     """
     This function checks if the unmixed specta is negative, based on two tie points.
-    The first tie point is the mean y coordinate of the peak position of olivine +5 wavenumbers,
+    The first tie point is the mean y coordinate of the peak position of host +5 wavenumbers,
     and the second tie point (tie_x_cord) is an optional input. If the specta is inverte, this function inverts it.
 
 
@@ -464,11 +464,11 @@ override=False, flip=False, plot_figure=True, dpi=200):
     Spectra: np.array
         Spectra from the function make_evaluate_mixed_spectra
 
-    peak_pos_Ol: list
-        Olivine peak positions from the function find_olivine_peak_trough_pos
+    peak_pos_Host: list
+        Host peak positions from the function find_host_peak_trough_pos
 
     tie_x_cord: int or float
-        X cooordinate to use as a tie point to ask whether the olivine peak's y coordinate is higher or lower than this.
+        X cooordinate to use as a tie point to ask whether the host peak's y coordinate is higher or lower than this.
 
     override: bool
         if False, function flips the spectra if its upsideown,
@@ -491,9 +491,9 @@ override=False, flip=False, plot_figure=True, dpi=200):
     tie_y_cord=Spectra[val, 1]
 
     mean_around_peak=np.nanmean(
-        Spectra[:, 1][(Spectra[:, 0]>peak_pos_Ol[0])
+        Spectra[:, 1][(Spectra[:, 0]>peak_pos_Host[0])
         &
-        (Spectra[:, 0]<peak_pos_Ol[0]+5)]
+        (Spectra[:, 0]<peak_pos_Host[0]+5)]
             )
 
 
@@ -513,7 +513,7 @@ override=False, flip=False, plot_figure=True, dpi=200):
         ax2.set_ylabel('Intensity')
         ax1.plot(x, y_init, '-r')
         ax1.plot(tie_x_cord, tie_y_cord, '*k',  ms=10,  label='tie_cord')
-        ax1.plot(peak_pos_Ol[0], mean_around_peak, '*k', mfc='yellow', ms=15,label='Av Ol coordinate')
+        ax1.plot(peak_pos_Host[0], mean_around_peak, '*k', mfc='yellow', ms=15,label='Av host coordinate')
 
     if override is False:
         if mean_around_peak>tie_y_cord:
@@ -526,7 +526,7 @@ override=False, flip=False, plot_figure=True, dpi=200):
 
                 ax2.plot(x, y, '-r')
                 ax2.plot(tie_x_cord, tie_y_cord, '*k',  ms=10,  label='tie_cord')
-                ax2.plot(peak_pos_Ol[0], mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
+                ax2.plot(peak_pos_Host[0], mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
                 ax2.legend()
 
         else:
@@ -537,7 +537,7 @@ override=False, flip=False, plot_figure=True, dpi=200):
             if plot_figure is True:
                 ax2.plot(x, y, '-r')
                 ax2.plot(tie_x_cord, -tie_y_cord, '*k', ms=10, label='tie_cord')
-                ax2.plot(peak_pos_Ol[0], -mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
+                ax2.plot(peak_pos_Host[0], -mean_around_peak, '*k', mfc='yellow', ms=15, label='Av Ol coordinate')
 
                 ax2.legend()
 
@@ -955,7 +955,8 @@ fit_sil='poly', dpi=200):
 
 
 
-    df_sil=pd.DataFrame(data={'Silicate_LHS_Back1':lower_range_sil[0],
+    df_sil=pd.DataFrame(data={
+    'Silicate_LHS_Back1':lower_range_sil[0],
                           'Silicate_LHS_Back2':lower_range_sil[1],
                           'Silicate_RHS_Back1':upper_range_sil[0],
                           'Silicate_RHS_Back2':upper_range_sil[1],
@@ -1020,7 +1021,7 @@ def fit_area_for_water_region(*, path, filename, Spectra=None, config1: water_bc
         Configuration object for water peak and background positions. Default parameters stored in water_bck_pos, user can tweak.
         Parameters that need tweaking:
 
-        fit_water: str 'poly', 
+        fit_water: str 'poly',
         N_poly_water: str, degree of polynomial to fit to background
         lower_bck_water: [float, float], background position to left of water peak
         upper_bck_water: [float, float], background position to right of water peak
@@ -1204,7 +1205,8 @@ def fit_area_for_water_region(*, path, filename, Spectra=None, config1: water_bc
 
 
 
-    df_water=pd.DataFrame(data={'Water_LHS_Back1':lower_range_water[0],
+    df_water=pd.DataFrame(data={'Water Filename': filename,
+    'Water_LHS_Back1':lower_range_water[0],
                           'Water_LHS_Back2':lower_range_water[1],
                           'Water_RHS_Back1':upper_range_water[0],
                           'Water_RHS_Back2':upper_range_water[1],
@@ -1217,7 +1219,7 @@ def fit_area_for_water_region(*, path, filename, Spectra=None, config1: water_bc
     ## Stitching results together nicely for output.
 
 
-def stitch_dataframes_together(df_sil, df_water, MI_file, Ol_file=None):
+def stitch_dataframes_together(df_sil, df_water,  MI_file, Host_file=None, save_csv=False, path=False):
     """ This function stitches together results from the fit_area function for silicate and water peaks and returns a DataFrame with the combined results. The DataFrame includes peak areas and background positions for both silicate and water peaks, and adds columns for the ratios of water to silicate areas.
 
     Parameters
@@ -1232,7 +1234,7 @@ def stitch_dataframes_together(df_sil, df_water, MI_file, Ol_file=None):
     MI_file: str
         MI file name
 
-    Ol_file: str, optional
+    Host_file: str, optional
         Olivine file name
 
 
@@ -1241,22 +1243,22 @@ def stitch_dataframes_together(df_sil, df_water, MI_file, Ol_file=None):
     pd.DataFrame
         DataFrame with columns for MI filename, HW:LW_Trapezoid, HW:LW_Simpson, Water_Trapezoid_Area,
         Water_Simpson_Area, Silicate_Trapezoid_Area, and Silicate_Simpson_Area.
-        If Ol_file is provided,
-        the DataFrame will also include a column for Olivine filename.
+        If Host_file is provided,
+        the DataFrame will also include a column for Host filename.
 
 
     """
     Combo_Area=pd.concat([df_sil, df_water], axis=1)
-    if Ol_file is not None:
-        Combo_Area.insert(0, 'Olivine filename', Ol_file)
+    if Host_file is not None:
+        Combo_Area.insert(0, 'Host filename', Host_file)
     Combo_Area.insert(1, 'MI filename', MI_file)
     Combo_Area.insert(2, 'HW:LW_Trapezoid',
                       Combo_Area['Water_Trapezoid_Area']/Combo_Area['HW_Silicate_Trapezoid_Area'])
     Combo_Area.insert(3, 'HW:LW_Simpson',
                       Combo_Area['Water_Simpson_Area']/Combo_Area['HW_Silicate_Simpson_Area'])
 
-    if Ol_file is not None:
-        cols_to_move=['Olivine filename', 'MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
+    if Host_file is not None:
+        cols_to_move=['Host filename', 'MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
      'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
     else:
         cols_to_move=['MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
@@ -1266,5 +1268,15 @@ def stitch_dataframes_together(df_sil, df_water, MI_file, Ol_file=None):
 
     Combo_Area = Combo_Area[cols_to_move + [
         col for col in Combo_Area.columns if col not in cols_to_move]]
+
+    if save_csv is True:
+        if path is False:
+            raise TypeError('You need to enter a path to say where to save the CSV')
+        filename_with_ext=Combo_Area['Water Filename'][0]
+        filename, extension = os.path.splitext(filename_with_ext)
+        filename = filename.split('.')[0]
+        filename2=filename+ '_combo_fit.csv'
+        full_path = os.path.join(path, filename2)
+        Combo_Area.to_csv(full_path)
 
     return Combo_Area

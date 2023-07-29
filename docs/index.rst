@@ -89,9 +89,11 @@ Welcome to DiadFits documentation!
    :caption: CO2 density to P and depth
 
    Examples/Example5_FI_density_to_depth/Fluid_Inclusion_Density_to_Depth
+   Examples/Example5_FI_density_to_depth/Dayton_etal_2023_LaPalmaExample
    Examples/Example5_FI_density_to_depth/Different_Crustal_Density_Profiles
    Examples/Example5_FI_density_to_depth/Monte_Carlo_Simulations
    Examples/Example7_Useful_EOS_Calcs/EOS_Calcs1
+   Examples/Example5_FI_density_to_depth/Visualizing_EOSs_Density_Pressure
 
    %
 .. toctree::
