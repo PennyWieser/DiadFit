@@ -293,7 +293,7 @@ def calculate_CO2_density_homog_T_SW96_NIST(T_h_C, Sample_ID=None, homog_to=None
 
 ## Calculating density for a given pressure and temperature - have a generic function, that calls the individual EOS depending on which one you select
 
-def calculate_rho_for_P_T(P_kbar, T_K, EOS='SW96', Sample_ID=None):
+def calculate_rho_for_P_T(P_kbar, T_K, EOS='SW96'):
     """ This function calculates CO2 density in g/cm3 for a known Pressure (in kbar), a known T (in K), and a specified EOS
 
     Parameters
@@ -307,8 +307,6 @@ def calculate_rho_for_P_T(P_kbar, T_K, EOS='SW96', Sample_ID=None):
     EOS: str
         'SW96' for Span and Wanger (1996), or 'SP94' for Sterner and Pitzer (1994)
 
-    Sample_ID: str, pd.Series
-        Sample ID to append onto outputted dataframe
 
     Returns
     --------------------
@@ -325,8 +323,6 @@ def calculate_rho_for_P_T(P_kbar, T_K, EOS='SW96', Sample_ID=None):
 
         CO2_dens_gcm3=calculate_rho_for_P_T_SP94(T_K=T_K, P_kbar=P_kbar)
 
-    if Sample_ID is not None:
-        df['Sample_ID']=Sample_ID
 
     return pd.Series(CO2_dens_gcm3)
 

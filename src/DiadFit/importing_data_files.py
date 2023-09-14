@@ -1098,7 +1098,7 @@ def extracting_filenames_generic(*, names, prefix=False,
 
     if len(file_m)!=len(pd.Series(file_m).unique()):
         file_m_s=pd.Series(file_m)
-        print('OOPS. at least one of your file name is duplicated go back to your spectra, you named a file twice, this will confuse the stitching ')
+        raise TypeError('At least one of your metadata file name is duplicated  - go back to your files and sort this out, otherwise the stitching wont work')
         print(file_m_s[file_m_s.duplicated()])
     else:
         print('good job, no duplicate file names')
