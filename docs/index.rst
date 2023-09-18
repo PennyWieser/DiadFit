@@ -103,6 +103,14 @@ Welcome to DiadFits documentation!
    Examples/Example8_Uncertainty_MI_Vapour_Bubbles/CO2_error_prop
 
 
+   %
+.. toctree::
+   :maxdepth: 2
+   :caption: Other things
+
+   Peak_Classification_paremeters/Peak_Classification_Parameters
+
+
 
 
 

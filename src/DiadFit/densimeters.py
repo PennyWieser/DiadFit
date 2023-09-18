@@ -217,10 +217,32 @@ def propagate_error_split_neon_peakfit(Ne_corr, df_fits):
 
 ## Error for densimeters
 
-def calculate_Densimeter_std_err_values(*, pickle_str, corrected_split, corrected_split_err, CI_neon=0.67, CI_split=0.67, str_d='LowD') :
+def calculate_Densimeter_std_err_values(*, pickle_str, corrected_split, corrected_split_err, CI_dens=0.67, CI_split=0.67, str_d='LowD') :
+
     """
     This function propagates uncertainty from the densimeter polynomial and the error on the splitting (which comes from both the Ne line correction and the peak fitting error)
+
+    Parameters
+    -----------------
+    pickle_str: str
+        Pickle with regression model for a specific part of the densimeter
+
+    corrected_split: pd.Series
+        panda series of corrected splitting
+
+    corrected_split_err: pd. Series
+        panda series of error on corrected splitting (contributions from both peak fitting and the Ne correction model if relevant)
+
+    str_d: str
+            string of what density equation it came from, appended onto column headings.
+
+    CI_split: float
+        confidence interval for splitting propagation. Should be set the same as CI_
+
+    CI_split: float
+
     """
+
     # Corrected splitting
     new_x=corrected_split
     new_x_uncertainty=corrected_split_err
@@ -253,9 +275,9 @@ def calculate_Densimeter_std_err_values(*, pickle_str, corrected_split, correcte
 
     # Calculate the t value for the given confidence level
     t_value_split = t.ppf((1 + CI_split) / 2, df)
-    t_value_dens = t.ppf((1 + CI_neon) / 2, df)
+    t_value_dens = t.ppf((1 + CI_dens) / 2, df)
 
-    # Calculate the prediction intervals
+    # Calculate the prediction intervals from the densimeter
     preferred_values = Pf(new_x)
     lower_values = preferred_values - t_value_dens * standard_errors
     upper_values = preferred_values + t_value_dens * standard_errors
@@ -263,7 +285,7 @@ def calculate_Densimeter_std_err_values(*, pickle_str, corrected_split, correcte
 
 
 
-    # Calculate the propagated uncertainty in new_x by evaluating at the top and bottom of the value
+    # Calculate the propagated uncertainty in splitting
     max_split=new_x + new_x_uncertainty
     min_split=new_x - new_x_uncertainty
     max_density=  Pf(max_split)
@@ -365,11 +387,15 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
     """
     df_combo_c=df_combo.copy()
     time=df_combo_c['sec since midnight']
+
+    # Calculating the upper and lower values for Ne to get that error
     Ne_corr=calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str,
     new_x=time, CI=CI_neon)
 
     # Lets calculate  corrected splitting and the error on this.
     Split=df_combo_c['Splitting']*Ne_corr['preferred_values']
+
+    # This propgates the uncertainty in the splitting from peak fitting, and the Ne correction model
 
     Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
     df_combo_c['Corrected_Splitting_σ']=Split_err
@@ -387,34 +413,39 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
     HighD_RT=-41.64784 + 0.4058777*Split- 0.1460339*(Split-104.653)**2
 
     # IF temp is 37
+    # This gets the densimeter at low density
     pickle_str_lowr='Lowrho_polyfit_data.pkl'
     with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
         lowrho_pickle_data = pickle.load(f)
+
+    # This gets the densimeter at medium density
     pickle_str_medr='Mediumrho_polyfit_data.pkl'
     with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
         medrho_pickle_data = pickle.load(f)
+    # This gets the densimeter at high density.
     pickle_str_highr='Highrho_polyfit_data.pkl'
     with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
         highrho_pickle_data = pickle.load(f)
 
+    # this allocates the model
     lowrho_model = lowrho_pickle_data['model']
     medrho_model = medrho_pickle_data['model']
     highrho_model = highrho_pickle_data['model']
 
-    #
+    # Each of these lines get the density, and then the error on that density.
 
     LowD_SC = pd.Series(lowrho_model(Split), index=Split.index)
     lowD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
-    pickle_str=pickle_str_lowr,  CI_neon=CI_neon, CI_split=CI_split, str_d='LowD')
-    medD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
-    pickle_str=pickle_str_medr,  CI_neon=CI_neon, CI_split=CI_split, str_d='MedD')
-    highD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
-    pickle_str=pickle_str_highr,   CI_neon=CI_neon, CI_split=CI_split,  str_d='HighD')
-    MedD_SC = pd.Series(medrho_model(Split), index=Split.index)
-    HighD_SC = pd.Series(highrho_model(Split), index=Split.index)
+    pickle_str=pickle_str_lowr,  CI_dens=CI_neon, CI_split=CI_split, str_d='LowD')
 
-    print('testing')
-    #print(df_combo_c['Corrected_Splitting'])
+    MedD_SC = pd.Series(medrho_model(Split), index=Split.index)
+    medD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
+    pickle_str=pickle_str_medr,  CI_dens=CI_neon, CI_split=CI_split, str_d='MedD')
+
+    HighD_SC = pd.Series(highrho_model(Split), index=Split.index)
+    highD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
+    pickle_str=pickle_str_highr,   CI_dens=CI_neon, CI_split=CI_split,  str_d='HighD')
+
 
 
 

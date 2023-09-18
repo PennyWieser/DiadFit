@@ -3323,7 +3323,7 @@ def fit_generic_peak(*, config: generic_peak_config=generic_peak_config(),
 path=None, filename=None, filetype=None,
  plot_figure=True, dpi=200):
 
-    """ This function fits a generic peak with a gaussian, and returns a plot
+    """ This function fits a generic peak with various options
 
     config: from dataclass generic_peak_config
 
@@ -3485,8 +3485,8 @@ path=None, filename=None, filetype=None,
 
 
 
-    if config.model_name not in ['GaussianModel', 'VoigtModel', 'PseudoVoigtModel', 'Spline', 'Poly']:
-        raise TypeError('model_name not a permitted input, Please select either GaussianModel, VoigtModel, PseudoVoigtModel, or Spline or Poly')
+    if config.model_name not in ['GaussianModel', 'VoigtModel', 'PseudoVoigtModel', 'Spline']:
+        raise TypeError('model_name not a permitted input, Please select either GaussianModel, VoigtModel, PseudoVoigtModel, or Spline')
 
 
     if config.model_name in ['GaussianModel', 'VoigtModel', 'PseudoVoigtModel']:
@@ -3666,7 +3666,7 @@ path=None, filename=None, filetype=None,
             ax2.set_xlim([cent-config.x_range_bck, cent+config.x_range_bck])
         else:
             ax2.plot(x_new, Baseline_ysub_sil, '-k')
-            ax2.fill_between(x_new, Baseline_ysub_sil, color='yellow', label='fit', alpha=0.5)
+            ax2.fill_between(x_new, Baseline_ysub_sil, color='yellow', label='fit area', alpha=0.5)
 
 
         ax2.set_title('Bkg-subtracted, ' + name + ' peak fit')

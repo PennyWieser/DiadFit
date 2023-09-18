@@ -187,6 +187,8 @@ def convert_pressure_depth_2step(P_kbar=None, d1=None, rho1=None, rho2=None, g=9
         # print(P_belowMoho)
         depth_km_bm=10**(-3)*((P_belowstep1*100000000)/(g*rho2))
         depth_km=d1+depth_km_bm
+    if np.isnan(P_kbar):
+        depth_km=np.nan
 
     return depth_km
 
@@ -283,6 +285,9 @@ def convert_pressure_depth_3step(P_kbar=None, d1=5, d2=14, g=9.81,
         # print(P_belowMoho)
         depth_km_bm=10**(-3)*((P_belowstep2*100000000)/(g*rho3))
         depth_km=d2+depth_km_bm
+
+    if np.isnan(P_kbar):
+        depth_km=np.nan
 
     return depth_km
 
