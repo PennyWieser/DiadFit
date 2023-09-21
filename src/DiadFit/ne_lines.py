@@ -1376,7 +1376,7 @@ plot_figure=True, loop=True,
             plt.close(fig)
 
     if prefix is True:
-        filename=filename.split(' ')[1:][0]
+        filename = filename.split(' ', 1)[1]
         
         
         

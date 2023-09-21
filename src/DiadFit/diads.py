@@ -3190,7 +3190,7 @@ to_clipboard=False, path=None):
     """
 
     if prefix is True:
-        filename=filename.split(' ')[1:][0]
+        filename = filename.split(' ', 1)[1]
 
     if Diad1_fit is not None and Diad2_fit is not None:
 
