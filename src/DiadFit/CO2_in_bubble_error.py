@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 def propagate_CO2_in_bubble(sample_ID, vol_perc_bub, melt_dens_kgm3, CO2_bub_dens_gcm3,  N_dup=1000,
 error_vol_perc_bub=0, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='normal',
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
-error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal'):
+error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal',
+plot_figure=True, fig_i=0):
 
 
 
@@ -58,6 +59,7 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
     mean_CO2_eq_melt_ind = np.empty(len_loop, dtype=float)
     med_CO2_eq_melt  = np.empty(len_loop, dtype=float)
     std_CO2_eq_melt  = np.empty(len_loop, dtype=float)
+    preferred_val_CO2_melt= np.empty(len_loop, dtype=float)
     Sample=np.empty(len_loop,  dtype=np.dtype('U100') )
 
 
@@ -169,16 +171,18 @@ error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
         mean_CO2_eq_melt[i]=np.nanmean(df['CO2_eq_melt_ppm_MC'])
         med_CO2_eq_melt[i]=np.nanmedian(df['CO2_eq_melt_ppm_MC'])
         std_CO2_eq_melt[i]=np.nanstd(df['CO2_eq_melt_ppm_MC'])
+        preferred_val_CO2_melt[i]=np.nanmean(df['CO2_eq_melt_ppm_noMC'])
 
 
-        mean_CO2_eq_melt_ind[i]=df['CO2_eq_melt_ppm'].iloc[0]
+        mean_CO2_eq_melt_ind[i]=df['CO2_eq_melt_ppm_noMC'].iloc[0]
 
 
 
 
 
     df_step=pd.DataFrame(data={'Filename': Sample,
-                        'CO2_eq_melt_ppm':mean_CO2_eq_melt_ind,
+                        'CO2_eq_in_melt_noMC': preferred_val_CO2_melt,
+
                         'std_MC_CO2_equiv_melt_ppm': std_CO2_eq_melt,
                         'med_MC_CO2_equiv_melt_ppm': med_CO2_eq_melt,
                         'mean_MC_CO2_equiv_melt_ppm': mean_CO2_eq_melt,
@@ -187,7 +191,32 @@ error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
 
 
 
-    return df_step, All_outputs
+
+    if plot_figure is True:
+        all_sims=fig_i
+        all_sims=All_outputs.loc[All_outputs['Filename']==All_outputs['Filename'].iloc[fig_i]]
+
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10,8))
+        ax1.hist(all_sims['vol_perc_bub_with_noise'], bins=50);
+        ax1.set_xlabel('MC bubble volume (vol%)')
+        ax1.set_ylabel('# of simulations')
+
+        ax2.hist(all_sims['melt_dens_kgm3_with_noise'], bins=50);
+        ax2.set_xlabel('MC Melt Density (kg/cm3)')
+
+        ax3.hist(all_sims['CO2_bub_dens_gcm3_with_noise'], bins=50);
+        ax3.set_xlabel('MC Bubble Density (g/cm3)')
+        ax3.set_ylabel('# of simulations')
+
+        ax4.hist(all_sims['CO2_eq_melt_ppm_MC'], bins=50, color='red');
+        ax4.set_xlabel('CO2 equivalent in the melt held in the bubble (ppm)')
+        ax4.plot([all_sims['CO2_eq_melt_ppm_noMC'].iloc[0], 	all_sims['CO2_eq_melt_ppm_noMC'].iloc[0]], [0, N_dup/20], '-k', label='Preferred value');
+        ax4.plot([all_sims['CO2_eq_melt_ppm_noMC'].iloc[0]+np.std(all_sims['CO2_eq_melt_ppm_MC']), 	all_sims['CO2_eq_melt_ppm_noMC'].iloc[0]+np.std(all_sims['CO2_eq_melt_ppm_MC'])], [0, N_dup/20], ':k', label='Preferred+value+1s MC');
+        ax4.plot([all_sims['CO2_eq_melt_ppm_noMC'].iloc[0]-np.std(all_sims['CO2_eq_melt_ppm_MC']), 	all_sims['CO2_eq_melt_ppm_noMC'].iloc[0]-np.std(all_sims['CO2_eq_melt_ppm_MC'])], [0, N_dup/20], ':k', label='Preferred-value+1s MC');
+        ax4.legend()
+
+    return df_step, All_outputs, fig if 'fig' in locals() else None
+
 
 
 
@@ -199,7 +228,7 @@ error_vol_perc_bub=0, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='no
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
 error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal', len_loop=1):
 
-    """ This function propagates uncertainty in reconstruction of melt inclusion -sulfide volumes for a single row in a dataframe
+    """ This function propagates uncertainty in reconstruction of melt inclusion bubble equivalent CO2 contents.
     and returns a dataframe
 
     Parameters
@@ -309,7 +338,7 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
                                 'melt_dens_kgm3_with_noise': melt_dens_kgm3_with_noise,
                                 'vol_perc_bub': df_c['vol_perc_bub'].iloc[sample_i],
                                 'Crustal Density_kg_m3': CO2_bub_dens_gcm3,
-                                'error_Vol': error_Vol,
+                                'Absolute_error_Vol': error_Vol,
                                 'error_type_vol_perc_bub': error_type_vol_perc_bub,
                                 'error_dist_Vol': error_dist_vol_perc_bub,
                                 'error_CO2_bub_dens_gcm3': error_CO2_bub_dens_gcm3,
@@ -321,7 +350,10 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
     df_out.insert(1, 'CO2_eq_melt_ppm_MC',CO2_eq_melt)
 
-    df_out.insert(2, 'CO2_eq_melt_ppm',float(CO2_eq_melt_ind.values))
+    df_out.insert(2, 'CO2_eq_melt_ppm_noMC',float(CO2_eq_melt_ind.values))
+
+
+
 
 
 
