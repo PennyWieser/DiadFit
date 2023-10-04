@@ -3320,7 +3320,7 @@ class generic_peak_config:
 
 
 def fit_generic_peak(*, config: generic_peak_config=generic_peak_config(),
-path=None, filename=None, filetype=None,
+path=None, filename=None, filetype=None, int_cut_off=0.1,
  plot_figure=True, dpi=200):
 
     """ This function fits a generic peak with various options
@@ -3539,6 +3539,8 @@ path=None, filename=None, filetype=None,
             # fit a spline first to find intensity cut off
             mix_spline_sil = interp1d(x_fit, y_corr_fit,
                                     kind='cubic')
+
+
             x_new=np.linspace(np.min(x_fit), np.max(x_fit), 1000)
             Baseline_ysub_sil=mix_spline_sil(x_new)
 
@@ -3550,7 +3552,7 @@ path=None, filename=None, filetype=None,
 
             # Lets trim x and y based on intensity values
         # Find intensity cut off
-            int_cut_off=0.1
+
             y_int_cut=max_y*int_cut_off
 
             # Check peak isnt at edge of window, else wont work
@@ -3572,10 +3574,10 @@ path=None, filename=None, filetype=None,
 
             # Split the array into a LHS and a RHS
 
-                LHS_y=Baseline_ysub_sil[x_new<=Peak_Center]
+                LHS_y=Baseline_ysub_sil[x_new<Peak_Center] # Was originally <=
                 RHS_y=Baseline_ysub_sil[x_new>Peak_Center]
 
-                LHS_x=x_new[x_new<=Peak_Center]
+                LHS_x=x_new[x_new<Peak_Center] # Was originally <=
                 RHS_x=x_new[x_new>Peak_Center]
 
                 # Need to flip LHS to put into the find closest function
@@ -3583,9 +3585,17 @@ path=None, filename=None, filetype=None,
                 LHS_x_flip=np.flip(LHS_x)
 
 
+
+
                 val=np.argmax(LHS_y_flip<y_int_cut)
+                if val == 0 and not (LHS_y_flip[0] < y_int_cut):
+                    val = np.argmin(LHS_y_flip)
 
                 val2=np.argmax(RHS_y<y_int_cut)
+                if val2 == 0 and not (RHS_y[0] < y_int_cut):
+                    val2 = np.argmin(RHS_y)
+
+
 
                 # Find nearest x unit to this value
                 y_nearest_LHS=LHS_y_flip[val]
@@ -3594,13 +3604,19 @@ path=None, filename=None, filetype=None,
                 y_nearest_RHS=RHS_y[val2]
                 x_nearest_RHS=RHS_x[val2]
 
+
+
+
                 diff_LHS=Peak_Center-x_nearest_LHS
                 diff_RHS=x_nearest_RHS-Peak_Center
 
 
 
-                n_res=3
+                n_res=0
+
+
                 x_new_skewness=np.linspace(x_nearest_LHS-spec_res*n_res, x_nearest_RHS+spec_res*n_res)
+
 
                 x_new=x_new_skewness
 

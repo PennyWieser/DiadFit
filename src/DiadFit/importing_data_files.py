@@ -149,6 +149,8 @@ def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII
         Name of file, if you dont want to have to specify a path
         
     """
+    if filename=='settings.txt':
+        raise TypeError('Your settings file is being read. Please add this to the list of exclude_str at the top of the notebook')
     if Diad_files is None:
         if filetype == 'headless_txt':
             df=pd.read_csv(path+'/'+filename, sep="\t", header=None )
@@ -187,13 +189,23 @@ def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII
         if filetype=='head_csv':
             df=pd.read_csv(Diad_files)
 
-    df_in=np.array(df)
 
-    if (df_in[0, 0]-df_in[1, 0])>0:
-        df_in=np.flipud(df_in)
-    # Check if the intrument has inverted it. The new horiba instruments do this.
+    np_in = np.array(df)
+    x_values = np_in[:, 0]
 
-    return df_in
+    
+    if np.all(np.diff(x_values) < 0):
+        print('I flipped')
+        np_in = np.flipud(np_in)
+    # print(df_in)
+    # print('finish this bit')
+    # 
+    # df_in = df_in.astype(float)
+    # 
+    # # Check if values in the first column are in descending order
+    # if np.all(np.diff(df_in[:, 0]) <= 0):
+    
+    return np_in
 
 ## Reading different file formats
 def read_HORIBA_to_df(*,  path=None, filename):
