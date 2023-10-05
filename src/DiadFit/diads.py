@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import patches
 import lmfit
 from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel, PseudoVoigtModel
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, gaussian
 import os
 import re
 from os import listdir
@@ -3742,6 +3742,30 @@ path=None, filename=None, filetype=None, int_cut_off=0.1,
     else:
         return df
 
+def peak_prominence(x, y, peak_position):
+    # Find the index of the peak position
+    peak_index = np.where(x == peak_position)[0][0]
+
+    # Find the local minimums on both sides of the peak
+    left_valley_index = peak_index
+    right_valley_index = peak_index
+
+    # Find the left valley
+    while left_valley_index > 0 and y[left_valley_index] >= y[left_valley_index - 1]:
+        left_valley_index -= 1
+
+    # Find the right valley
+    while right_valley_index < len(x) - 1 and y[right_valley_index] >= y[right_valley_index + 1]:
+        right_valley_index += 1
+
+    # Calculate prominence as the difference between peak height and higher valley
+    peak_height = y[peak_index]
+    left_valley_height = y[left_valley_index]
+    right_valley_height = y[right_valley_index]
+
+    prominence = peak_height - max(left_valley_height, right_valley_height)
+
+    return prominence
 
 
 
@@ -3751,7 +3775,7 @@ from scipy.signal import find_peaks
 def plot_secondary_peaks(*, Diad_Files, path, filetype,
         xlim_plot=[1040, 1200], xlim_peaks=[1060, 1100],
         height=100, threshold=0.1, distance=10, prominence=5, width=6,
-         sigma_filter=False, sigma=3, find_peaks_filter=False, just_plot=False, yscale=0.2):
+         sigma_filter=False, sigma=3, sigma_window=30, find_peaks_filter=False, just_plot=False, yscale=0.2, gaussian_smooth=False, smoothing_window=5, smooth_std=3):
 
     """ This function plots spectra stacked vertically ontop of each other, in a specific region.
     It also identifies peak positions
@@ -3779,6 +3803,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
     sigma_filter: bool
         if True, finds max y coordinate in spectra. If its more than sigma*standard deviations above the
         median, it is classified as a peak.
+        looks in the region +-sigma_window around the highest point.
 
     find_peaks_filter: bool
 
@@ -3829,8 +3854,14 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
 
         # First lets use find peaks
-        y=Diad[:, 1]
+        y2=Diad[:, 1]
         x=Diad[:, 0]
+
+        if gaussian_smooth is True:
+            y = np.convolve(y2, gaussian(smoothing_window, std=smooth_std), mode='same')
+        else:
+            y=y2
+
 
 
         # Region of interest
@@ -3894,19 +3925,42 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             Y=Y+Y_sum
             i=i+1
 
+            # calculate prominence
+            y_edge1=np.median(y_trim[0:3])
+            y_edge2=np.median(y_trim[-3:])
+            prominence_calc=peak_height_saved-(y_edge1+y_edge2)/2
+
+
         elif sigma_filter is True:
                 # Find max value in region
 
             maxy=np.max(y_trim)
             xpos=x_trim[y_trim==maxy][0]
             #print(xpos)
-            y_around_max=y_trim[(x_trim<(xpos+10))&(x_trim>(xpos-10))]
-            stdy=np.nanstd(y_around_max)
-            mediany=np.nanmedian(y_around_max)
-            if maxy>mediany+stdy*sigma:
+            # if (xpos+sigma_window)>np.max(x_trim):
+            #     Raise TypeError('Your peak finding window is smaller than sigma window')
+            # y_around_max=y_trim[(x_trim>(xpos+sigma_window))&(x_trim<(xpos-sigma_window))]
+            # stdy=np.nanstd(y_around_max)
+            # mediany=np.quantile(y_around_max, 0.5)
+            # if maxy>mediany+stdy*sigma+prominence:
+            #     pos_x=x_trim[y_trim==maxy][0]
+            # else:
+            #     pos_x=np.nan
+
+            #prominence_calc = peak_prominence(x_trim, y_trim, xpos)
+
+            y_edge1=np.median(y_trim[0:3])
+            y_edge2=np.median(y_trim[-3:])
+            #print(y_edge2)
+            prominence_calc=maxy-(y_edge1+y_edge2)/2
+
+
+
+            if prominence_calc>prominence:
                 pos_x=x_trim[y_trim==maxy][0]
             else:
                 pos_x=np.nan
+
 
 
 
@@ -3949,9 +4003,10 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             i=i+1
 
 
+
     df_peaks=pd.DataFrame(data={'pos': peak_pos_saved,
                                         'height': peak_height_saved,
-                                            'prom': peak_height_saved-peak_bck})
+                                            'prom': prominence_calc})
 
     #if sigma_filter is True:
         #ax1.plot(df_peaks['pos'][y_star>0], y_star[y_star>0], '*k', mfc='yellow', ms=10)
