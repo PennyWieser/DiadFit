@@ -22,7 +22,7 @@ If you are using Jupyter Notebooks or Jupyter Lab, you can also install it by en
 
    !pip install DiadFit
 
-You then need to import DiadFit into the script you are running code in. In all the examples, we import DiadFit as pt.:
+You then need to import DiadFit into the script you are running code in. In all the examples, we import DiadFit as pf:
 
 .. code-block:: python
 
