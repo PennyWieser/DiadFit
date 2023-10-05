@@ -3834,7 +3834,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
     i=0
     Y=0
     peak_pos_saved=np.empty(len(Diad_Files), dtype=float)
-
+    peak_prom_saved=np.empty(len(Diad_Files), dtype=float)
     peak_height_saved=np.empty(len(Diad_Files), dtype=float)
     peak_bck=np.empty(len(Diad_Files), dtype=float)
     y_star=np.empty(len(Diad_Files), dtype=float)
@@ -3923,12 +3923,14 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
                          xycoords="data", fontsize=8)
             #ax1.set_xlim(xlim)
             Y=Y+Y_sum
-            i=i+1
+
 
             # calculate prominence
             y_edge1=np.median(y_trim[0:3])
             y_edge2=np.median(y_trim[-3:])
-            prominence_calc=peak_height_saved-(y_edge1+y_edge2)/2
+            peak_prom_saved[i]=peak_height_saved[i]-(y_edge1+y_edge2)/2
+
+            i=i+1
 
 
         elif sigma_filter is True:
@@ -3953,6 +3955,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             y_edge2=np.median(y_trim[-3:])
             #print(y_edge2)
             prominence_calc=maxy-(y_edge1+y_edge2)/2
+            peak_prom_saved[i]=prominence_calc
 
 
 
@@ -4006,7 +4009,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
     df_peaks=pd.DataFrame(data={'pos': peak_pos_saved,
                                         'height': peak_height_saved,
-                                            'prom': prominence_calc})
+                                            'prom': peak_prom_saved})
 
     #if sigma_filter is True:
         #ax1.plot(df_peaks['pos'][y_star>0], y_star[y_star>0], '*k', mfc='yellow', ms=10)
