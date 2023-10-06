@@ -1108,10 +1108,13 @@ def extracting_filenames_generic(*, names, prefix=False,
 
 
 
-    if len(file_m)!=len(pd.Series(file_m).unique()):
-        file_m_s=pd.Series(file_m)
-        raise TypeError('At least one of your metadata file name is duplicated  - go back to your files and sort this out, otherwise the stitching wont work')
-        print(file_m_s[file_m_s.duplicated()])
+    if len(file_m) != len(pd.Series(file_m).unique()):
+        file_m_s = pd.Series(file_m)
+        duplicated_files = file_m_s[file_m_s.duplicated()]
+        if not duplicated_files.empty:
+            print("Duplicated filenames:")
+            print(duplicated_files)
+            raise TypeError('At least one of your metadata file names is duplicated - go back to your files and sort this out, otherwise the stitching won\'t work')
     else:
         print('good job, no duplicate file names')
         #raise Exception('Duplicate file')

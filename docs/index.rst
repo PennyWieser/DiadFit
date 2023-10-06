@@ -39,24 +39,21 @@ Welcome to DiadFits documentation!
    :maxdepth: 2
    :caption: WITEC Spectra: Fitting Diads from CO2 gas cell
 
-   Examples/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines
-   Examples/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical
-   Examples/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together
-   Examples/Example1a_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together
+   Examples/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines_v74
+   Examples/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical_v74
+   Examples/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together_v74
+   Examples/Example1a_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together_v74
    %
-
-
-
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Pre 2010 HORIBA: Fitting Diads from MI VB
+   :caption: Pre 2010 HORIBA: Fitting Diads from MI VB - no clear metadata
 
-   Examples/Example1c_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines
-   Examples/Example1c_Gas_Cell_Calibration/Step2_Filtering_Numerical
-   Examples/Example1c_Gas_Cell_Calibration/Step3_FitAll_Together
-   Examples/Example1c_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together
+   Examples/Example1c_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines_v74
+   Examples/Example1c_Gas_Cell_Calibration/Step2_Filtering_Numerical_v74
+   Examples/Example1c_Gas_Cell_Calibration/Step3_FitAll_Together_v74
+   Examples/Example1c_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together_v74
    %
 
 

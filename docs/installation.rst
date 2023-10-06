@@ -5,7 +5,7 @@ Installation & Updating
 Installation
 ============
 
-First, obtain Python3 (tested on V3.9). If you haven't used python before, we recomend installing it through anaconda.
+First, obtain Python3 (tested on V3.9+). If you haven't used python before, we recomend installing it through anaconda.
  `anaconda3 <https://www.anaconda.com/products/individual>`_.
 
 All of the You Tube examples shown here use Jupyter Lab, which is an easy-friendly editor that will be installed along with Anaconda.
@@ -22,7 +22,7 @@ If you are using Jupyter Notebooks or Jupyter Lab, you can also install it by en
 
    !pip install DiadFit
 
-You then need to import DiadFit into the script you are running code in. In all the examples, we import DiadFit as pt.:
+You then need to import DiadFit into the script you are running code in. In all the examples, we import DiadFit as pf.:
 
 .. code-block:: python
 
