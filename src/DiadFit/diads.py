@@ -3314,13 +3314,14 @@ class generic_peak_config:
 
     N_peaks: int= 1
 
+    int_cut_off: float=0.05
 
 
 
 
 
 def fit_generic_peak(*, config: generic_peak_config=generic_peak_config(),
-path=None, filename=None, filetype=None, int_cut_off=0.1,
+path=None, filename=None, filetype=None,
  plot_figure=True, dpi=200):
 
     """ This function fits a generic peak with various options
@@ -3332,6 +3333,9 @@ path=None, filename=None, filetype=None, int_cut_off=0.1,
 
         name: str
             Name of feature you are fitting. Used to make column headings in output (e.g., if SO2, outputs are Peak_Cent_SO2, Peak_Area_SO2)
+
+        int_cut_off: float
+            fits peak out to int_cut_off* peak height.
 
         lower_bkc: Tuple[float, float]
             Upper and lower x coordinate for background to left of peak
@@ -3394,6 +3398,7 @@ path=None, filename=None, filetype=None, int_cut_off=0.1,
 
     Spectra_in=get_data(path=path, filename=filename, filetype=filetype)
 
+    int_cut_off=config.int_cut_off
     name=config.name
 
     # If exclude range, trim that here
