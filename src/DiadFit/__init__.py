@@ -41,6 +41,8 @@ from DiadFit.CO2_in_bubble_error import *
 
 from DiadFit.molar_gas_proportions import *
 
+from DiadFit.relaxifi import *
+
 # version
 from ._version import __version__
 
