@@ -58,23 +58,20 @@ def calculate_generic_std_err_values(*, pickle_str, new_x, CI=0.67):
 
     return df
 
-def plot_and_save_CO2cali_pickle(*, cali_data, density_range, N_poly=3, CI=0.67, std_error=True, save_fig=False):
+def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Split', split_error='split_err',CO2_dens_error='dens_err', density_range, N_poly=3, CI=0.67, std_error=True, save_fig=False):
 # Define the x and y values
     try:
         if density_range == 'Low':
-            cali_data = cali_data[cali_data['rho'] < 0.17]
-#            print(np.min(cali_data['Split']))
-#            print(np.max(cali_data['Split']))
+            cali_data = cali_data[cali_data[CO2_dens_col] < 0.17]
+
             prefix='Lowrho_'
         elif density_range == 'Medium':
-            cali_data = cali_data[cali_data['rho'].between(0.12, 0.72)]
-#            print(np.min(cali_data['Split']))
-#           print(np.max(cali_data['Split']))
+            cali_data = cali_data[cali_data[CO2_dens_col].between(0.12, 0.72)]
+
             prefix='Mediumrho_'
         elif density_range == 'High':
-            cali_data = cali_data[cali_data['rho'] > 0.65]
-#            print(np.min(cali_data['Split']))
-#            print(np.max(cali_data['Split']))
+            cali_data = cali_data[cali_data[CO2_dens_col] > 0.65]
+
             prefix='Highrho_'
         else:
             raise ValueError("Invalid density range. Please choose 'Low', 'Medium', or 'High'.")
@@ -82,9 +79,19 @@ def plot_and_save_CO2cali_pickle(*, cali_data, density_range, N_poly=3, CI=0.67,
         print(f"Warning: {e}")
         return
 
-    x_all   = cali_data['Split'].values
-    y_all = cali_data['rho'].values
-    x_err=cali_data['spliterr'].values
+    x_all   = cali_data[Split_col].values
+    y_all = cali_data[CO2_dens_col].values
+
+    if not isinstance(split_error,str)==True:
+        x_err=pd.Series(split_error, index=cali_data[CO2_dens_col].index).values
+    else:
+        x_err=cali_data[split_error].values
+
+    if not isinstance(CO2_dens_error,str)==True:
+        y_err=pd.Series(CO2_dens_error, index=cali_data[CO2_dens_col].index).values
+    else:
+        y_err=cali_data[CO2_dens_error].values
+
     non_nan_indices = ~np.isnan(x_all) & ~np.isnan(y_all)
 
     # Filter out NaN values
@@ -119,8 +126,8 @@ def plot_and_save_CO2cali_pickle(*, cali_data, density_range, N_poly=3, CI=0.67,
 
     # Now lets plot the confidence interval
     fig, (ax1) = plt.subplots(1, 1, figsize=(10,5))
-    ax1.errorbar(x, y, xerr=x_err,
-            fmt='o', ecolor='k', elinewidth=0.8, mfc='grey', ms=5, mec='k',capsize=3,barsabove=True)
+    ax1.errorbar(x, y, xerr=x_err,yerr=y_err,
+            fmt='o', ecolor='grey', elinewidth=0.8, mfc='grey', ms=5, mec='k',capsize=3,barsabove=True)
 
     ax1.plot(new_x_plot, new_calidf['preferred_values'], '-k', label=legend_label)
     # ax1.plot(new_x_plot, new_calidf['lower_values'], ':k', label='lower vals')
