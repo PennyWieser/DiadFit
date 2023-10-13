@@ -7,7 +7,7 @@ def propagate_CO2_in_bubble(sample_ID, vol_perc_bub, melt_dens_kgm3, CO2_bub_den
 error_vol_perc_bub=0, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='normal',
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
 error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal',
-plot_figure=True, fig_i=0):
+plot_figure=True, fig_i=0, neg_values=True):
 
 
 
@@ -35,6 +35,10 @@ plot_figure=True, fig_i=0):
 
     error_dist_vol_perc_bub, error_dist_bub_dens_gcm3, error_dist_melt_dens_kgm3: 'normal' or 'uniform'
         Distribution of simulated error
+
+    neg_values: bool
+        Default True - whether negative values are removed from MC simulations or not. True - keep them.
+
 
     Returns
     ------------------
@@ -135,7 +139,7 @@ error_dist_vol_perc_bub=error_dist_vol_perc_bub,
 error_melt_dens_kgm3=error_melt_dens_kgm3_i,
 error_type_melt_dens_kgm3=error_type_melt_dens_kgm3,
 error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
- len_loop=1)
+ len_loop=1, neg_values=neg_values)
 
 
         # Convert to densities for MC
@@ -181,11 +185,13 @@ error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
 
 
     df_step=pd.DataFrame(data={'Filename': Sample,
-                        'CO2_eq_in_melt_noMC': preferred_val_CO2_melt,
 
-                        'std_MC_CO2_equiv_melt_ppm': std_CO2_eq_melt,
-                        'med_MC_CO2_equiv_melt_ppm': med_CO2_eq_melt,
+                        'CO2_eq_in_melt_noMC': preferred_val_CO2_melt,
                         'mean_MC_CO2_equiv_melt_ppm': mean_CO2_eq_melt,
+                        'med_MC_CO2_equiv_melt_ppm': med_CO2_eq_melt,
+                        'std_MC_CO2_equiv_melt_ppm': std_CO2_eq_melt,
+
+
 
                          })
 
@@ -226,7 +232,7 @@ def propagate_CO2_in_bubble_ind(sample_i=0,  N_dup=1000, vol_perc_bub=None,
 CO2_bub_dens_gcm3=None, melt_dens_kgm3=None,
 error_vol_perc_bub=0, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='normal',
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
-error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal', len_loop=1):
+error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal', len_loop=1, neg_values=True):
 
     """ This function propagates uncertainty in reconstruction of melt inclusion bubble equivalent CO2 contents.
     and returns a dataframe
@@ -257,6 +263,9 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
     error_dist_Vol, error_dist_CO2_bub_dens_gcm3, error_dist_melt_dens_kgm3: 'normal' or 'uniform'
         Distribution of simulated error
+
+    neg_values: bool
+        Default True - whether negative values are removed from MC simulations or not. True - keep them.
 
     Returns
     ------------------
@@ -297,7 +306,8 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
                                                       error_Vol, N_dup)
 
     Vol_with_noise=Noise_to_add_Vol+df_c['vol_perc_bub'].iloc[sample_i]
-    Vol_with_noise[Vol_with_noise < 0.000000000000001] = 0.000000000000001
+    if neg_values is False:
+        Vol_with_noise[Vol_with_noise < 0.000000000000001] = 0.000000000000001
 
     #
 
@@ -314,7 +324,8 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
                                                       error_CO2_bub_dens_gcm3, N_dup)
 
     CO2_bub_dens_gcm3_with_noise=Noise_to_add_CO2_bub_dens_gcm3+df_c['CO2_bub_dens_gcm3'].iloc[sample_i]
-    CO2_bub_dens_gcm3_with_noise[CO2_bub_dens_gcm3_with_noise < 0.000000000000001] = 0.000000000000001
+    if neg_values is False:
+        CO2_bub_dens_gcm3_with_noise[CO2_bub_dens_gcm3_with_noise < 0.000000000000001] = 0.000000000000001
 
     # Volume error distribution
 
@@ -329,7 +340,8 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
                                                       error_melt_dens_kgm3, N_dup)
 
     melt_dens_kgm3_with_noise=Noise_to_add_melt_dens_kgm3+df_c['melt_dens_kgm3'].iloc[sample_i]
-    melt_dens_kgm3_with_noise[melt_dens_kgm3_with_noise < 0.000000000000001] = 0.000000000000001
+    if neg_values is False:
+        melt_dens_kgm3_with_noise[melt_dens_kgm3_with_noise < 0.000000000000001] = 0.000000000000001
     CO2_eq_melt_ind=10**4 * (df_c['vol_perc_bub']*df_c['CO2_bub_dens_gcm3'])/(df_c['melt_dens_kgm3']/1000)
     df_out=pd.DataFrame(data={
 
@@ -337,7 +349,7 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
                                 'CO2_bub_dens_gcm3_with_noise': CO2_bub_dens_gcm3_with_noise,
                                 'melt_dens_kgm3_with_noise': melt_dens_kgm3_with_noise,
                                 'vol_perc_bub': df_c['vol_perc_bub'].iloc[sample_i],
-                                'Crustal Density_kg_m3': CO2_bub_dens_gcm3,
+                                'CO2_bub_dens_gcm3': CO2_bub_dens_gcm3,
                                 'Absolute_error_Vol': error_Vol,
                                 'error_type_vol_perc_bub': error_type_vol_perc_bub,
                                 'error_dist_Vol': error_dist_vol_perc_bub,
@@ -348,9 +360,9 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
     CO2_eq_melt=10**4*((df_out['vol_perc_bub_with_noise']*df_out['CO2_bub_dens_gcm3_with_noise']))/(df_out['melt_dens_kgm3_with_noise']/1000)
 
-    df_out.insert(1, 'CO2_eq_melt_ppm_MC',CO2_eq_melt)
+    df_out.insert(0, 'CO2_eq_melt_ppm_MC',CO2_eq_melt)
 
-    df_out.insert(2, 'CO2_eq_melt_ppm_noMC',float(CO2_eq_melt_ind.values))
+    df_out.insert(1, 'CO2_eq_melt_ppm_noMC',float(CO2_eq_melt_ind.values))
 
 
 

@@ -1,5 +1,5 @@
-meta_path=c:\Users\penny\OneDrive\Documents\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1b_CO2_Fluid_Inclusions\MetaData
-spectra_path=c:\Users\penny\OneDrive\Documents\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1b_CO2_Fluid_Inclusions\Spectra
+meta_path=C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example1b_CO2_Fluid_Inclusions\MetaData
+spectra_path=C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example1b_CO2_Fluid_Inclusions\Spectra
 filetype=headless_txt
 prefix=True
 prefix_str=' '

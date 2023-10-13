@@ -467,6 +467,13 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 
 
     """
+    if isinstance(T_K, float) or isinstance(T_K, int) :
+        if pd.isna(T_K):
+            raise TypeError("Your Input Temperature is NaN - We cant do EOS calculatoins")
+    elif isinstance(T_K, pd.Series):
+            if T_K.isna().any():
+                raise TypeError("At least one of your Input Temperature is NaN - We cant do EOS calculatoins")
+    
     if isinstance(crust_dens_kgm3, str):
         raise TypeError('Do not enter a string for crustal density, put it as a model instead')
 

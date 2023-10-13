@@ -198,17 +198,29 @@ def calculate_dens_error(temp, Split, split_err):
 
 
 
-def propagate_error_split_neon_peakfit(Ne_corr, df_fits):
+def propagate_error_split_neon_peakfit(*, df_fits, Ne_corr=None, Ne_err=None, pref_Ne=None):
     """ This function propagates errors in your Ne correction model and peak fits by quadrature
 
     """
     # Get the error on Neon things
-    Ne_err=(Ne_corr['upper_values']-Ne_corr['lower_values'])/2
+    if isinstance(Ne_corr, pd.DataFrame):
+        Ne_err=(Ne_corr['upper_values']-Ne_corr['lower_values'])/2
+        print(np.mean(Ne_err))
+        pref_Ne=Ne_corr['preferred_values']
+
+    elif pref_Ne is not None and Ne_err is not None:
+        print('using fixed values for Ne error and Ne factor')
+    else:
+        raise TypeError('you either ne Ne_corr as a dataframe, or to give a value for pref_Ne and Ne_err')
+
+
+
+
     # Get the peak fit errors
     Diad1_err=df_fits['Diad1_cent_err'].fillna(0)
     Diad2_err=df_fits['Diad2_cent_err'].fillna(0)
     split_err=(Diad1_err**2 + Diad2_err**2)**0.5
-    Combo_err= (((df_fits['Splitting']* (Ne_err))**2) +  (Ne_corr['preferred_values'] *split_err  )**2 )**0.5
+    Combo_err= (((df_fits['Splitting']* (Ne_err))**2) +  (pref_Ne *split_err  )**2 )**0.5
 
 
 
@@ -359,7 +371,7 @@ def calculate_errors_no_densimeter(*, df_combo, Ne_pickle_str='polyfit_data.pkl'
 
 
 ## UCBerkeley densimeters
-def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67):
+def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None, time=30000):
     """ This function converts Diad Splitting into CO$_2$ density using densimeters of UCB
 
     Parameters
@@ -376,6 +388,14 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
 
     Split: int, float, pd.Series, np.array
 
+    OR for quick, dirty fitting:
+
+    pref_Ne: Prefferred Ne Correction factor (e.g. 0.9976)
+    Ne_err=Estimate of Ne eror.
+    time
+
+
+
     Returns
     --------------
     pd.DataFrame
@@ -388,19 +408,36 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
     df_combo_c=df_combo.copy()
     time=df_combo_c['sec since midnight']
 
-    # Calculating the upper and lower values for Ne to get that error
-    Ne_corr=calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str,
-    new_x=time, CI=CI_neon)
+    if Ne_pickle_str is not None:
 
-    # Lets calculate  corrected splitting and the error on this.
-    Split=df_combo_c['Splitting']*Ne_corr['preferred_values']
+        # Calculating the upper and lower values for Ne to get that error
+        Ne_corr=calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str,
+        new_x=time, CI=CI_neon)
+        # Extracting preferred correction values
+        pref_Ne=Ne_corr['preferred_values']
+        Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
+
+        df_combo_c['Corrected_Splitting_σ']=Split_err
+        df_combo_c['Corrected_Splitting_σ_Ne']=(Ne_corr['upper_values']*df_combo_c['Splitting']-Ne_corr['lower_values']*df_combo_c['Splitting'])/2
+        df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+
+    # If using a single value for quick dirty fitting
+    else:
+        Split_err, pk_err=propagate_error_split_neon_peakfit(df_fits=df_combo_c, Ne_err=Ne_err, pref_Ne=pref_Ne)
+
+
+        df_combo_c['Corrected_Splitting_σ']=Split_err
+
+        df_combo_c['Corrected_Splitting_σ_Ne']=((Ne_err+pref_Ne)*df_combo_c['Splitting']-(Ne_err-pref_Ne)*df_combo_c['Splitting'])/2
+        df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+
+
+    Split=df_combo_c['Splitting']*pref_Ne
 
     # This propgates the uncertainty in the splitting from peak fitting, and the Ne correction model
 
-    Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
-    df_combo_c['Corrected_Splitting_σ']=Split_err
-    df_combo_c['Corrected_Splitting_σ_Ne']=(Ne_corr['upper_values']*df_combo_c['Splitting']-Ne_corr['lower_values']*df_combo_c['Splitting'])/2
-    df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+
+
 
     if temp=='RoomT':
         raise TypeError('Sorry, no UC Berkeley calibration at 24C, please enter temp=SupCrit')
@@ -576,8 +613,11 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
     df.loc[SupCrit&Upper_Cal_SC, 'Notes']='Above upper Cali Limit'
     df.loc[SupCrit&Upper_Cal_SC, 'in range']='N'
 
+    if Ne_pickle_str is not None:
+        df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
+    else:
+        df_merge1=df_combo_c
 
-    df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
     df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
 
     df_merge = df_merge.rename(columns={'Preferred D': 'Density g/cm3'})
@@ -590,11 +630,19 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
     #
     #
 
-    cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
-     'Corrected_Splitting', 'Corrected_Splitting_σ',
-    'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
-    df_merge = df_merge[cols_to_move + [
-        col for col in df_merge.columns if col not in cols_to_move]]
+    if Ne_pickle_str is not None:
+        cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting', 'Corrected_Splitting_σ',
+        'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
+    else:
+        cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting', 'Corrected_Splitting_σ',
+        'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
+
 
 
 
