@@ -17,7 +17,7 @@ from DiadFit.importing_data_files import *
 encode="ISO-8859-1"
 
 ## Cornell densimeters
-def calculate_density_cornell(*, temp='SupCrit', Split, split_err=None):
+def calculate_density_cornell_old(*, temp='SupCrit', Split, split_err=None):
     """ This function converts Diad Splitting into CO$_2$ density using the densimeters of DeVitre et al. (2021)
     This should only be used for the Cornell Raman, not other Ramans at present
 
@@ -653,7 +653,7 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
 
 
 
-def calculate_density_cornell_37_error(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None, time=30000):
+def calculate_density_cornell(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None, time=30000):
     """ This function converts Diad Splitting into CO$_2$ density using densimeters of UCB
 
     Parameters
@@ -733,16 +733,16 @@ def calculate_density_cornell_37_error(*, df_combo, Ne_pickle_str='polyfit_data.
 
     # IF temp is 37
     # This gets the densimeter at low density
-    pickle_str_lowr='Lowrho_polyfit_data_cornell.pkl'
+    pickle_str_lowr='Lowrho_polyfit_data_CMASS.pkl'
     with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
         lowrho_pickle_data = pickle.load(f)
 
     # This gets the densimeter at medium density
-    pickle_str_medr='Mediumrho_polyfit_data_cornell.pkl'
+    pickle_str_medr='Mediumrho_polyfit_data_CMASS.pkl'
     with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
         medrho_pickle_data = pickle.load(f)
     # This gets the densimeter at high density.
-    pickle_str_highr='Highrho_polyfit_data_cornell.pkl'
+    pickle_str_highr='Highrho_polyfit_data_CMASS.pkl'
     with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
         highrho_pickle_data = pickle.load(f)
 
