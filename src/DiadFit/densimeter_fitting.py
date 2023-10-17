@@ -58,19 +58,29 @@ def calculate_generic_std_err_values(*, pickle_str, new_x, CI=0.67):
 
     return df
 
-def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Split', split_error='split_err',CO2_dens_error='dens_err', density_range, N_poly=3, CI=0.67, std_error=True, save_fig=False):
+def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Split', split_error='split_err',CO2_dens_error='dens_err', density_range, N_poly=3, CI=0.67, std_error=True, save_fig=False,eq_division='ccmr',save_suffix=''):
 # Define the x and y values
     try:
+        if eq_division=='ccmr':
+            lowcut=0.17
+            midcut_low=0.12
+            midcut_high=0.72
+            highcut=0.65
+        elif eq_division=='cmass':
+            lowcut=0.20
+            midcut_low=0.13
+            midcut_high=0.70
+            highcut=0.65          
         if density_range == 'Low':
-            cali_data = cali_data[cali_data[CO2_dens_col] < 0.17]
+            cali_data = cali_data[cali_data[CO2_dens_col] < lowcut]
 
             prefix='Lowrho_'
         elif density_range == 'Medium':
-            cali_data = cali_data[cali_data[CO2_dens_col].between(0.12, 0.72)]
+            cali_data = cali_data[cali_data[CO2_dens_col].between(midcut_low, midcut_high)]
 
             prefix='Mediumrho_'
         elif density_range == 'High':
-            cali_data = cali_data[cali_data[CO2_dens_col] > 0.65]
+            cali_data = cali_data[cali_data[CO2_dens_col] > highcut]
 
             prefix='Highrho_'
         else:
@@ -105,12 +115,12 @@ def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Spl
 
     # Save the model and the data to a pickle file
     data = {'model': Pf, 'x': x, 'y': y}
-    with open(prefix+'polyfit_data.pkl', 'wb') as f:
+    with open(prefix+'polyfit_data'+save_suffix+'.pkl', 'wb') as f:
         pickle.dump(data, f)
 
     if std_error is True:
         new_x_plot = np.linspace(np.min(x), np.max(x), 100)
-        new_calidf = calculate_generic_std_err_values(pickle_str=prefix+'polyfit_data.pkl',
+        new_calidf = calculate_generic_std_err_values(pickle_str=prefix+'polyfit_data'+save_suffix+'.pkl',
                                                     new_x=pd.Series(new_x_plot), CI=CI)
         # Calculate R-squared and p-value
         residuals = y - Pf(x)
@@ -152,4 +162,4 @@ def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Spl
 
 
     if save_fig is True:
-        fig.savefig(prefix+'cali_line.png')
+        fig.savefig(prefix+'cali_line'+save_suffix+'.png')
