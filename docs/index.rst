@@ -57,6 +57,15 @@ Welcome to DiadFits documentation!
    %
 
 
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Quick Peak Fitting (while Ramaning)
+
+   Examples/Example1d_Quick_Peak_Fitting_While_Ramaning/Quick_Peak_fitting
+
+   %
+
 .. toctree::
    :maxdepth: 2
    :caption: Diad peak asymmetry
