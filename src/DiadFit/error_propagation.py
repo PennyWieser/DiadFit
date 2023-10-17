@@ -121,6 +121,7 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
     Std_density_liq=np.empty(len_loop)
     Mean_density_gas=np.empty(len_loop)
     Mean_density_liq=np.empty(len_loop)
+    Std_density_gas_IQR=np.empty(len_loop)
     Sample=np.empty(len_loop,  dtype=np.dtype('U100') )
 
     for i in range(0, len_loop):
@@ -163,12 +164,15 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
         Std_density_liq[i]=np.nanstd(MC_T['Liq_gcm3'])
         Mean_density_gas[i]=np.nanmean(MC_T['Gas_gcm3'])
         Mean_density_liq[i]=np.nanmean(MC_T['Liq_gcm3'])
+        var=MC_T['Gas_gcm3']
+        Std_density_gas_IQR[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
 
 
 
     Av_outputs=pd.DataFrame(data={'Sample_ID': Sample,
                                       'Mean_density_Gas_gcm3': Mean_density_gas,
                                       'Std_density_Gas_gcm3': Std_density_gas,
+                                      'Std_density_Gas_gcm3_from_percentiles': Std_density_gas_IQR,
                                        'Mean_density_Liq_gcm3': Mean_density_liq,
                                       'Std_density_Liq_gcm3': Std_density_liq,
                                       'error_T_h_C': error_T_h_C})
@@ -492,10 +496,12 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
     mean_Press_kbar = np.empty(len_loop, dtype=float)
     med_Press_kbar = np.empty(len_loop, dtype=float)
     std_Press_kbar = np.empty(len_loop, dtype=float)
+    std_Press_kbar_IQR=np.empty(len_loop, dtype=float)
 
     mean_D_km = np.empty(len_loop, dtype=float)
     med_D_km = np.empty(len_loop, dtype=float)
     std_D_km = np.empty(len_loop, dtype=float)
+    std_D_km_IQR=np.empty(len_loop, dtype=float)
     CO2_density_input=np.empty(len_loop, dtype=float)
     error_crust_dens_loop=np.empty(len_loop, dtype=float)
     error_crust_dens2_loop=np.empty(len_loop, dtype=float)
@@ -603,10 +609,14 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
         mean_Press_kbar[i]=np.nanmean(MC_T['Pressure (kbar)'])
         med_Press_kbar[i]=np.nanmedian(MC_T['Pressure (kbar)'])
         std_Press_kbar[i]=np.nanstd(MC_T['Pressure (kbar)'])
+        var=MC_T['Pressure (kbar)']
+        std_Press_kbar_IQR[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
 
         mean_D_km[i]=np.nanmean(MC_T['Depth (km)'])
         med_D_km[i]=np.nanmedian(MC_T['Depth (km)'])
         std_D_km[i]=np.nanstd(MC_T['Depth (km)'])
+        var=MC_T['Depth (km)']
+        std_D_km_IQR[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
 
         error_crust_dens_loop[i]=np.nanmean(df_synthetic['error_crust_dens_kgm3'])
         error_crust_dens2_loop[i]=np.nanstd(df_synthetic['error_crust_dens_kgm3'])
@@ -626,10 +636,11 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
                              'Mean_MC_P_kbar': mean_Press_kbar,
                          'Med_MC_P_kbar': med_Press_kbar,
                             'std_dev_MC_P_kbar': std_Press_kbar,
-
+'std_dev_MC_P_kbar_from_percentile': std_Press_kbar_IQR,
                           'Mean_MC_D_km': mean_D_km,
                          'Med_MC_D_km': med_D_km,
                         'std_dev_MC_D_km': std_D_km,
+                        'std_dev_MC_D_km_from_percentile': std_D_km_IQR,
                          'error_T_K': error_T_K,
                          'error_CO2_dens_gcm3': error_CO2_dens,
                          'error_crust_dens_kgm3': error_crust_dens_loop,

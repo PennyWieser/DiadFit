@@ -64,6 +64,7 @@ plot_figure=True, fig_i=0, neg_values=True):
     med_CO2_eq_melt  = np.empty(len_loop, dtype=float)
     std_CO2_eq_melt  = np.empty(len_loop, dtype=float)
     preferred_val_CO2_melt= np.empty(len_loop, dtype=float)
+    std_IQR_CO2_eq_melt= np.empty(len_loop, dtype=float)
     Sample=np.empty(len_loop,  dtype=np.dtype('U100') )
 
 
@@ -175,6 +176,9 @@ error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
         mean_CO2_eq_melt[i]=np.nanmean(df['CO2_eq_melt_ppm_MC'])
         med_CO2_eq_melt[i]=np.nanmedian(df['CO2_eq_melt_ppm_MC'])
         std_CO2_eq_melt[i]=np.nanstd(df['CO2_eq_melt_ppm_MC'])
+        var=df['CO2_eq_melt_ppm_MC']
+        std_IQR_CO2_eq_melt[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
+
         preferred_val_CO2_melt[i]=np.nanmean(df['CO2_eq_melt_ppm_noMC'])
 
 
@@ -189,7 +193,7 @@ error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
                         'CO2_eq_in_melt_noMC': preferred_val_CO2_melt,
                         'mean_MC_CO2_equiv_melt_ppm': mean_CO2_eq_melt,
                         'med_MC_CO2_equiv_melt_ppm': med_CO2_eq_melt,
-                        'std_MC_CO2_equiv_melt_ppm': std_CO2_eq_melt,
+                        'std_MC_CO2_equiv_melt_ppm': std_IQR_CO2_eq_melt,
 
 
 

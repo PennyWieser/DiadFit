@@ -140,8 +140,8 @@ class diad_id_config:
 
     Diad_window_width=30
 
-    Diad2_window: Tuple[float, float]=(approx_diad2_pos[0]-Diad_window_width, approx_diad2_pos[1]+Diad_window_width)
-    Diad1_window: Tuple[float, float]=(approx_diad1_pos[0]-Diad_window_width, approx_diad1_pos[1]+Diad_window_width)
+    Diad2_window: Tuple[float, float]=(approx_diad2_pos[0], approx_diad2_pos[1]+Diad_window_width)
+    Diad1_window: Tuple[float, float]=(approx_diad1_pos[0]-Diad_window_width, approx_diad1_pos[1])
 
     approx_diad2_pos_3peaks: Tuple[float, float]=(1379, 1395, 1379-17)
 
@@ -168,7 +168,7 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
             prominence: 50 (threshold prominence for scipy find peaks)
             exclude_range1: None (default ) or list - excludes a certain region of the spectra (e.g, [1200, 1250])
             exclude_range2: None (default ) or list - excludes a certain region of the spectra (e.g, [1300, 1310])
-            Diad_window_width: 30 - Window either side of diad positions below to look for diad2 + xlimit on plot
+            Diad_window_width: 30 - Window to the left of Diad1 and to the right of Diad2 to look fo rdiad + hotbands.
             approx_diad2_pos: (1379, 1395) - Region for code to look for diad2 (+-Diad_window_width).
             approx_diad1_pos: (1275, 1290) - Region for code to look for diad1 (+-Diad_window_width).
             LH_bck_diad1, LH_bck_diad2, RH_bck_diad1, RH_bck_diad2: Positions either side of peaks to calculate prominences (e.g. LH_bck_diad1=[1180, 1220])
