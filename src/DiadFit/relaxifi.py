@@ -448,6 +448,7 @@ def stretch_in_ascent(*, R, b, T, ascent_rate_ms, depth_path_ini_fin_step=[100, 
         ax1.set_ylabel("CO2_density_gmL")
         ax0.legend(loc='best')
         ax1.legend(loc='best')
+        fig.tight_layout()
         plt.show()
 
     return results
@@ -528,6 +529,7 @@ def stretch_at_constant_Pext(*,R,b,T,EOS='SW96',Pinternal,Pexternal,totaltime,st
         ax1.plot(results['Time(s)'],results['CO2_dens_gcm3'],marker='s')
         ax1.set_xlabel("Time(s)")
         ax1.set_ylabel("CO2_density_gmL")
+        fig.tight_layout()
         plt.show()
 
     return results
