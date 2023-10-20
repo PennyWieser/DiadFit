@@ -278,8 +278,10 @@ def calculate_Densimeter_std_err_values(*, pickle_str, corrected_split, correcte
     residual_std = np.std(residuals)
 
     # Calculate the standard errors for the new x values
-    mean_x = np.mean(x)
+    mean_x = np.nanmean(x)
     n = len(x)
+
+
     standard_errors = residual_std * np.sqrt(1 + 1 / n + (new_x - mean_x) ** 2 / np.sum((x - mean_x) ** 2))
 
     # Calculate the degrees of freedom
@@ -371,7 +373,7 @@ def calculate_errors_no_densimeter(*, df_combo, Ne_pickle_str='polyfit_data.pkl'
 
 
 ## UCBerkeley densimeters
-def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None, time=30000):
+def calculate_density_ucb_old(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None, time=30000):
     """ This function converts Diad Splitting into CO$_2$ density using densimeters of UCB
 
     Parameters
@@ -636,7 +638,7 @@ def calculate_density_ucb(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='
         'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
         df_merge = df_merge[cols_to_move + [
             col for col in df_merge.columns if col not in cols_to_move]]
-    else:
+    elif pref_Ne is not None:
         cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
         'Corrected_Splitting', 'Corrected_Splitting_σ',
         'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
@@ -1035,5 +1037,331 @@ def merge_fit_files(path):
         df2=pd.concat([df2, discard_cols]).reset_index(drop=True)
     return df2
 
+## New UC Berkeley using 1220
+
+def calculate_density_ucb(*, Ne_line_combo='1117_1447', df_combo=None, Split=None, Ne_pickle_str=None,  temp='SupCrit', split_err=0, CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None, time=30000):
+    """ This function converts Diad Splitting into CO$_2$ density using densimeters of UCB
+
+    Parameters
+    -------------
+    df_combo: pandas DataFrame
+        data frame of peak fitting information
+
+    or
+    Split: pd.Series, numpy array
+        If you just want to enter the splitting, this is an option.
+
+    Ne_corr: pandas DataFrame
+        dataframe of Ne correction factors
+
+    temp: str
+        'SupCrit' if measurements done at 37C
+        'RoomT' if measurements done at 24C - Not supported at Berkeley.
+
+    Split: int, float, pd.Series, np.array
+
+    OR for quick, dirty fitting:
+
+    pref_Ne: Prefferred Ne Correction factor (e.g. 0.9976)
+    Ne_err=Estimate of Ne eror.
+    time
+
+
+
+    Returns
+    --------------
+    pd.DataFrame
+        Prefered Density (based on different equatoins being merged), and intermediate calculations
+
+
+
+
+    """
+    if df_combo is not None:
+        df_combo_c=df_combo.copy()
+        time=df_combo_c['sec since midnight']
+
+        if Ne_pickle_str is not None:
+
+            # Calculating the upper and lower values for Ne to get that error
+            Ne_corr=calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str,
+            new_x=time, CI=CI_neon)
+            # Extracting preferred correction values
+            pref_Ne=Ne_corr['preferred_values']
+            Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
+
+            df_combo_c['Corrected_Splitting_σ']=Split_err
+            df_combo_c['Corrected_Splitting_σ_Ne']=(Ne_corr['upper_values']*df_combo_c['Splitting']-Ne_corr['lower_values']*df_combo_c['Splitting'])/2
+            df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+
+        # If using a single value for quick dirty fitting
+        else:
+            Split_err, pk_err=propagate_error_split_neon_peakfit(df_fits=df_combo_c, Ne_err=Ne_err, pref_Ne=pref_Ne)
+
+
+
+            df_combo_c['Corrected_Splitting_σ']=Split_err
+
+            df_combo_c['Corrected_Splitting_σ_Ne']=((Ne_err+pref_Ne)*df_combo_c['Splitting']-(Ne_err-pref_Ne)*df_combo_c['Splitting'])/2
+            df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+
+        Split=df_combo_c['Splitting']*pref_Ne
+
+    else:
+       Split_err=(split_err*Split).astype(float)
+
+
+
+    # This is for if you just have splitting
+
+
+
+    # This propgates the uncertainty in the splitting from peak fitting, and the Ne correction model
+
+
+
+
+    if temp=='RoomT':
+        raise TypeError('Sorry, no UC Berkeley calibration at 24C, please enter temp=SupCrit')
+    if isinstance(Split, float) or isinstance(Split, int):
+        Split=pd.Series(Split)
+    # #if temp is "RoomT":
+    DiadFit_dir=Path(__file__).parent
+
+    LowD_RT=-38.34631 + 0.3732578*Split
+    HighD_RT=-41.64784 + 0.4058777*Split- 0.1460339*(Split-104.653)**2
+
+    # IF temp is 37
+    if Ne_line_combo=='1220_1447':
+    # This gets the densimeter at low density
+        pickle_str_lowr='Lowrho_polyfit_dataUCB_1220_1447.pkl'
+        with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
+            lowrho_pickle_data = pickle.load(f)
+
+        # This gets the densimeter at medium density
+        pickle_str_medr='Mediumrho_polyfit_dataUCB_1220_1447.pkl'
+        with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
+            medrho_pickle_data = pickle.load(f)
+        # This gets the densimeter at high density.
+        pickle_str_highr='Highrho_polyfit_dataUCB_1220_1447.pkl'
+        with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
+            highrho_pickle_data = pickle.load(f)
+
+    if Ne_line_combo=='1220_1400':
+        pickle_str_lowr='Lowrho_polyfit_dataUCB_1220_1400.pkl'
+        with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
+            lowrho_pickle_data = pickle.load(f)
+
+        # This gets the densimeter at medium density
+        pickle_str_medr='Mediumrho_polyfit_dataUCB_1220_1400.pkl'
+        with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
+            medrho_pickle_data = pickle.load(f)
+        # This gets the densimeter at high density.
+        pickle_str_highr='Highrho_polyfit_dataUCB_1220_1400.pkl'
+        with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
+            highrho_pickle_data = pickle.load(f)
+
+    if Ne_line_combo=='1117_1447':
+    # This gets the densimeter at low density
+        pickle_str_lowr='Lowrho_polyfit_data.pkl'
+        with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
+            lowrho_pickle_data = pickle.load(f)
+
+        # This gets the densimeter at medium density
+        pickle_str_medr='Mediumrho_polyfit_data.pkl'
+        with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
+            medrho_pickle_data = pickle.load(f)
+        # This gets the densimeter at high density.
+        pickle_str_highr='Highrho_polyfit_data.pkl'
+        with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
+            highrho_pickle_data = pickle.load(f)
+
+    # this allocates the model
+    lowrho_model = lowrho_pickle_data['model']
+    medrho_model = medrho_pickle_data['model']
+    highrho_model = highrho_pickle_data['model']
+
+    # Each of these lines get the density, and then the error on that density.
+
+    LowD_SC = pd.Series(lowrho_model(Split), index=Split.index)
+    lowD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
+    pickle_str=pickle_str_lowr,  CI_dens=CI_neon, CI_split=CI_split, str_d='LowD')
+
+    MedD_SC = pd.Series(medrho_model(Split), index=Split.index)
+    medD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
+    pickle_str=pickle_str_medr,  CI_dens=CI_neon, CI_split=CI_split, str_d='MedD')
+
+    HighD_SC = pd.Series(highrho_model(Split), index=Split.index)
+    highD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
+    pickle_str=pickle_str_highr,   CI_dens=CI_neon, CI_split=CI_split,  str_d='HighD')
+
+
+
+
+
+    df=pd.DataFrame(data={'Preferred D': 0,
+    'Corrected_Splitting': Split,
+    'Preferred D_σ': 0,
+    'Preferred D_σ_split': 0,
+    'Preferred D_σ_Ne': 0,
+    'Preferred D_σ_pkfit': 0,
+     'Preferred D_σ_dens': 0,
+        'in range': 'Y',
+                                'Notes': 'not in range',
+                                'LowD_RT':np.nan,
+                                'HighD_RT': np.nan,
+                                'LowD_SC': LowD_SC,
+                                'LowD_SC_σ': lowD_error['LowD_Density_σ'],
+                                'MedD_SC': MedD_SC,
+                                'MedD_SC_σ': medD_error['MedD_Density_σ'],
+                                'HighD_SC': HighD_SC,
+                                'HighD_SC_σ': highD_error['HighD_Density_σ'],
+                                'Temperature': temp,
+
+
+                                })
+
+
+
+
+    roomT=df['Temperature']=="RoomT"
+    SupCrit=df['Temperature']=="SupCrit"
+    # If splitting is 0
+    zero=df['Corrected_Splitting']==0
+
+    # Range for SC low density
+    min_lowD_SC_Split=df['Corrected_Splitting']>=102.7623598753032
+    max_lowD_SC_Split=df['Corrected_Splitting']<=103.1741034592534
+    # Range for SC med density
+    min_MD_SC_Split=df['Corrected_Splitting']>103.0608505403591
+    max_MD_SC_Split=df['Corrected_Splitting']<=104.3836704771313
+    # Range for SC high density
+    min_HD_SC_Split=df['Corrected_Splitting']>=104.2538992302499
+    max_HD_SC_Split=df['Corrected_Splitting']<=105.3438707618937
+    # Range for Room T low density
+    min_lowD_RoomT_Split=df['Corrected_Splitting']>=102.734115670188
+    max_lowD_RoomT_Split=df['Corrected_Splitting']<=103.350311768435
+    # Range for Room T high density
+    min_HD_RoomT_Split=df['Corrected_Splitting']>=104.407308904012
+    max_HD_RoomT_Split=df['Corrected_Splitting']<=105.1
+    # Impossible densities, room T
+    Imposs_lower_end=(df['Corrected_Splitting']>103.350311768435) & (df['Corrected_Splitting']<103.88)
+    # Impossible densities, room T
+    Imposs_upper_end=(df['Corrected_Splitting']<104.407308904012) & (df['Corrected_Splitting']>103.88)
+    # Too low density
+    Too_Low_SC=df['Corrected_Splitting']<102.7623598753032
+    Too_Low_RT=df['Corrected_Splitting']<102.734115670188
+
+    df.loc[zero, 'Preferred D']=0
+    df.loc[zero, 'Notes']=0
+
+
+
+
+
+    # If SupCrit, high density
+    df.loc[ SupCrit&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D'] = HighD_SC
+    df.loc[ SupCrit&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D_σ'] = highD_error['HighD_Density_σ']
+    df.loc[ SupCrit&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D_σ_split'] = highD_error['HighD_Density_σ_split']
+    df.loc[ SupCrit&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D_σ_dens'] = highD_error['HighD_Density_σ_dens']
+    df.loc[ SupCrit&(min_HD_SC_Split&max_HD_SC_Split), 'Notes']='SupCrit, high density'
+    # If SupCrit, Med density
+    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D'] = MedD_SC
+    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ'] = medD_error['MedD_Density_σ']
+    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ_split'] = medD_error['MedD_Density_σ_split']
+    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ_dens'] = medD_error['MedD_Density_σ_dens']
+    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Notes']='SupCrit, Med density'
+
+    # If SupCrit, low density
+    df.loc[ SupCrit&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D'] = LowD_SC
+    df.loc[ SupCrit&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D_σ'] = lowD_error['LowD_Density_σ']
+    df.loc[ SupCrit&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D_σ_split'] = lowD_error['LowD_Density_σ_split']
+    df.loc[ SupCrit&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D_σ_dens'] = lowD_error['LowD_Density_σ_dens']
+    df.loc[SupCrit&(min_lowD_SC_Split&max_lowD_SC_Split), 'Notes']='SupCrit, low density'
+
+    # If Supcritical, and too low
+    df.loc[SupCrit&(Too_Low_SC), 'Preferred D']=LowD_SC
+    df.loc[SupCrit&(Too_Low_SC), 'Notes']='Below lower calibration limit'
+    df.loc[SupCrit&(Too_Low_SC), 'in range']='N'
+
+
+    # If RoomT, and too low
+    df.loc[roomT&(Too_Low_RT), 'Preferred D']=LowD_RT
+    df.loc[roomT&(Too_Low_RT), 'Notes']='Below lower calibration limit'
+    df.loc[roomT&(Too_Low_RT), 'in range']='N'
+
+    #if splitting is zero
+    SplitZero=df['Corrected_Splitting']==0
+    df.loc[SupCrit&(SplitZero), 'Preferred D']=np.nan
+    df.loc[SupCrit&(SplitZero), 'Notes']='Splitting=0'
+    df.loc[SupCrit&(SplitZero), 'in range']='N'
+
+    df.loc[roomT&(SplitZero), 'Preferred D']=np.nan
+    df.loc[roomT&(SplitZero), 'Notes']='Splitting=0'
+    df.loc[roomT&(SplitZero), 'in range']='N'
+
+
+    # If impossible density, lower end
+    df.loc[roomT&Imposs_lower_end, 'Preferred D'] = LowD_RT
+    df.loc[roomT&Imposs_lower_end, 'Notes']='Impossible Density, low density'
+    df.loc[roomT&Imposs_lower_end, 'in range']='N'
+
+    # If impossible density, lower end
+    df.loc[roomT&Imposs_upper_end, 'Preferred D'] = HighD_RT
+    df.loc[roomT&Imposs_upper_end, 'Notes']='Impossible Density, high density'
+    df.loc[roomT&Imposs_upper_end, 'in range']='N'
+
+
+    #df.loc[zero, 'in range']='Y'
+    # If high densiy, and beyond the upper calibration limit
+    Upper_Cal_RT=df['Corrected_Splitting']>105.1
+    Upper_Cal_SC=df['Corrected_Splitting']>105.3438707618937
+
+    df.loc[roomT&Upper_Cal_RT, 'Preferred D'] = HighD_RT
+    df.loc[roomT&Upper_Cal_RT, 'Notes']='Above upper Cali Limit'
+    df.loc[roomT&Upper_Cal_RT, 'in range']='N'
+
+    df.loc[SupCrit&Upper_Cal_SC, 'Preferred D'] = HighD_SC
+    df.loc[SupCrit&Upper_Cal_SC, 'Notes']='Above upper Cali Limit'
+    df.loc[SupCrit&Upper_Cal_SC, 'in range']='N'
+
+    if Ne_pickle_str is not None:
+        df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
+    else:
+        df_merge1=df
+
+    df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
+
+    df_merge = df_merge.rename(columns={'Preferred D': 'Density g/cm3'})
+    df_merge = df_merge.rename(columns={'Preferred D_σ': 'σ Density g/cm3'})
+    df_merge = df_merge.rename(columns={'Preferred D_σ_split': 'σ Density g/cm3 (from Ne+peakfit)'})
+    df_merge = df_merge.rename(columns={'Preferred D_σ_dens': 'σ Density g/cm3 (from densimeter)'})
+    df_merge = df_merge.rename(columns={'filename_x': 'filename'})
+
+
+    #
+    #
+
+    if Ne_pickle_str is not None:
+        cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting', 'Corrected_Splitting_σ',
+        'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
+    elif pref_Ne is not None:
+        cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting', 'Corrected_Splitting_σ',
+        'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
+
+
+
+
+
+
+
+
+    return df_merge
 
 

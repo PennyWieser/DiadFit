@@ -1,0 +1,7 @@
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\UCB_Densimeter_fitting\Full_Datasets\Used_in_Calibration_2023\UCB_6-8-23\MetaData
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\UCB_Densimeter_fitting\Full_Datasets\Used_in_Calibration_2023\UCB_6-8-23\Spectra
+filetype=headless_txt
+prefix=True
+prefix_str=' '
+file_ext=.txt
+TruPower=True

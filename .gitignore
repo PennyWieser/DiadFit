@@ -16,3 +16,5 @@ ipynb_checkpoints
 */CCMR_Metadata/PO*
 *.png
 /Testing/*
+/docs/UCB_Densimeter_fitting/*
+

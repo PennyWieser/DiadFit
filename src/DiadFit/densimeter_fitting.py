@@ -70,7 +70,7 @@ def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Spl
             lowcut=0.20
             midcut_low=0.13
             midcut_high=0.70
-            highcut=0.65          
+            highcut=0.65
         if density_range == 'Low':
             cali_data = cali_data[cali_data[CO2_dens_col] < lowcut]
 
