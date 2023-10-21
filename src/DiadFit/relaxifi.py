@@ -526,13 +526,33 @@ def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MP
         results.drop(index=list(range(0, results.shape[0] - 1)), inplace=True)  # Drop all rows except last
 
     if plotfig==True:
+        if totaltime_s < 60:
+            x_time = results['Time(s)']
+            xlabel = 'Time(s)'
+        elif 60 <= totaltime_s < 3600:
+            x_time = results['Time(s)'] / 60
+            xlabel = 'Time(min)'
+            results[xlabel]=x_time
+        elif 3600 <= totaltime_s < 86400:
+            x_time = results['Time(s)'] / 3600
+            xlabel = 'Time(hr)'
+            results[xlabel]=x_time
+        elif 86400 <= totaltime_s < 31536000:
+            x_time = results['Time(s)'] / (3600 * 24)
+            xlabel = 'Time(days)'
+            results[xlabel]=x_time
+        elif totaltime_s >= 31536000:
+            x_time = results['Time(s)'] / (3600 * 24 * 365)
+            xlabel = 'Time(years)'
+            results[xlabel]=x_time
+
         fig, (ax0,ax1) = plt.subplots(1,2, figsize=(10,3))
-        ax0.plot(results['Time(s)'],results['\u0394R/R0 (fractional change in radius)'],marker='s')
-        ax0.set_xlabel("Time (s)")
+        ax0.plot(x_time,results['\u0394R/R0 (fractional change in radius)'],marker='s')
+        ax0.set_xlabel(xlabel)
         ax0.set_ylabel("\u0394R/R0 (fractional change in radius)")
 
-        ax1.plot(results['Time(s)'],results['CO2_dens_gcm3'],marker='s')
-        ax1.set_xlabel("Time(s)")
+        ax1.plot(x_time,results['CO2_dens_gcm3'],marker='s')
+        ax1.set_xlabel(xlabel)
         ax1.set_ylabel("CO2_density_gmL")
         fig.tight_layout()
         plt.show()
