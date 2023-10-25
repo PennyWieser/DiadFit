@@ -99,7 +99,7 @@ def mavko_debari(P_kbar):
 
 
 def prezzi(P_kbar):
-    """Calcultes depth for a given pressure using the parameterization of Prezzi et al. (2009),
+    """Calculates depth for a given pressure using the parameterization of Prezzi et al. (2009),
     as given in Putirka (2017) Down the Crater Elements supplement.
     Used for Andes.
 

@@ -28,7 +28,8 @@ encode="ISO-8859-1"
 ## Ratio of different peaks
 
 def calculate_mole_fraction_2comp(peak_area_a, peak_area_b, cross_section_a, cross_section_b, instrument_eff_a, instrument_eff_b):
-    """ This function calculates the molar ration of 2 components a and b based on peak areas, cross section and instrument efficiency
+    """ This function calculates the molar ration of 2 components a and b based on peak areas, 
+    cross section and instrument efficiency
 
     Parameters
     ------------
@@ -150,17 +151,20 @@ class diad_id_config:
 
 
 
-def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, filename, filetype='Witec_ASCII',  plot_figure=True):
+def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, filename,
+ filetype='Witec_ASCII',  plot_figure=True):
 
-    """ This function fits a spline to the spectral data. It then uses Scipy find peaks to identify the diad, HB and C13 peaks. It outputs
-    parameters such as peak positions, peak prominences, and peak height ratios that can be very useful when splitting data into groups.
+    """ This function fits a spline to the spectral data. It then uses Scipy find peaks to identify the diad, 
+    HB and C13 peaks. It outputs parameters such as peak positions, peak prominences, 
+    and peak height ratios that can be very useful when splitting data into groups.
     It uses information stored in diad_id_config for most parameters
 
     Parameters
     -------------
     config: dataclass
-        This is diad_id_config, which you should edit before you feed into the function to adjust peak finding parameters. E.g.
-        to change prominence of peaks found by scipy, do config=pf.diad_id_config(prominence=12), then input into this function
+        This is diad_id_config, which you should edit before you feed into the function to adjust peak finding 
+        parameters. E.g. to change prominence of peaks found by scipy, do config=pf.diad_id_config(prominence=12), 
+        then input into this function
 
         Things that can be adjusted in this config file
             height: 1 (threshold height for Scipy find peaks)
@@ -191,7 +195,6 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     -------------
     pd.DataFrame
         Dataframe of approximate peak positions, prominences, etc.
-
 
     np.array of x and y coordinates of spectra
 
@@ -572,10 +575,10 @@ def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_fi
     config: dataclass
         See documentation for identify_diad_peaks
 
-    path: str
+    spectra_path: str
         Path where spectra is stored
 
-    DiadFiles: list
+    Diad_Files: list
         List of file names to loop over
 
     filetype: str
@@ -645,8 +648,7 @@ def plot_peak_params(fit_params,
 
     Parameters
     -----------
-    fillna: int
-        replaces Nans with this number (E.g. could be zero)
+
     fit_params: Pandas DataFrame
         dataframe of approximate fit params from function loop_approx_diad_fits
     x_param: str
@@ -664,7 +666,7 @@ def plot_peak_params(fit_params,
 
     Returns
     ----------
-    figure
+    4 part figure
 
     """
     fit_params_nona=fit_params.fillna(fill_na)
@@ -701,7 +703,7 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
                                 x_cord,
                                 splitting_limits=[100, 107],
                                 lower_diad1_prom=10, exclude_str):
-    """ Filters Spectra based on approximate splitting.
+    """ Filters Spectra based on approximate splitting, draws a plot showing spectra to discard and those to keep
 
     Parameters
     --------------
@@ -791,7 +793,8 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
 
 def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=0.1, grp_filter='Weak'):
 
-    """Sorts diads into two groups. Those meeting the 'filter_bool' criteria, and those not meeting this criteria. Ones meeting the criteria are shown on the left hand plot,
+    """Sorts diads into two groups. Those meeting the 'filter_bool' criteria, and those not
+     meeting this criteria. Ones meeting the criteria are shown on the left hand plot,
     ones not meeting the criteria are shown in the right hand plot
 
     Parameters
@@ -972,7 +975,9 @@ def plot_diad_groups(*, x_cord,  Weak_np=None, Medium_np=None, Strong_np=None, y
         The total height of the figure is 2+y_fig_scale*total number of spectra entered.
 
 
-
+    Returns
+    -------------
+    figure showing 3 diad groups. 
 
 
 
@@ -1221,7 +1226,7 @@ def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype=
 def add_peak(*, prefix=None, center=None, model_name='VoigtModel',
 min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, min_amplitude=None, max_amplitude=None, sigma=0.2):
     """
-    This function iteratively adds a peak using lmfit
+    This function iteratively adds a peak using lmfit, used for iteratively fitting HB, C13 etc.
 
     Parameters
     --------------
@@ -1296,9 +1301,7 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, min
 ## Overall function for fitting diads in 1 single step
 @dataclass
 class diad1_fit_config:
-    """
-    Testing the documentation for these
-    """
+
     # What model to use
     model_name: str = 'PseudoVoigtModel'
     fit_peaks:int = 2
@@ -1396,7 +1399,8 @@ class diad2_fit_config:
 def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=None, filename=None, xdat=None, ydat=None, span=None,  plot_figure=True, dpi=200, Diad_pos=None, HB_pos=None, C13_pos=None, fit_peaks=None, block_print=True):
 
 
-    """ This function fits a voigt/Pseudovoigt curves to background subtracted data for your diads +- HBs+-C13 peaks. It can also fit a second Gaussian background iteratively with these peaks
+    """ This function fits a voigt/Pseudovoigt curves to background subtracted data for your diads 
+    +- HBs+-C13 peaks. It can also fit a second Gaussian background iteratively with these peaks
 
 
     Parameters
@@ -2260,8 +2264,10 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: diad_id_config=diad_id_config(),
     path=None, filename=None, peak_pos_voigt=None,filetype=None,
     plot_figure=True, close_figure=False, Diad_pos=None, HB_pos=None, C13_pos=None):
-    """ This function fits the background (using the function remove_diad_baseline) and then fits the peaks using fit_gaussian_voigt_generic_diad()
-    It then checks if any parameters are right at the permitted edge (meaning fitting didnt converge), and tries fitting if so. Then it makes a plot
+    """ This function fits the background (using the function remove_diad_baseline) and then 
+    fits the peaks using fit_gaussian_voigt_generic_diad()
+    It then checks if any parameters are right at the permitted edge (meaning fitting didnt converge), 
+    and tries fitting if so. Then it makes a plot
     of the various parts of the fitting procedure, and returns a dataframe of the fit parameters.
 
 
@@ -2733,8 +2739,10 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: diad_id_config=diad_id_config(),
     path=None, filename=None, filetype=None,  plot_figure=True, close_figure=True, Diad_pos=None, HB_pos=None):
-    """ This function fits the background (using the function remove_diad_baseline) and then fits the peaks using fit_gaussian_voigt_generic_diad()
-    It then checks if any parameters are right at the permitted edge (meaning fitting didnt converge), and tries fitting if so. Then it makes a plot
+    """ This function fits the background (using the function remove_diad_baseline) and then fits the peaks 
+    using fit_gaussian_voigt_generic_diad()
+    It then checks if any parameters are right at the permitted edge (meaning fitting didnt converge), 
+    and tries fitting if so. Then it makes a plot
     of the various parts of the fitting procedure, and returns a dataframe of the fit parameters.
 
 
@@ -3161,7 +3169,8 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 def combine_diad_outputs(*, filename=None, prefix=True,
 Diad1_fit=None, Diad2_fit=None, to_csv=False,
 to_clipboard=False, path=None):
-    """ This function combines the dataframes from fit_diad_2_w_bck and fit_diad_1_w_bck into a single dataframe
+    """ This function combines the dataframes from fit_diad_2_w_bck and fit_diad_1_w_bck into a 
+    single dataframe
 
     Parameters
     ---------------
@@ -3748,6 +3757,24 @@ path=None, filename=None, filetype=None,
         return df
 
 def peak_prominence(x, y, peak_position):
+    """ This function calculates the approximate prominence of a peak, 
+    by finding the local minimum either side of the peak
+    
+    Parameters
+    ----------
+    x: np.array
+        x coordinates (wavenumber)
+    y: np.array
+        y coordinates (intensity)
+
+    peak:position: int, float
+        Peak position to calculate prominence for
+
+    Returns
+    --------
+    float: prominence of peak in y coordinates. 
+
+    """
     # Find the index of the peak position
     peak_index = np.where(x == peak_position)[0][0]
 
@@ -3780,10 +3807,11 @@ from scipy.signal import find_peaks
 def plot_secondary_peaks(*, Diad_Files, path, filetype,
         xlim_plot=[1040, 1200], xlim_peaks=[1060, 1100],
         height=100, threshold=0.1, distance=10, prominence=5, width=6,
-         sigma_filter=False, sigma=3, sigma_window=30, find_peaks_filter=False, just_plot=False, yscale=0.2, gaussian_smooth=False, smoothing_window=5, smooth_std=3):
+         prominence_filter=False, sigma=3, sigma_window=30, find_peaks_filter=False, 
+         just_plot=False, yscale=0.2, gaussian_smooth=False, smoothing_window=5, smooth_std=3):
 
     """ This function plots spectra stacked vertically ontop of each other, in a specific region.
-    It also identifies peak positions
+    It also has two options to identify peak positions. 
 
     Parameters
     ---------------
@@ -3801,14 +3829,21 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
         Range of x coordinates to make plot over
 
     xlim_peaks: Tuple[float, float]
-        Range of x coordinates to search for peaks over
+        Range of x coordinates to search for peaks in
 
-    Choose one to be True from:
+    Optional parameters for Smoothing spectra prior to finding peaks
 
-    sigma_filter: bool
-        if True, finds max y coordinate in spectra. If its more than sigma*standard deviations above the
-        median, it is classified as a peak.
-        looks in the region +-sigma_window around the highest point.
+        gaussian_smooth:bool - If True, applies a gaussian smoothing filter using np.convolve defined by a
+         smoothing_window and a smooth_std.
+
+
+    If you want to actually ID peaks rather than just plot them, choose from:
+
+    prominence_filter: bool
+        if True, finds max y coordinate in the window xlim_peaks. It then calculates the prominence by
+        comparing this peak height to the average of the median of the 3 datapoints at the left and right of the window.
+        If the peak is more than 'prominence' units above the average of these two end point medians, it 
+        is classified as a peak.
 
     find_peaks_filter: bool
 
@@ -3832,7 +3867,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
 
     """
-    if sigma_filter is True and (find_peaks_filter is True or just_plot is True):
+    if prominence_filter is True and (find_peaks_filter is True or just_plot is True):
         raise TypeError('Only one of sigma_filter, ind_peaks_filter and just_plot can be True')
     fig, (ax1) = plt.subplots(1, 1, figsize=(10,2+yscale*len(Diad_Files)))
 
@@ -4565,7 +4600,8 @@ skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, dpi=200):
 
 def loop_diad_skewness(*, Diad_files, path=None, filetype=None,  skewness='abs', sort=False, int_cut_off=0.15,
 config_diad1: diad1_fit_config=diad1_fit_config(), config_diad2: diad2_fit_config=diad2_fit_config(), prominence=10, width=1, height=1):
-    """ Loops over all supplied files to calculate skewness for multiple spectra using the functions assess_diad1_skewness() and assess_diad2_skewness()
+    """ Loops over all supplied files to calculate skewness for multiple spectra using the functions 
+    assess_diad1_skewness() and assess_diad2_skewness()
 
 
     Parameters

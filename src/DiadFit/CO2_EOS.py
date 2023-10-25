@@ -756,7 +756,24 @@ from scipy.optimize import minimize
 # What we are trying to do, is run at various CO2 densities, until pressure matches input pressure
 
 def objective_function_CO2_dens(CO2_dens_gcm3, T_K, target_pressure_MPa):
-    """ This function minimises the offset between the calculated and target pressure
+    """ This function minimises the offset between the calculated and target pressure.
+    It finds the temp and CO2 density that correspond to the target pressure
+
+    Parameters
+    -------
+
+    T_K: int, float
+        Temperature in Kelvin to find P at (e.g. temp fluid was trapped at)
+
+    CO2_dens_gcm3: int, float
+        CO2 density in g/cm3
+
+    target_pressure_MPa: int, float
+        Pressure of CO2 fluid in MPa
+
+
+
+
     """
     # The objective function that you want to minimize
     calculated_pressure = calculate_P_for_rho_T_SP94(CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K, scalar_return=True)
@@ -764,7 +781,23 @@ def objective_function_CO2_dens(CO2_dens_gcm3, T_K, target_pressure_MPa):
     return objective
 
 def calculate_Density_Sterner_Pitzer_1994(T_K, target_pressure_MPa):
-    """ This function uses the objective function above to solve for CO2 density for a given pressure and Temp
+    """ This function uses the objective function 'objective_function_CO2_dens' above to solve for CO2 density for a given pressure and Temp
+
+    Parameters
+    -------
+
+    T_K: int, float
+        Temperature in Kelvin to find P at (e.g. temp fluid was trapped at)
+
+
+    target_pressure_MPa: int, float
+        Pressure of CO2 fluid in MPa
+
+    Returns
+    -------
+    CO2 density
+
+
     """
     initial_guess = 1 # Provide an initial guess for the density
     result = minimize(objective_function_CO2_dens, initial_guess, bounds=((0, 2), ), args=(T_K, target_pressure_MPa))

@@ -64,6 +64,34 @@ Welcome to DiadFits documentation!
 
    Examples/Example1d_Quick_Peak_Fitting_While_Ramaning/Quick_Peak_fitting
 
+
+   %
+
+.. toctree::
+   :maxdepth: 2
+   :caption: CO2 density to P and depth
+
+   Examples/Example5_FI_density_to_depth/Fluid_Inclusion_Density_to_Depth
+   Examples/Example5_FI_density_to_depth/Dayton_etal_2023_LaPalmaExample
+   Examples/Example5_FI_density_to_depth/Different_Crustal_Density_Profiles
+   Examples/Example5_FI_density_to_depth/Monte_Carlo_Simulations
+   Examples/Example7_Useful_EOS_Calcs/EOS_Calcs1
+   Examples/Example5_FI_density_to_depth/Visualizing_EOSs_Density_Pressure
+
+   %
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Fluid inclusion re-equilibration
+
+
+
+   Examples/Example9_Fluid_inclusion_req/Example9a_FI_stretching_during_ascent
+   Examples/Example9_Fluid_inclusion_req/Example9b_FI_stretching_slow_quenching_at_surface
+   Examples/Example9_Fluid_inclusion_req/Example9c_FI_stretching_during_stalling
+
+
    %
 
 .. toctree::
@@ -92,18 +120,7 @@ Welcome to DiadFits documentation!
 
    %
 
-.. toctree::
-   :maxdepth: 2
-   :caption: CO2 density to P and depth
 
-   Examples/Example5_FI_density_to_depth/Fluid_Inclusion_Density_to_Depth
-   Examples/Example5_FI_density_to_depth/Dayton_etal_2023_LaPalmaExample
-   Examples/Example5_FI_density_to_depth/Different_Crustal_Density_Profiles
-   Examples/Example5_FI_density_to_depth/Monte_Carlo_Simulations
-   Examples/Example7_Useful_EOS_Calcs/EOS_Calcs1
-   Examples/Example5_FI_density_to_depth/Visualizing_EOSs_Density_Pressure
-
-   %
 .. toctree::
    :maxdepth: 2
    :caption: Melt inclusion vapour bubbles

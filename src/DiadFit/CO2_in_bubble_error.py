@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def propagate_CO2_in_bubble(sample_ID, vol_perc_bub, melt_dens_kgm3, CO2_bub_dens_gcm3,  N_dup=1000,
+def propagate_CO2_in_bubble(sample_ID, N_dup=1000, vol_perc_bub, melt_dens_kgm3, CO2_bub_dens_gcm3,
 error_vol_perc_bub=0, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='normal',
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
 error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal',
@@ -16,16 +16,21 @@ plot_figure=True, fig_i=0, neg_values=True):
 
     Parameters
     ----------------
+    SampleID: str, pd.series
+        Sample_ID (e.g. sample names) which is returned on dataframe
 
     N_dup: int
         Number of duplicates when generating errors for Monte Carlo simulations
-
 
     vol_perc_bub: int, float, pd.series
         Volume proportion of sulfide in melt inclusion
 
     melt_dens_kgm3:int, float, pd.series
-        Density of the melt in kg/m3
+        Density of the silicate melt in kg/m3, e.g. from DensityX
+
+    CO2_bub_dens_gcm3: int, float, pd.Series
+        Density of the vapour bubble in g/cm3
+
 
     error_vol_perc_bub, CO2_bub_dens_gcm3, error_melt_dens_kgm3: int, float, pd.Series
         Error for each variable, can be absolute or %
@@ -36,8 +41,11 @@ plot_figure=True, fig_i=0, neg_values=True):
     error_dist_vol_perc_bub, error_dist_bub_dens_gcm3, error_dist_melt_dens_kgm3: 'normal' or 'uniform'
         Distribution of simulated error
 
+    plot_figure: bool
+        Default true - plots a figure of the row indicated by fig_i (default 1st row, fig_i=0)
+
     neg_values: bool
-        Default True - whether negative values are removed from MC simulations or not. True - keep them.
+        Default True - whether negative values are removed from MC simulations or not. False, replace all negative values with zeros.
 
 
     Returns
@@ -239,37 +247,45 @@ error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bu
 error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal', len_loop=1, neg_values=True):
 
     """ This function propagates uncertainty in reconstruction of melt inclusion bubble equivalent CO2 contents.
-    and returns a dataframe
+    and returns a dataframe. it does one sample at a time.
 
     Parameters
     ----------------
     sample_i: int
         if your inputs are panda series, says which row to take
 
+    Parameters
+    ----------------
+    SampleID: str, pd.series
+        Sample_ID (e.g. sample names) which is returned on dataframe
+
     N_dup: int
         Number of duplicates when generating errors for Monte Carlo simulations
 
-
-   vol_perc_bub: int, float, pd.series
-        Volume perc of bubble in melt inclusion
-
-    CO2_bub_dens_gcm3: int, float, pd.series
-        Density of the sulfide in g/cm3
+    vol_perc_bub: int, float, pd.series
+        Volume proportion of sulfide in melt inclusion
 
     melt_dens_kgm3:int, float, pd.series
-        Density of the melt in kg/m3
+        Density of the silicate melt in kg/m3, e.g. from DensityX
 
-    error_vol_perc_bub, error_CO2_bub_dens_gcm3, error_melt_dens_kgm3: int, float, pd.Series
+    CO2_bub_dens_gcm3: int, float, pd.Series
+        Density of the vapour bubble in g/cm3
+
+
+    error_vol_perc_bub, CO2_bub_dens_gcm3, error_melt_dens_kgm3: int, float, pd.Series
         Error for each variable, can be absolute or %
 
-    error_type_vol_perc, error_type_CO2_bub_dens_gcm3, error_type_melt_dens_kgm3: 'Abs' or 'Perc'
+    error_type_vol_perc_bub, error_type_bub_dens_gcm3, error_type_melt_dens_kgm3: 'Abs' or 'Perc'
         whether given error is perc or absolute
 
-    error_dist_Vol, error_dist_CO2_bub_dens_gcm3, error_dist_melt_dens_kgm3: 'normal' or 'uniform'
+    error_dist_vol_perc_bub, error_dist_bub_dens_gcm3, error_dist_melt_dens_kgm3: 'normal' or 'uniform'
         Distribution of simulated error
 
+    plot_figure: bool
+        Default true - plots a figure of the row indicated by fig_i (default 1st row, fig_i=0)
+
     neg_values: bool
-        Default True - whether negative values are removed from MC simulations or not. True - keep them.
+        Default True - whether negative values are removed from MC simulations or not. False, replace all negative values with zeros.
 
     Returns
     ------------------

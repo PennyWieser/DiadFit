@@ -26,8 +26,6 @@ def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
 
     pos_xstal (int): The index of the part of the split filename that corresponds to the crystal sample name.
 
-
-
     pos_MI (int): The index of the part of the split filename that corresponds to the MI sample name.
 
     prefix (bool, optional):
@@ -307,7 +305,9 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_host_y, smoothed_MI_
                                X_min=0, X_max=1, plot_figure=True, dpi=200):
 
     """
-    This function unmixes glass and host spectra, and fits the best fit proportion where the host peak and trough disapears. Specifically, it calculates the mixed spectra by taking the measured MI spectra and subtracting X*Ol spectra, where X is the mixing proportions
+    This function unmixes glass and host spectra, and fits the best fit proportion 
+    where the host peak and trough disapears. Specifically, it calculates the mixed spectra by 
+    taking the measured MI spectra and subtracting X*Ol spectra, where X is the mixing proportions
 
     Parameters
     -----------
@@ -456,7 +456,8 @@ override=False, flip=False, plot_figure=True, dpi=200):
     """
     This function checks if the unmixed specta is negative, based on two tie points.
     The first tie point is the mean y coordinate of the peak position of host +5 wavenumbers,
-    and the second tie point (tie_x_cord) is an optional input. If the specta is inverte, this function inverts it.
+    and the second tie point (tie_x_cord) is an optional input. If the specta is inverted, 
+    this function inverts it.
 
 
     Parameters

@@ -2,6 +2,13 @@
 ================
 Change Log
 ================
+Oct 25th, 2023 - Penny Wieser - v.0.78
+-----------------------------
+Major tweak of the secondary peak finding function. Instead of using a sigma filter, uses prominence_filter,
+identifies peaks as if the highest peak is above the median of the two edges of the window. 
+Old sigma_filter syntax will return error
+
+
 June 23rd, 2023 - Penny Wieser
 -----------------------------------
 Changed function 'plot_and_save_Ne_line_pickle' to 'generate_Ne_corr_model' 

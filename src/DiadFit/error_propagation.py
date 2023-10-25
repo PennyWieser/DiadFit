@@ -9,6 +9,7 @@ from DiadFit.CO2_EOS import *
 
 ## Microthermometry error propagation
 # propagate_microthermometry_uncertainty_1sam goes to 'make_error_dist_microthermometry_1sam'
+
 def make_error_dist_microthermometry_1sam(*, T_h_C, sample_i=0, error_T_h_C=0.3, N_dup=1000,
         error_dist_T_h_C='uniform', error_type_T_h_C='Abs', len_loop=1):
     
@@ -68,10 +69,14 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
         error_dist_T_h_C='uniform', error_type_T_h_C='Abs', EOS='SW96',  homog_to=None):
 
     """
-    This function propagates the uncertainty in measured temperature values to calculate the density of gas and liquid CO2 using an equation of state (EOS). 
-    It loops over more than 1 sample, using the function make_error_dist_microthermometry_1sam for each sample to generate the variable input parameters
-    It generates a dataset of temperature measurements with random noise added to them based on the specified distribution and error type, 
-    calculates the CO2 density for each temperature value, and returns the mean and standard deviation of the density values.
+    This function propagates the uncertainty in measured temperature values to calculate the density of gas and
+     liquid CO2 using an equation of state (EOS). 
+    It loops over more than 1 sample, using the function make_error_dist_microthermometry_1sam for 
+    each sample to generate the variable input parameters
+    It generates a dataset of temperature measurements with random noise added to them based on the 
+    specified distribution and error type, 
+    calculates the CO2 density for each temperature value, and returns the mean and standard deviation 
+    of the density values.
 
     Parameters
     ----------
@@ -79,19 +84,23 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
         The measured temperature(s) of the sample(s) in degrees Celsius.
 
     Sample_ID : str or pandas.Series
-        The ID or a pandas Series of IDs of the sample(s). If not provided, the function uses an index number as the ID. Default is None.
+        The ID or a pandas Series of IDs of the sample(s). If not provided, the function 
+        uses an index number as the ID. Default is None.
 
     error_T_h_C : float or pandas.Series
-        The amount of error to add to the temperature measurement. If a pandas.Series is provided, the function takes the right one for each loop. Default value is 0.3.
+        The amount of error to add to the temperature measurement. If a pandas.Series is 
+        provided, the function takes the right one for each loop. Default value is 0.3.
 
     N_dup : int, optional
         The number of duplicated samples to generate with random noise. Default value is 1000.
 
     error_dist_T_h_C : str, optional
-        The distribution of the random noise to be added to the temperature measurement. Can be either 'normal' or 'uniform'. Default value is 'uniform'.
+        The distribution of the random noise to be added to the temperature measurement. 
+        Can be either 'normal' or 'uniform'. Default value is 'uniform'.
 
     error_type_T_h_C : str, optional
-        The type of error to add to the temperature measurement. Can be either 'Abs' or 'Perc'. Default value is 'Abs'.
+        The type of error to add to the temperature measurement. Can be either 'Abs' or 'Perc'. 
+        Default value is 'Abs'.
 
     EOS : str, optional
         The equation of state to use for the calculation. Can be either 'SW96' or 'SP94'. Default value is 'SW96'.
@@ -103,7 +112,11 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
     Returns
     -------
     pandas.DataFrame, pandas.DataFrame
-        A tuple of two pandas DataFrames. The first DataFrame contains the mean and standard deviation of the gas and liquid CO2 density values. The second DataFrame contains the CO2 density values for each temperature value in the input.
+        A tuple of two pandas DataFrames. The first DataFrame contains the mean and standard 
+        deviation of the gas and liquid CO2 density values. The second DataFrame contains the 
+        CO2 density values for each temperature value in the input.
+        The output Std_density_Gas_gcm3_from_percentiles is a more representative output of the error than the 
+        standard deviation if the output distribution isn't Gaussian. 
 
         
     """
@@ -191,8 +204,10 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
  model=None):
 
     """
-    This function generates the range of T_K, CO2 densities and crustal densities for 1 sample for performing Monte Carlo simulations
-    using the function propagate_FI_uncertainty (e.g. this function makes the range of input parameters for each sample, but doesnt do the EOS calculations). 
+    This function generates the range of T_K, CO2 densities and crustal densities for 1 sample 
+    for performing Monte Carlo simulations
+    using the function propagate_FI_uncertainty (e.g. this function makes the range of 
+    input parameters for each sample, but doesnt do the EOS calculations). 
 
     Parameters
     -----------------
@@ -202,6 +217,8 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
     N_dup: int
         Number of synthetic inputs to do for each sample. 
 
+    Required input information about CO2 densities
+
     CO2_dens_gcm3: pd.Series, integer or float
         CO2 densities in g/cm3 to perform calculations with. Can be a column from your dataframe (df['density_g_cm3']), or a single value (e.g.., 0.2)
     error_CO2_dens: float
@@ -210,6 +227,8 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
         Type of CO2 fluid density error. Can be 'Abs' or 'Perc'
     error_dist_CO2_dens: str
         Distribution of CO2 fluid density error. Can be 'normal' or 'uniform'.
+
+    Required input information about fluid temperature 
 
     T_K: pd.Series, integer, float
         Temperature in Kelvin at which you think your fluid inclusion was trapped.
@@ -221,7 +240,7 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
     error_dist_T_K: str
         Distribution of temperature error. Can be 'normal' or 'uniform'.
 
-    For converting pressure to depth in the crust, choose either
+    Required input information for converting pressure to depth. Choose either:
 
     A fixed crustal density
 
@@ -374,8 +393,10 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
                  ):
 
     """
-    This function performs Monte Carlo simulations of uncertainty in CO2 density, input temperature, and crustal density. 
-    It uses the function 'calculate_temperature_density_MC' to make the simulated variables, and then uses this to calculate a resulting 
+    This function performs Monte Carlo simulations of uncertainty in CO2 density, input temperature, 
+    and crustal density. 
+    It uses the function 'calculate_temperature_density_MC' to make the simulated variables, 
+    and then uses this to calculate a resulting 
     pressure using the equation of state of choice
 
     Parameters
@@ -738,7 +759,8 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
     g=9.81, model=None,
     d1=None, d2=None, rho1=None, rho2=None, rho3=None, ):
 
-    """ This function calculates pressure and depth based on input CO2 densities, temperatures, and crustal density information from the user
+    """ This function calculates pressure and depth based on input CO2 densities, 
+    temperatures, and crustal density information from the user
     
     Parameters
     ------------------

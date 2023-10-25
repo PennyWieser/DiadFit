@@ -21,10 +21,14 @@ def calculate_generic_std_err_values(*, pickle_str, new_x, CI=0.67):
     """
     This function loads a model from a pickle file and calculates standard error values based on the model residuals, considering a confidence interval.
 
-    Parameters:
-    - pickle_str (str): The path to the pickle file containing the model.
-    - new_x (array-like): x values for calculation.
-    - CI (float, optional): The confidence level for prediction intervals (default: 0.67).
+    Parameters
+    -----------------
+    pickle_str (str)
+        The path to the pickle file containing the model.
+    new_x (np.array):
+        x values for calculation.
+    CI (float, optional):
+        The confidence level for prediction intervals (default: 0.67).
 
     Returns:
     - pandas.DataFrame
@@ -73,25 +77,49 @@ def calculate_generic_std_err_values(*, pickle_str, new_x, CI=0.67):
 
 def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Split', split_error='split_err',CO2_dens_error='dens_err', density_range, N_poly=3, CI=0.67, std_error=True, save_fig=False,eq_division='ccmr',save_suffix=''):
     """
-    This function calculates and saves three polynomial regression models as pickles for CO2 calibration data according to DeVitre et al. 2021 (low density, mid density and high density). 
+    This function calculates and saves three polynomial regression models as pickles for CO2 calibration data according to DeVitre et al. 2021 (low density, mid density and high density).
     The models are saved as pickles and the plot is saved as well if desired.
 
-    Parameters:
-    - cali_data (pandas.DataFrame): A DataFrame containing calibration data (should at least contain a density and a fermi splitting column)
-    - CO2_dens_col (str, optional): The column name corresponding to CO2 density in the cali_data DataFrame (default: 'rho').
-    - Split_col (str, optional): The column name corresponding to Fermi splitting values in the cali_data DataFrame  (default: 'Split').
-    - split_error (str, float, or array-like, optional): The column name corresponding to error in fermi splitting OR an array of splitting errors OR a float (default: 'split_err').
-    - CO2_dens_error (str, float or array-like, optional): The column name corresponding to error in CO2 density OR an array of density errors OR a float(default: 'dens_err').
-    - density_range (str): The density range to be fit ('Low', 'Medium', or 'High').
-    - N_poly (int, optional): The degree of the polynomial fit (default: 3).
-    - CI (float, optional): The confidence level for prediction intervals (default: 0.67).
-    - std_error (bool, optional): Whether to calculate and plot standard error (default: True).
-    - save_fig (bool, optional): Whether to save the plot as an image (default: False).
-    - eq_division (str, optional): Method for dividing the data based on density ('ccmr' or 'cmass', default: 'ccmr'). CCMR corresponds to the limits for each section as shown in DeVitre et al., 2021 (Chem. Geo), cmass is for those in DeVitre et al., 2023 (J. Volcanica)
-    - save_suffix (str, optional): Suffix to be added to the saved file names (default: '').
+    Parameters
+    -----------------
+    cali_data (pandas.DataFrame):
+        A DataFrame containing calibration data (should at least contain a density and a fermi splitting column)
+
+    CO2_dens_col (str, optional):
+        The column name corresponding to CO2 density in the cali_data DataFrame (default: 'rho').
+
+    Split_col (str, optional):
+        The column name corresponding to Fermi splitting values in the cali_data DataFrame  (default: 'Split').
+
+    split_error (str, float, or array-like, optional):
+        The column name corresponding to error in fermi splitting OR an array of splitting errors OR a float (default: 'split_err').
+
+    CO2_dens_error (str, float or array-like, optional):
+        The column name corresponding to error in CO2 density OR an array of density errors OR a float(default: 'dens_err').
+
+    density_range (str):
+        The density range to be fit ('Low', 'Medium', or 'High').
+
+    N_poly (int, optional):
+        The degree of the polynomial fit (default: 3).
+
+    CI (float, optional):
+        The confidence level for prediction intervals (default: 0.67).
+
+    std_error (bool, optional):
+        Whether to calculate and plot standard error (default: True).
+
+    save_fig (bool, optional):
+        Whether to save the plot as an image (default: False).
+
+    eq_division (str, optional):
+        Method for dividing the data based on density ('ccmr' or 'cmass', default: 'ccmr'). CCMR corresponds to the limits for each section as shown in DeVitre et al., 2021 (Chem. Geo), cmass is for those in DeVitre et al., 2023 (J. Volcanica)
+
+    save_suffix (str, optional):
+        Suffix to be added to the saved file names (default: '').
 
     Returns:
-    - None
+        Saves a .pkl file, doesnt return anything.
 
     """
 # Define the x and y values
