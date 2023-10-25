@@ -851,7 +851,7 @@ def merge_fit_files(path):
 
 def calculate_density_ucb(*, Ne_line_combo='1117_1447', df_combo=None, temp='SupCrit', 
 CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None):
-     """ This function converts Diad Splitting into CO$_2$ density using the UC Berkeley calibration line
+    """ This function converts Diad Splitting into CO$_2$ density using the UC Berkeley calibration line
     developed by DeVitre and Wieser in 2023. 
 
     Parameters
