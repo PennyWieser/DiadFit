@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def propagate_CO2_in_bubble(sample_ID, N_dup=1000, vol_perc_bub, melt_dens_kgm3, CO2_bub_dens_gcm3,
+def propagate_CO2_in_bubble(*, N_dup=1000, sample_ID, vol_perc_bub, melt_dens_kgm3, CO2_bub_dens_gcm3,
 error_vol_perc_bub=0, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='normal',
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
 error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal',
