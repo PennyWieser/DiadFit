@@ -407,17 +407,26 @@ def calculate_errors_no_densimeter(*, df_combo, Ne_pickle_str='polyfit_data.pkl'
 
 
 
-def calculate_density_cornell(*, df_combo, Ne_pickle_str='polyfit_data.pkl',  temp='SupCrit', 
-CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None):
-    """ This function converts Diad Splitting into CO$_2$ density using the Raman at CCMR, Cornell, run by E. Gazel.
-    It is currently only supported for measurements performed at 37C. (e.g. SupCrit). 
-    However, if you need the lower T 24C version, we just need to hunt down the calibration data to save the densimeter pkl.  
-    It fully propagates uncertainty from the densimeter, the peak fitting and the Ne correction model
+def calculate_density_cornell(*,  lab='CMASS', df_combo=None, temp='SupCrit', 
+CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, corrected_split=None, split_err=None):
+    """ This function converts Diad Splitting into CO$_2$ density using the Cornell densimeters. Use lab='CCMR' for CCMR and lab='CMASS' for Esteban Gazels lab. 
 
     Parameters
     -------------
+
+    lab: str. 'CMASS' or 'CCMR'
+        Name of the lab where the analy
+    Either:
+
     df_combo: pandas DataFrame
         data frame of peak fitting information
+        
+    Or:
+    corrected_split: pd.Series
+        Corrected splitting  (cm-1)  
+        
+    Split_err: float, int
+        Error on corrected splitting
 
     temp: str
         'SupCrit' if measurements done at 37C
@@ -430,6 +439,8 @@ CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None):
     CI_split: float
         Default 0.67. Confidence interval to use, e.g. 0.67 returns 1 sigma uncertainties. If you use another number,
         note the column headings will still say sigma.
+        
+        
 
 
     Either
@@ -450,43 +461,41 @@ CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None):
     --------------
     pd.DataFrame
         Prefered Density (based on different equatoins being merged), and intermediate calculations
-
-
-
-
     """
-    df_combo_c=df_combo.copy()
-    time=df_combo_c['sec since midnight']
+    if corrected_split is not None:
+        Split=corrected_split
+    if df_combo is not None:
+        df_combo_c=df_combo.copy()
+        time=df_combo_c['sec since midnight']
 
-    if Ne_pickle_str is not None:
+        if Ne_pickle_str is not None:
 
-        # Calculating the upper and lower values for Ne to get that error
-        Ne_corr=calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str,
-        new_x=time, CI=CI_neon)
-        # Extracting preferred correction values
-        pref_Ne=Ne_corr['preferred_values']
-        Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
+            # Calculating the upper and lower values for Ne to get that error
+            Ne_corr=calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str,
+            new_x=time, CI=CI_neon)
+            # Extracting preferred correction values
+            pref_Ne=Ne_corr['preferred_values']
+            Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
 
-        df_combo_c['Corrected_Splitting_σ']=Split_err
-        df_combo_c['Corrected_Splitting_σ_Ne']=(Ne_corr['upper_values']*df_combo_c['Splitting']-Ne_corr['lower_values']*df_combo_c['Splitting'])/2
-        df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+            df_combo_c['Corrected_Splitting_σ']=Split_err
+            df_combo_c['Corrected_Splitting_σ_Ne']=(Ne_corr['upper_values']*df_combo_c['Splitting']-Ne_corr['lower_values']*df_combo_c['Splitting'])/2
+            df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
 
-    # If using a single value for quick dirty fitting
+        # If using a single value for quick dirty fitting
+        else:
+            Split_err, pk_err=propagate_error_split_neon_peakfit(df_fits=df_combo_c, Ne_err=Ne_err, pref_Ne=pref_Ne)
+
+
+
+            df_combo_c['Corrected_Splitting_σ']=Split_err
+
+            df_combo_c['Corrected_Splitting_σ_Ne']=((Ne_err+pref_Ne)*df_combo_c['Splitting']-(Ne_err-pref_Ne)*df_combo_c['Splitting'])/2
+            df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+
+        Split=df_combo_c['Splitting']*pref_Ne
+
     else:
-        Split_err, pk_err=propagate_error_split_neon_peakfit(df_fits=df_combo_c, Ne_err=Ne_err, pref_Ne=pref_Ne)
-
-
-        df_combo_c['Corrected_Splitting_σ']=Split_err
-
-        df_combo_c['Corrected_Splitting_σ_Ne']=((Ne_err+pref_Ne)*df_combo_c['Splitting']-(Ne_err-pref_Ne)*df_combo_c['Splitting'])/2
-        df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
-
-
-    Split=df_combo_c['Splitting']*pref_Ne
-
-    # This propgates the uncertainty in the splitting from peak fitting, and the Ne correction model
-
-
+       Split_err=(split_err*Split).astype(float)
 
 
     if temp=='RoomT':
@@ -500,19 +509,37 @@ CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None):
     HighD_RT=-41.64784 + 0.4058777*Split- 0.1460339*(Split-104.653)**2
 
     # IF temp is 37
-    # This gets the densimeter at low density
-    pickle_str_lowr='Lowrho_polyfit_data_CMASS.pkl'
-    with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
-        lowrho_pickle_data = pickle.load(f)
-
-    # This gets the densimeter at medium density
-    pickle_str_medr='Mediumrho_polyfit_data_CMASS.pkl'
-    with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
-        medrho_pickle_data = pickle.load(f)
-    # This gets the densimeter at high density.
-    pickle_str_highr='Highrho_polyfit_data_CMASS.pkl'
-    with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
-        highrho_pickle_data = pickle.load(f)
+    if lab=='CMASS':
+        # This gets the densimeter at low density
+        pickle_str_lowr='Lowrho_polyfit_data_CMASS.pkl'
+        with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
+            lowrho_pickle_data = pickle.load(f)
+    
+        # This gets the densimeter at medium density
+        pickle_str_medr='Mediumrho_polyfit_data_CMASS.pkl'
+        with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
+            medrho_pickle_data = pickle.load(f)
+        # This gets the densimeter at high density.
+        pickle_str_highr='Highrho_polyfit_data_CMASS.pkl'
+        with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
+            highrho_pickle_data = pickle.load(f)
+    elif lab=='CCMR':
+        pickle_str_lowr='Lowrho_polyfit_data_CCMR.pkl'
+        with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
+            lowrho_pickle_data = pickle.load(f)
+    
+        # This gets the densimeter at medium density
+        pickle_str_medr='Mediumrho_polyfit_data_CCMR.pkl'
+        with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
+            medrho_pickle_data = pickle.load(f)
+        # This gets the densimeter at high density.
+        pickle_str_highr='Highrho_polyfit_data_CCMR.pkl'
+        with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
+            highrho_pickle_data = pickle.load(f)        
+        
+    
+    else:
+        raise TypeError('Lab name not recognised. enter CCMR or CMASS')
 
     # this allocates the model
     lowrho_model = lowrho_pickle_data['model']
@@ -663,10 +690,17 @@ CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None):
     df.loc[SupCrit&Upper_Cal_SC, 'Notes']='Above upper Cali Limit'
     df.loc[SupCrit&Upper_Cal_SC, 'in range']='N'
 
+
+        
     if Ne_pickle_str is not None:
         df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
     else:
-        df_merge1=df_combo_c
+        df_merge1=df
+
+    df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
+
+        
+    
 
     df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
 
@@ -686,17 +720,12 @@ CI_split=0.67, CI_neon=0.67, pref_Ne=None, Ne_err=None):
         'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
         df_merge = df_merge[cols_to_move + [
             col for col in df_merge.columns if col not in cols_to_move]]
-    else:
+    elif pref_Ne is not None:
         cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
         'Corrected_Splitting', 'Corrected_Splitting_σ',
         'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
         df_merge = df_merge[cols_to_move + [
             col for col in df_merge.columns if col not in cols_to_move]]
-
-
-
-
-
 
 
     return df_merge
@@ -850,7 +879,7 @@ def merge_fit_files(path):
 ## New UC Berkeley using 1220
 
 def calculate_density_ucb(*, Ne_line_combo='1117_1447', df_combo=None, temp='SupCrit', 
-CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None):
+CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, corrected_split=None, split_err=None):
     """ This function converts Diad Splitting into CO$_2$ density using the UC Berkeley calibration line
     developed by DeVitre and Wieser in 2023. 
 
@@ -858,9 +887,18 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None):
     -------------
     Ne_line_combo: str, '1117_1447', '1220_1447', '1220_1400'
         Combination of Ne lines used for drift correction
+        
+    Either:
 
     df_combo: pandas DataFrame
         data frame of peak fitting information
+        
+    Or:
+    corrected_split: pd.Series
+        Corrected splitting  (cm-1)  
+        
+    Split_err: float, int
+        Error on corrected splitting
 
     temp: str
         'SupCrit' if measurements done at 37C
@@ -873,6 +911,8 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None):
     CI_split: float
         Default 0.67. Confidence interval to use, e.g. 0.67 returns 1 sigma uncertainties. If you use another number,
         note the column headings will still say sigma.
+        
+        
 
 
     Either
@@ -895,6 +935,8 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None):
         Prefered Density (based on different equatoins being merged), and intermediate calculations
 
     """
+    if corrected_split is not None:
+        Split=corrected_split
     if df_combo is not None:
         df_combo_c=df_combo.copy()
         time=df_combo_c['sec since midnight']
@@ -978,6 +1020,21 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None):
         pickle_str_highr='Highrho_polyfit_dataUCB_1220_1400.pkl'
         with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
             highrho_pickle_data = pickle.load(f)
+            
+    if Ne_line_combo=='1117_1400':
+        pickle_str_lowr='Lowrho_polyfit_dataUCB_1117_1400.pkl'
+        with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
+            lowrho_pickle_data = pickle.load(f)
+
+        # This gets the densimeter at medium density
+        pickle_str_medr='Mediumrho_polyfit_dataUCB_1117_1400.pkl'
+        with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
+            medrho_pickle_data = pickle.load(f)
+        # This gets the densimeter at high density.
+        pickle_str_highr='Highrho_polyfit_dataUCB_1117_1400.pkl'
+        with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
+            highrho_pickle_data = pickle.load(f)
+
 
     if Ne_line_combo=='1117_1447':
     # This gets the densimeter at low density
@@ -1145,10 +1202,11 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None):
 
     if Ne_pickle_str is not None:
         df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
+        df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
     else:
-        df_merge1=df
+        df_merge=pd.concat([df, df_combo_c], axis=1).reset_index(drop=True)
 
-    df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
+    
 
     df_merge = df_merge.rename(columns={'Preferred D': 'Density g/cm3'})
     df_merge = df_merge.rename(columns={'Preferred D_σ': 'σ Density g/cm3'})
@@ -1160,19 +1218,25 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None):
     #
     #
 
-    if Ne_pickle_str is not None:
+    if Ne_pickle_str is not None: # If its not none, have all the columns for Ne
         cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
         'Corrected_Splitting', 'Corrected_Splitting_σ',
         'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
         df_merge = df_merge[cols_to_move + [
             col for col in df_merge.columns if col not in cols_to_move]]
-    elif pref_Ne is not None:
+    elif pref_Ne is not None and df_combo is not None: #If Pref Ne, 
         cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
         'Corrected_Splitting', 'Corrected_Splitting_σ',
         'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
         df_merge = df_merge[cols_to_move + [
             col for col in df_merge.columns if col not in cols_to_move]]
-
+            
+    elif df_combo is None:
+        
+        cols_to_move = ['Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
 
 
 

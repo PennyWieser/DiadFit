@@ -1,0 +1,7 @@
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example_1e_HORIBA_VT\Spectra
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example_1e_HORIBA_VT\Spectra
+filetype=headless_txt
+prefix=False
+prefix_str=' '
+file_ext=.txt
+TruPower=True

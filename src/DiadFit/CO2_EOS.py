@@ -17,7 +17,7 @@ DiadFit_dir=Path(__file__).parent
 
 ## Calculating density for a given homogenization temp - Only available with Span and Wanger, but have equations
 
-def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=None):
+def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=None, set_to_critical=False):
     """ Calculates CO2 density for a specified homogenization temperature in Celcius
     using the Span and Wanger (1996) equation of state.
 
@@ -37,6 +37,9 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
     homog_to: str ('L', 'V'), pd.series with strings. Optional
         If specified, returns an additional column 'Bulk Density' to choose between the liquid and gas.
 
+    set_to_critical: bool
+        Default False. If true, if you enter T_h_C which exceeds 30.9782 (the critical point of CO2) it replaces your entered Temp with that temp.
+
     Returns
     -------------
     pd.DataFrame:
@@ -54,8 +57,14 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
         #print('Sorry, algorithm cant converge for Ts above 29.878')
             raise TypeError('Sorry, algorithm cant converge for Ts above 30.9782')
     if isinstance(T_h_C, pd.Series) or isinstance(T_h_C, np.ndarray):
-        if any(T_h_C)>=30.9782:
-            raise TypeError('Sorry, algorithm cant converge for Ts above 30.9782')
+        if any(T_h_C)>=30.9782 and set_to_critical is False:
+            raise TypeError('Sorry, algorithm cant converge for Ts above 30.9782. You can put set_to_critical=True and this T_ will be replacd with 30.9782')
+        elif any(T_h_C)>=30.9782 and set_to_critical is True:
+            if isinstance(T_h_C, pd.Series):
+                T_h_C = np.where(T_h_C > 30.9782, 30.9782, T_h_C)
+            elif isinstance(T_h_C, np.ndarray):
+                T_h_C[T_h_C > 30.9782] = 30.9782
+
 
     if EOS!='SW96':
         raise TypeError('At the moment, only Span and Wanger (SW96) EOS can be used to convert T_h_C into density')
@@ -142,6 +151,8 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
 
     if Sample_ID is not None:
         df['Sample_ID']=Sample_ID
+
+
 
 
     return df

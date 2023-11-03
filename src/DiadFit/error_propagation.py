@@ -59,14 +59,16 @@ def make_error_dist_microthermometry_1sam(*, T_h_C, sample_i=0, error_T_h_C=0.3,
     if error_dist_T_h_C=='uniform':
         Noise_to_add_T_h_C = np.random.uniform(- error_T_h_C, +
                                                       error_T_h_C, N_dup)
-
-    T_h_C_with_noise=Noise_to_add_T_h_C+df_c['T_h_C'].iloc[sample_i]
+    
+    T_h_C_with_noise=Noise_to_add_T_h_C+df_c['T_h_C'].iloc[0]
+    
+    
 
     return T_h_C_with_noise
 
 
 def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0.3, N_dup=1000,
-        error_dist_T_h_C='uniform', error_type_T_h_C='Abs', EOS='SW96',  homog_to=None):
+        error_dist_T_h_C='uniform', error_type_T_h_C='Abs', EOS='SW96',  homog_to=None, set_to_critical=False):
 
     """
     This function propagates the uncertainty in measured temperature values to calculate the density of gas and
@@ -108,6 +110,10 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
 
     homog_to : str, optional
         The phase to which the CO2 density is homogenized. Can be either 'Gas' or 'Liq'. Default is None.
+        
+    set_to_critical: bool
+        Default False. If true, if you enter T_h_C which exceeds 30.9782 (the critical point of CO2) it replaces your entered Temp with that temp.
+        
 
     Returns
     -------
@@ -135,6 +141,7 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
     Mean_density_gas=np.empty(len_loop)
     Mean_density_liq=np.empty(len_loop)
     Std_density_gas_IQR=np.empty(len_loop)
+    Std_density_Liq_IQR=np.empty(len_loop)
     Sample=np.empty(len_loop,  dtype=np.dtype('U100') )
 
     for i in range(0, len_loop):
@@ -166,6 +173,7 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
         Sample2=Sample[i]
         MC_T=calculate_CO2_density_homog_T(T_h_C=Temp_MC, Sample_ID=Sample2, EOS=EOS, homog_to=homog_to)
 
+        # Replace critical with NaN
 
 
 
@@ -179,15 +187,22 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
         Mean_density_liq[i]=np.nanmean(MC_T['Liq_gcm3'])
         var=MC_T['Gas_gcm3']
         Std_density_gas_IQR[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
+        varL=MC_T['Liq_gcm3']
+        Std_density_Liq_IQR[i]=0.5*np.abs((np.percentile(varL, 84) -np.percentile(varL, 16)))
 
-
+    # Preferred density no MC
+    Density_pref=calculate_CO2_density_homog_T(T_h_C=T_h_C, Sample_ID=Sample_ID, EOS=EOS, homog_to=homog_to, set_to_critical=set_to_critical)
 
     Av_outputs=pd.DataFrame(data={'Sample_ID': Sample,
+                                    'Density_Gas_noMC': Density_pref['Gas_gcm3'],
+                                    'Density_Liq_noMC': Density_pref['Liq_gcm3'],
                                       'Mean_density_Gas_gcm3': Mean_density_gas,
                                       'Std_density_Gas_gcm3': Std_density_gas,
                                       'Std_density_Gas_gcm3_from_percentiles': Std_density_gas_IQR,
+                                      'Std_density_Liq_gcm3_from_percentiles': Std_density_Liq_IQR,
                                        'Mean_density_Liq_gcm3': Mean_density_liq,
                                       'Std_density_Liq_gcm3': Std_density_liq,
+                                      'Input_temp': T_h_C,
                                       'error_T_h_C': error_T_h_C})
 
 

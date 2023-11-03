@@ -1,5 +1,5 @@
-meta_path=c:\Users\penny\OneDrive\Documents\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1d_Quick_Peak_Fitting_While_Ramaning
-spectra_path=c:\Users\penny\OneDrive\Documents\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1d_Quick_Peak_Fitting_While_Ramaning
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example1d_Quick_Peak_Fitting_While_Ramaning
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example1d_Quick_Peak_Fitting_While_Ramaning
 filetype=headless_txt
 prefix=False
 prefix_str=' '

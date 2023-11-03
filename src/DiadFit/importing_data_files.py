@@ -195,7 +195,7 @@ def get_data(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII
 
     
     if np.all(np.diff(x_values) < 0):
-        print('I flipped')
+        #print('I flipped')
         np_in = np.flipud(np_in)
     # print(df_in)
     # print('finish this bit')

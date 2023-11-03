@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
 import lmfit
-from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel, PseudoVoigtModel
+from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel, PseudoVoigtModel, SkewedVoigtModel
 from scipy.signal import find_peaks
 import os
 import re
@@ -88,7 +88,8 @@ def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447
 def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     """
     Calculates Raman shift for a given laser wavelength of Ne lines, using the datatable from NIST of Ne line
-    emissoin in air and the intensity of each line.
+    emissoin in air and the intensity of each line. 
+    Data from https://physics.nist.gov/PhysRefData/ASD/lines_form.html
 
     Parameters
     ---------------
@@ -106,6 +107,31 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     """
 
     Ne_emission_line_air=np.array([
+    
+    
+541.85584,
+542.009,
+542.0155,
+543.36513,
+544.7120,
+
+544.85091,
+549.44158,
+550.73442,
+551.1176,
+551.1485,
+
+552.063,
+553.36788,
+553.86510,
+555.90978,
+556.24416,
+
+556.27662,
+556.30531,
+    
+    
+    
 556.244160,
 556.276620,
 556.305310,
@@ -142,7 +168,34 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
 
     ])
 
-    Intensity=np.array([1500.00,
+    Intensity=np.array([
+    
+1500,
+12	,
+500,
+2500,
+80,
+
+1500,
+500,
+250,
+30,
+150,
+
+30,
+750,
+500,
+350,
+1500,
+
+5000,
+750,
+
+    
+    
+    
+    
+    1500.00,
     5000.00,
     750.00,
     350.00,
@@ -689,6 +742,8 @@ const_params=True, spec_res=0.4) :
             model0 = PseudoVoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
         if model_name=="VoigtModel":
             model0 = VoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
+        if model_name=='SkewedVoigtModel':
+            model0=SkewedVoigtModel(prefix='p0_')
         
         pars0 = model0.make_params()
         pars0['p0_center'].set(Ne_center, min=Ne_center-2*spec_res, max=Ne_center+2*spec_res)
@@ -725,6 +780,10 @@ const_params=True, spec_res=0.4) :
             model1 = PseudoVoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
         if model_name=="VoigtModel":
             model1 = VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
+            
+        if model_name=='SkewedVoigtModel':
+            model1=SkewedVoigtModel(prefix='p1_')
+            
         pars1 = model1.make_params()
         pars1['p1_'+ 'amplitude'].set(Amp_p0, min=min_off*Amp_p0, max=max_off*Amp_p0)
         pars1['p1_'+ 'center'].set(Center_p0, min=Center_p0-spec_res/2, max=Center_p0+spec_res/2)
@@ -737,6 +796,8 @@ const_params=True, spec_res=0.4) :
             peak = PseudoVoigtModel(prefix='p2_')#+ ConstantModel(prefix='c0')
         if model_name=="VoigtModel":
             peak = VoigtModel(prefix='p2_')#+ ConstantModel(prefix='c0')
+        if model_name=='SkewedVoigtModel':
+            peak=SkewedVoigtModel(prefix='p2_')
 
 
         pars = peak.make_params()
@@ -791,6 +852,8 @@ const_params=True, spec_res=0.4) :
             model_combo = PseudoVoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
         if model_name=="VoigtModel":
             model_combo= VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
+        if model_name=='SkewedVoigtModel':
+            model_combo=SkewedVoigtModel(prefix='p1_')
 
 
 
@@ -934,6 +997,8 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True, spec_res=0
         model = PseudoVoigtModel()#+ ConstantModel(prefix='c0')
     if model_name=="VoigtModel":
         model = VoigtModel()#+ ConstantModel(prefix='c0')
+    if model_name=="SkewedVoigtModel":
+        model = SkewedVoigtModel()#+ ConstantModel(prefix='c0')
 
 
 
@@ -1660,10 +1725,48 @@ def filter_Ne_Line_neighbours(*, df_combo=None, Corr_factor=None, number_av=6, o
 ## Lets make a plotting function for this notebook 
 
 def generate_Ne_corr_model(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=False, std_error=True, N_bootstrap=500,save_fig=False, pkl_name='polyfit_data.pkl'):
+    """ This function takes time stamp and Ne correctoin data to make a predictive polynomial, which it then saves as a pkl file
+    
+    Parameters
+    ---------------
+    time: pd.Series
+        Time through the run
+        
+    Ne_corr: df or pd.Series
+        if dataframe, has to have the column 'Ne_corr'
+        Else, just Ne correction factor as a pd.Series itself
+        
+    CI: float. Default 0.67
+        Confidence interval to save as uncertainty on model. 
+        
+    Either:
+        
+    std_error: bool (True)
+        calculates uncertainty on model using CI
+        
+    Or:
+    boostrap: bool (False)
+        Used for testing of method, keep as False
+    
+    save_fig:bool
+        Saves figure. 
+        
+    pkl_name: str
+        Name of model that is saved. 
+        
+        
+    
+        
+    
+    """
 # Define the x and y values
     x_all   = np.array([time])
-    y_all = np.array([Ne_corr['Ne_Corr']])
-    y_err=Ne_corr['1σ_Ne_Corr']
+    if isinstance(Ne_corr, pd.DataFrame):
+        y_all = np.array([Ne_corr['Ne_Corr']])
+        y_err=Ne_corr['1σ_Ne_Corr']
+    else:
+        y_all=Ne_corr
+        y_err=0*Ne_corr
     non_nan_indices = ~np.isnan(x_all) & ~np.isnan(y_all)
 
     # Filter out NaN values
