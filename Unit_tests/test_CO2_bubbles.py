@@ -6,7 +6,7 @@ import DiadFit as pf
 decimalPlace=4
 class test_CO2_Bubble(unittest.TestCase):
     def test_CO2_Bubble(self):
-        self.assertAlmostEqual(bub=pf.propagate_CO2_in_bubble_ind(sample_i=0,  N_dup=1,
+        self.assertAlmostEqual(pf.propagate_CO2_in_bubble_ind(sample_i=0,  N_dup=1,
 vol_perc_bub=5,
 error_vol_perc_bub=50, error_type_vol_perc_bub='Perc',
 error_dist_vol_perc_bub='normal',
