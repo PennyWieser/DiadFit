@@ -26,7 +26,7 @@ class test_Ne_files(unittest.TestCase):
     def test_Ne_line_get_files(self):
         self.assertEqual(pf.get_files(path=spectra_path,
 file_ext='txt', ID_str='Ne',
-exclude_str=['diad'], sort=False)[0], '01 Ne_lines_1.txt',
+exclude_str=['diad'], sort=True)[0], '01 Ne_lines_1.txt',
  "loaded file doesnt match")
         
 class test_Ne_line_pos(unittest.TestCase):
