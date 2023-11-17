@@ -141,7 +141,7 @@ class diad_id_config:
 
     Diad_window_width=30
 
-    Diad2_window: Tuple[float, float]=(approx_diad2_pos[0], approx_diad2_pos[1]+Diad_window_width)
+    Diad2_window: Tuple[float, float]=(approx_diad2_pos[0]-Diad_window_width, approx_diad2_pos[1]+Diad_window_width)
     Diad1_window: Tuple[float, float]=(approx_diad1_pos[0]-Diad_window_width, approx_diad1_pos[1])
 
     approx_diad2_pos_3peaks: Tuple[float, float]=(1379, 1395, 1379-17)
@@ -3319,6 +3319,13 @@ to_clipboard=False, path=None):
 
 
 
+def calculate_HB_Diad_area_ratio(df):
+    """" Calculates two area ratios of hotbands and diads"""
+    df_c=df.copy()
+    df_c['HB_Diad_Ratio']=(df_c['HB1_Area']+df_c['HB2_Area'])/(df_c['Diad1_Voigt_Area']+df_c['Diad2_Voigt_Area'])
+    df_c['HB_Total_Ratio']=(df_c['HB1_Area']+df_c['HB2_Area'])/(df_c['Diad1_Voigt_Area']+df_c['Diad2_Voigt_Area']+df_c['HB1_Area']+df_c['HB2_Area'])
+    return df_c
+
 
 
 
@@ -4018,7 +4025,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             i=i+1
 
 
-        elif sigma_filter is True:
+        elif prominence_filter is True:
                 # Find max value in region
 
             maxy=np.max(y_trim)

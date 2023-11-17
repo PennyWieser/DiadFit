@@ -1,0 +1,7 @@
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\Unit_tests
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\Unit_tests
+filetype=headless_txt
+prefix=True
+prefix_str=' '
+file_ext=.txt
+TruPower=True

@@ -1203,8 +1203,10 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     if Ne_pickle_str is not None:
         df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
         df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
-    else:
+    elif Ne_pickle_str is None and df_combo is not None:
         df_merge=pd.concat([df, df_combo_c], axis=1).reset_index(drop=True)
+    else:
+        df_merge=df
 
     
 
