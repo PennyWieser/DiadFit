@@ -27,7 +27,7 @@ class test_Ne_files(unittest.TestCase):
         self.assertEqual(pf.get_files(path=spectra_path,
 file_ext='txt', ID_str='Ne',
 exclude_str=['diad'], sort=False)[0], '01 Ne_lines_1.txt',
-decimalPlace, "loaded file doesnt match")
+ "loaded file doesnt match")
         
 class test_Ne_line_pos(unittest.TestCase):
     def test_Ne_line_position(self):
@@ -46,7 +46,7 @@ class test_scipy_peaks(unittest.TestCase):
     def test_scipy_peaks(self):
         self.assertAlmostEqual(pf.identify_Ne_lines(path=spectra_path,
 filename='01 Ne_lines_1.txt', filetype='headless_txt',
-config=Neon_id_config, print_df=False)[1]['Peak1_cent'], 1116.16583,
+config=Neon_id_config, print_df=False)[1]['Peak1_cent'].iloc[0], 1116.16583,
 decimalPlace, "Calculated Pk1Center Scipy doesnt match test value")
 
 
