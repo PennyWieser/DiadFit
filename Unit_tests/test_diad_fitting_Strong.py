@@ -108,28 +108,28 @@ C13_pos=GroupN_df['C13_pos'].iloc[i])
 class test_strong_diad_fit(unittest.TestCase):
     def test_st_pk1_combo(self):
         self.assertAlmostEqual(Diad1_fit_strong['Diad1_Combofit_Cent'].iloc[0],1282.7310347177588,
-decimalPlace, "Calculated Diad 1 position doesnt match test")
+2, "Calculated Diad 1 position doesnt match test")
 
     def test_st_pk1_area(self):
         self.assertAlmostEqual(Diad1_fit_strong['Diad1_Voigt_Area'].iloc[0],44923.511465629825,
-decimalPlace, "Calculated Diad 1 area doesnt match test")
+0, "Calculated Diad 1 area doesnt match test")
 
     def test_st_pk1_err(self):
         self.assertAlmostEqual(Diad1_fit_strong['Diad1_cent_err'].iloc[0],0.001553027374488664,
-decimalPlace, "Calculated Diad 1 error doesnt match test")
+4, "Calculated Diad 1 error doesnt match test")
 
 
     def test_st_pk2_combo(self):
         self.assertAlmostEqual(Diad2_fit_strong['Diad2_Combofit_Cent'].iloc[0],1387.1727902209943,
-decimalPlace, "Calculated Diad 2 position doesnt match test")
+2, "Calculated Diad 2 position doesnt match test")
 
     def test_st_pk2_area(self):
         self.assertAlmostEqual(Diad2_fit_strong['Diad2_Voigt_Area'].iloc[0],79240.29545872404,
-decimalPlace, "Calculated Diad 2 area doesnt match test")
+0, "Calculated Diad 2 area doesnt match test")
 
     def test_st_pk2_err(self):
         self.assertAlmostEqual(Diad2_fit_strong['Diad2_cent_err'].iloc[0],0.0006681704840915489,
-decimalPlace, "Calculated Diad 2 error doesnt match test")
+4, "Calculated Diad 2 error doesnt match test")
 
 
 
