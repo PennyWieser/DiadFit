@@ -3,6 +3,7 @@ import pandas as pd
 import DiadFit as pf
 import os
 
+decimalPlace=4
 # define things
 file_ext='.txt'
 prefix=True
