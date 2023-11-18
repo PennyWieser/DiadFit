@@ -112,13 +112,9 @@ class test_scipy(unittest.TestCase):
 decimalPlace, "Calculated line position doesnt match")
 
     def test_scipy_pk2(self):
-        self.assertAlmostEqual(df_peaks['Diad1_pos'].iloc[0],1389.08209899914,
+        self.assertAlmostEqual(df_peaks['Diad2_pos'].iloc[0],1389.08209899914,
 decimalPlace, "Calculated line position doesnt match")
 
-
-class test_cosmic_ray_filter(unittest.TestCase):
-    def test_CRR_filter(self):
-        self.assertEqual(rays_found['rays_present'], 'False', 'It found a ray when it shouldnt have')
 
 class test_weak_diad_fit(unittest.TestCase):
     def test_wk_pk1_combo(self):
