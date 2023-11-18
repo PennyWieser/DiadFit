@@ -123,7 +123,7 @@ decimalPlace, "Calculated Diad 1 position doesnt match test")
 
     def test_wk_pk1_area(self):
         self.assertAlmostEqual(Diad1_fit_weak['Diad1_Voigt_Area'].iloc[0],936.1206698490131,
-decimalPlace, "Calculated Diad 1 position doesnt match test")
+decimalPlace, "Calculated Diad 1 area doesnt match test")
 
     def test_wk_pk1_err(self):
         self.assertAlmostEqual(Diad1_fit_weak['Diad1_cent_err'].iloc[0],0.007354145769786887,
@@ -136,7 +136,7 @@ decimalPlace, "Calculated Diad 2 position doesnt match test")
 
     def test_wk_pk2_area(self):
         self.assertAlmostEqual(Diad2_fit_weak['Diad2_Voigt_Area'].iloc[0],1340.5602764421023,
-decimalPlace, "Calculated Diad 2 position doesnt match test")
+decimalPlace, "Calculated Diad 2 area doesnt match test")
 
     def test_wk_pk2_err(self):
         self.assertAlmostEqual(Diad2_fit_weak['Diad2_cent_err'].iloc[0],0.004334933552254167,

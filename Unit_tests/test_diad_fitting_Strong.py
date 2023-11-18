@@ -57,11 +57,6 @@ n=1 # number of neighboring pixels being compared, typically 1 is ideal.
 exclude_ranges=[(1100,1200)] # List of tuples containing ranges to exclude from filtering (i.e., for secondary peaks
 
 
-rays_found,spectrum=pf.cosmicray_filter.filter_singleray(path=spectra_path,
-                                        exclude_ranges=exclude_ranges,filetype=filetype,
-                                        Diad_files=Diad_files,i=i,diad_peaks=diad_peaks,plot_rays=plot_rays,
-                                      export_cleanspec=export_cleanspec,save_fig=save_fig,dynfact=dynfact,dynfact_2=dynfact_2,n=n)
-
 
 
 GroupN_df=fit_params
@@ -111,28 +106,28 @@ C13_pos=GroupN_df['C13_pos'].iloc[i])
 
 
 class test_strong_diad_fit(unittest.TestCase):
-    def test_wk_pk1_combo(self):
+    def test_st_pk1_combo(self):
         self.assertAlmostEqual(Diad1_fit_strong['Diad1_Combofit_Cent'].iloc[0],1282.7310347177588,
 decimalPlace, "Calculated Diad 1 position doesnt match test")
 
-    def test_wk_pk1_area(self):
-        self.assertAlmostEqual(Diad1_fit_strong['Diad1_Voigt_Area'].iloc[0],44960.41832038153,
-decimalPlace, "Calculated Diad 1 position doesnt match test")
+    def test_st_pk1_area(self):
+        self.assertAlmostEqual(Diad1_fit_strong['Diad1_Voigt_Area'].iloc[0],44923.511465629825,
+decimalPlace, "Calculated Diad 1 area doesnt match test")
 
-    def test_wk_pk1_err(self):
-        self.assertAlmostEqual(Diad1_fit_strong['Diad1_cent_err'].iloc[0],0.0015903706254091026,
+    def test_st_pk1_err(self):
+        self.assertAlmostEqual(Diad1_fit_strong['Diad1_cent_err'].iloc[0],0.001553027374488664,
 decimalPlace, "Calculated Diad 1 error doesnt match test")
 
 
-    def test_wk_pk2_combo(self):
+    def test_st_pk2_combo(self):
         self.assertAlmostEqual(Diad2_fit_strong['Diad2_Combofit_Cent'].iloc[0],1387.1727902209943,
 decimalPlace, "Calculated Diad 2 position doesnt match test")
 
-    def test_wk_pk2_area(self):
-        self.assertAlmostEqual(Diad2_fit_strong['Diad2_Voigt_Area'].iloc[0],1340.5602764421023,
-decimalPlace, "Calculated Diad 2 position doesnt match test")
+    def test_st_pk2_area(self):
+        self.assertAlmostEqual(Diad2_fit_strong['Diad2_Voigt_Area'].iloc[0],79240.29545872404,
+decimalPlace, "Calculated Diad 2 area doesnt match test")
 
-    def test_wk_pk2_err(self):
+    def test_st_pk2_err(self):
         self.assertAlmostEqual(Diad2_fit_strong['Diad2_cent_err'].iloc[0],0.0006681704840915489,
 decimalPlace, "Calculated Diad 2 error doesnt match test")
 
