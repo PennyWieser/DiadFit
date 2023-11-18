@@ -8,7 +8,7 @@ decimalPlace=4
 file_ext='.txt'
 prefix=True
 spectra_path = os.path.dirname(os.path.realpath(__file__))
-exclude_str=['Ne']
+exclude_str=['Ne', 'POC']
 filetype='headless_txt'
 i=0
 # Get files
