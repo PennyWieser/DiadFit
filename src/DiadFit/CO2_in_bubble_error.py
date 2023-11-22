@@ -12,7 +12,8 @@ plot_figure=True, fig_i=0, neg_values=True):
 
 
     """ This function propagates uncertainty in reconstruction of melt inclusion CO2 contents
-    by feeding each row into propagate_CO2_in_bubble_ind
+    by feeding each row into propagate_CO2_in_bubble_ind. The returned standard deviation uses the 84th-16th percentile
+    rather than the true standard deviation, as this is better for skewed distributions.
 
     Parameters
     ----------------

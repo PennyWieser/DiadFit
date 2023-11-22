@@ -3896,6 +3896,7 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
         comparing this peak height to the average of the median of the 3 datapoints at the left and right of the window.
         If the peak is more than 'prominence' units above the average of these two end point medians, it
         is classified as a peak.
+        Also need to specify prominence: float
 
     find_peaks_filter: bool
 
