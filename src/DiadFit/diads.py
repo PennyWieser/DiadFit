@@ -83,6 +83,9 @@ def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None
 
 
     """
+    if 'CRR' in filename:
+        filetype='headless_txt'
+
     if Spectra_x is None:
         Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
 
@@ -2382,6 +2385,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
     """
+    if 'CRR' in filename:
+        filetype='headless_txt'
 
     # Check number of peaks makes sense
     fit_peaks=config1.fit_peaks
@@ -2860,6 +2865,8 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
 
 """
+    if 'CRR' in filename:
+        filetype='headless_txt'
 
     fit_peaks=config1.fit_peaks
 

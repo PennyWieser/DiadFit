@@ -236,6 +236,8 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
                 pxdf_filt_pass2_4export[['Wavenumber','Intensity']].to_csv(path+'/'+file.replace('.txt', '')+'_CRR_DiadFit.txt', sep='\t', header=False, index=False)
             if second_pass==False:
                 pxdf[['Wavenumber','Intensity']].to_csv(path+'/'+file.replace('.txt', '')+'_CRR_DiadFit.txt', sep='\t', header=False, index=False)
+            if filetype!='headless_txt':
+                pxdf[['Wavenumber','Intensity']].to_csv(path+'/'+file.replace('.txt', '')+'_CRR_DiadFit.txt', sep='\t', header=False, index=False)
 
     # This plots the results if True
     if plot_rays=='rays_only':

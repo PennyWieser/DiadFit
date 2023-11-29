@@ -1194,6 +1194,42 @@ def stitch_loop_individual_fits(*, fit_individually=True,
     
 ## Save settings files
 def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ext, TruPower):
+    """ This function saves settings so you can load them across multiple notebooks without repition
+    
+    Parameters
+    -------------------
+    meta_path: str
+        Path where your metadata is stored
+    spectra_path: str
+        path where your spectra is stored
+    filetype: str
+        Choose from 'Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII', 'HORIBA_txt', 'Renishaw_txt'
+    prefix: bool
+        If True, removes 01, 02, from filename (WITEC problem)
+        Also need to state prefix_str: prefix separating string (in this case, 01 Ne would be ' '
+        
+    file_ext: str
+        Extension of file. e.g. txt
+    
+    TruPower: bool
+        If WITEC instrument and you have TruPower, set as True
+        
+    Returns
+    --------------
+    file called settings.txt with these saved.
+    
+    
+    """
+    filetype_opts = ['Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII', 'HORIBA_txt', 'Renishaw_txt']
+    
+    
+    if filetype in filetype_opts:
+            # Proceed with your logic here
+        print(f"Filetype {filetype} is valid.")
+            # You can add more logic here if needed
+    else:
+        raise TypeError(f"Invalid filetype: {filetype}. Supported filetypes are {filetype_opts}")
+
     # Get the current folder
     folder = os.getcwd()
 
