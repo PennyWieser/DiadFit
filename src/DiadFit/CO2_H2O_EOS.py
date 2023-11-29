@@ -101,7 +101,107 @@ aH2[13] = -4.13039220 / 10**1  # alpha for CO2
 aH2[14] = -8.47988634  # beta for CO2
 aH2[15] = 2.800 / 10**2  # gamma for CO2
 
+## This is for when you only feed a numpy array
+# def ensure_series(a, b, c):
+#     # Determine the target length
+#     lengths = [len(a) if isinstance(a, pd.Series) else None,
+#                len(b) if isinstance(b, pd.Series) else None,
+#                len(c) if isinstance(c, pd.Series) else None]
+#     lengths = [l for l in lengths if l is not None]
+#     target_length = max(lengths) if lengths else 1
+#
+#     # Convert each input to a Series of the target length
+#     if not isinstance(a, pd.Series):
+#         a = pd.Series([a] * target_length)
+#     if not isinstance(b, pd.Series):
+#         b = pd.Series([b] * target_length)
+#     if not isinstance(c, pd.Series):
+#         c = pd.Series([c] * target_length)
+#
+#     return a, b, c
+#
+#
+# def ensure_series_4(a, b, c, d):
+#     # Determine the target length
+#     lengths = [len(a) if isinstance(a, pd.Series) else None,
+#                len(b) if isinstance(b, pd.Series) else None,
+#                len(c) if isinstance(c, pd.Series) else None,
+#                len(d) if isinstance(d, pd.Series) else None]
+#     lengths = [l for l in lengths if l is not None]
+#     target_length = max(lengths) if lengths else 1
+#
+#     # Convert each input to a Series of the target length
+#     if not isinstance(a, pd.Series):
+#         a = pd.Series([a] * target_length)
+#     if not isinstance(b, pd.Series):
+#         b = pd.Series([b] * target_length)
+#     if not isinstance(c, pd.Series):
+#         c = pd.Series([c] * target_length)
+#     if not isinstance(d, pd.Series):
+#         d = pd.Series([d] * target_length)
+#     return a, b, c, d
 
+import pandas as pd
+import numpy as np
+
+def ensure_series(a, b, c):
+    # Determine the target length
+    lengths = [len(a) if isinstance(a, (pd.Series, np.ndarray)) else None,
+               len(b) if isinstance(b, (pd.Series, np.ndarray)) else None,
+               len(c) if isinstance(c, (pd.Series, np.ndarray)) else None]
+    lengths = [l for l in lengths if l is not None]
+    target_length = max(lengths) if lengths else 1
+
+    # Convert each input to a Series of the target length
+    if not isinstance(a, (pd.Series, np.ndarray)):
+        a = pd.Series([a] * target_length)
+    else:
+        a = pd.Series(a)
+
+    if not isinstance(b, (pd.Series, np.ndarray)):
+        b = pd.Series([b] * target_length)
+    else:
+        b = pd.Series(b)
+
+    if not isinstance(c, (pd.Series, np.ndarray)):
+        c = pd.Series([c] * target_length)
+    else:
+        c = pd.Series(c)
+
+    return a, b, c
+
+
+def ensure_series_4(a, b, c, d):
+    # Determine the target length
+    lengths = [len(a) if isinstance(a, (pd.Series, np.ndarray)) else None,
+               len(b) if isinstance(b, (pd.Series, np.ndarray)) else None,
+               len(c) if isinstance(c, (pd.Series, np.ndarray)) else None,
+               len(d) if isinstance(d, (pd.Series, np.ndarray)) else None]
+    lengths = [l for l in lengths if l is not None]
+    target_length = max(lengths) if lengths else 1
+
+    # Convert each input to a Series of the target length
+    if not isinstance(a, (pd.Series, np.ndarray)):
+        a = pd.Series([a] * target_length)
+    else:
+        a = pd.Series(a)
+
+    if not isinstance(b, (pd.Series, np.ndarray)):
+        b = pd.Series([b] * target_length)
+    else:
+        b = pd.Series(b)
+
+    if not isinstance(c, (pd.Series, np.ndarray)):
+        c = pd.Series([c] * target_length)
+    else:
+        c = pd.Series(c)
+
+    if not isinstance(d, (pd.Series, np.ndarray)):
+        d = pd.Series([d] * target_length)
+    else:
+        d = pd.Series(d)
+
+    return a, b, c, d
 
 
 
@@ -178,7 +278,7 @@ def purevolume(i, V, P, B, C, D, E, F, Vc, TK, b, g):
     # Return the final estimated volume
     return V
 
-def purepressure(i, V, P, B, C, D, E, F, Vc, TK, b, g):
+def purepressure(i, V, P, TK):
     """ Using the pure EOS, this function solves for the best pressure using the pureEOS residual calculated above
 
     It returns the pressure.
@@ -186,6 +286,8 @@ def purepressure(i, V, P, B, C, D, E, F, Vc, TK, b, g):
     """
     for iter in range(1, 51):
         # Calculate the derivative of the pureEOS function at (V, P)
+        k1_temperature, k2_temperature, k3_temperature, a1, a2, g, b, Vc, B, C, D, E, F, Vguess=get_EOS_params(P, TK)
+
         diff = (pureEOS(i, V, P + 0.0001, B, C, D, E, F, Vc, TK, b, g) - pureEOS(i, V, P, B, C, D, E, F, Vc, TK, b, g)) / 0.0001
 
         # Update the pressure using the Newton-Raphson method
@@ -200,6 +302,9 @@ def purepressure(i, V, P, B, C, D, E, F, Vc, TK, b, g):
 
     # Return the final estimated pressure
     return P
+
+
+
 
 def mol_vol_to_density(mol_vol, XH2O):
     """ Converts molar mass to molar density for a given XH2O"""
@@ -265,11 +370,14 @@ def mixvolume(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK):
 
     return V
 
-def mixpressure(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK):
+def mixpressure(P, V, TK, Y):
     """ This function iterates in pressure space to get the best match to the entered volume using the mixEOS function above.
 
     """
     for iter in range(1, 51):
+        k1_temperature, k2_temperature, k3_temperature, a1, a2, g, b, Vc, B, C, D, E, F, Vguess=get_EOS_params(P, TK)
+        Bij, Vcij, BVc_prm, BVc, Cijk, Vcijk, CVc2_prm, CVc2, Dijklm, Vcijklm, DVc4_prm, DVc4, Eijklmn, Vcijklmn, EVc5_prm,  EVc5, Fij, FVc2_prm, FVc2, bmix, b_prm, gijk, gVc2_prm, gVc2=mixing_rules(B, C,D, E, F, Vc, Y, b,    g, k1_temperature, k2_temperature, k3_temperature)
+
         diff = ((mixEOS(V, P + 0.0001, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK)
         - mixEOS(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK)) / 0.0001)
         Pnew = P - mixEOS(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK) / diff
@@ -280,8 +388,10 @@ def mixpressure(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK):
     return P
 
 
+
 def mix_lnphi(i, Zmix, BVc_prm, CVc2_prm, DVc4_prm, EVc5_prm, FVc2_prm, FVc2, bmix, b_prm, gVc2, gVc2_prm, Vmix):
     lnph=0
+
     lnph = -math.log(Zmix)
     lnph += (BVc_prm[i] / Vmix)
     lnph += (CVc2_prm[i] / (2.0 * Vmix ** 2))
@@ -735,13 +845,8 @@ def calculate_molar_volume_DZ2006(*, P_kbar, T_K, XH2O):
 
 
     """
-    # Make all a panda series
-    if not isinstance(P_kbar, pd.Series):
-        P_kbar = pd.Series(P_kbar)
-    if not isinstance(T_K, pd.Series):
-        T_K = pd.Series(T_K)
-    if not isinstance(XH2O, pd.Series):
-        XH2O = pd.Series(XH2O)
+
+    P_kbar, T_K, XH2O=ensure_series(P_kbar, T_K, XH2O)
 
     # Check all the same length
     lengths = [len(P_kbar), len(T_K), len(XH2O)]
@@ -760,6 +865,67 @@ def calculate_molar_volume_DZ2006(*, P_kbar, T_K, XH2O):
 
     return mol_vol
 
+def calculate_Pressure_ind_DZ2006(*, mol_vol, T_K, XH2O, Pguess=None):
+    """ This function calculates pressure for a known molar volume, T in K and XH2O (mol frac) for a single value
+    """
+    V=mol_vol
+    if Pguess is None:
+        if V>1000:
+            Pguess=1000
+        elif V<10:
+            Pguess=20000
+        else:
+            Pguess=200
+
+    TK=T_K
+
+    # lets do for low pressure initially
+
+
+    if XH2O==0:
+        P=purepressure(1,  V, Pguess, TK)
+
+    elif XH2O==1:
+        P=purepressure(0, V, Pguess, TK)
+
+    else:
+        XCO2=1-XH2O
+        Y = [0] * 2
+        Y[0]=XH2O
+        Y[1]=XCO2
+
+        P=mixpressure(Pguess, V, T_K, Y)
+
+    return P
+
+def calculate_Pressure_DZ2006(*, mol_vol=None, density=None, T_K, XH2O):
+    """ Used to calculate molar volume in a loop for multiple inputs
+
+
+    """
+    # Make all a panda series
+
+
+
+    if mol_vol is None and density is not None:
+        mol_vol=density_to_mol_vol(density=density, XH2O=XH2O)
+
+    mol_vol, T_K, XH2O=ensure_series(mol_vol, T_K, XH2O)
+
+    # Check all the same length
+    lengths = [len(mol_vol), len(T_K), len(XH2O)]
+    if len(set(lengths)) != 1:
+        raise ValueError("All input Pandas Series must have the same length.")
+
+    # Set up loop
+    P=np.empty(len(mol_vol), float)
+
+    for i in range(0, len(mol_vol)):
+        P[i]=calculate_Pressure_ind_DZ2006(mol_vol=mol_vol.iloc[i].astype(float), T_K=T_K.iloc[i].astype(float), XH2O=XH2O.iloc[i].astype(float))
+
+
+
+    return P
 
 
 def mix_fugacity(*, P_kbar, T_K, XH2O, Vmix):
@@ -768,14 +934,10 @@ def mix_fugacity(*, P_kbar, T_K, XH2O, Vmix):
 
     """
     # Make everything a pandas series
-    if not isinstance(P_kbar, pd.Series):
-        P_kbar = pd.Series(P_kbar)
-    if not isinstance(T_K, pd.Series):
-        T_K = pd.Series(T_K)
-    if not isinstance(XH2O, pd.Series):
-        XH2O = pd.Series(XH2O)
-    if not isinstance(Vmix, pd.Series):
-        Vmix = pd.Series(Vmix)
+
+    P_kbar, T_K, XH2O, Vmix=ensure_series_4(P_kbar, T_K, XH2O, Vmix)
+
+
 
     #Check all the same length
     lengths = [len(P_kbar), len(T_K), len(XH2O), len(Vmix)]
@@ -796,16 +958,26 @@ def mix_fugacity(*, P_kbar, T_K, XH2O, Vmix):
 
 
 def mol_vol_to_density(*, mol_vol, XH2O):
-    """ Converts molar mass to molar density for a given XH2O"""
+    """ Converts molar mass to density for a given XH2O"""
     density=((1-XH2O)*44 + (XH2O)*18)/mol_vol
     return density
 
+def density_to_mol_vol(*, density, XH2O):
+    """ Converts density in g/cm3 to molar volume for a given XH2O"""
+    mol_vol=((1-XH2O)*44 + (XH2O)*18)/density
+    return mol_vol
 
 
 
 def H2O_CO2_EOS_DZ2006_knownP(*, P_kbar=1, T_K=1200, XH2O=1):
     """ Function to return a dataframe of outputs when you know P, T_K and XH2O"""
+
+    # First, check all pd Series
+
+
     mol_vol=calculate_molar_volume_DZ2006(P_kbar=P_kbar, T_K=T_K, XH2O=XH2O)
+
+
     f_H2O, f_CO2, a_H2O, a_CO2, Zmix=mix_fugacity(P_kbar=P_kbar, T_K=T_K, XH2O=XH2O,
                                                       Vmix=mol_vol)
     density=mol_vol_to_density(mol_vol=mol_vol, XH2O=XH2O)
