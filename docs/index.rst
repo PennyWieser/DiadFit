@@ -77,6 +77,8 @@ Welcome to DiadFits documentation!
    Examples/Example5_FI_density_to_depth/Monte_Carlo_Simulations
    Examples/Example7_Useful_EOS_Calcs/EOS_Calcs1
    Examples/Example5_FI_density_to_depth/Visualizing_EOSs_Density_Pressure
+   Examples/Example7_Useful_EOS_Calcs/H2O_CO2_fluids
+
 
    %
 

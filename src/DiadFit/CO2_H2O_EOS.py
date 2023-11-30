@@ -10,6 +10,7 @@ from pathlib import Path
 from pickle import load
 import pickle
 import math
+from DiadFit.CO2_EOS import *
 
 
 DiadFit_dir=Path(__file__).parent
@@ -969,8 +970,26 @@ def density_to_mol_vol(*, density, XH2O):
 
 
 
-def H2O_CO2_EOS_DZ2006_knownP(*, P_kbar=1, T_K=1200, XH2O=1):
-    """ Function to return a dataframe of outputs when you know P, T_K and XH2O"""
+def calc_prop_knownP_EOS_DZ2006(*, P_kbar=1, T_K=1200, XH2O=1):
+    """ This function calculates molar volume, density, compressability factor, fugacity, and activity for mixed H2O-CO2 fluids
+    using the EOS of Span and Wanger. It assumes you know P, T, and XH2O.
+
+    Parameters
+    -------------------
+    P_kbar: float, np.array, pd.Series
+        Pressure in kbar
+    T_K: float, np.array, pd.Series
+        Temperature in Kelvin
+    XH2O: float, np.array, pd.Series
+        Molar fraction of H2O in the fluid phase.
+
+    Returns
+    -------------------
+    pd.DataFrame
+
+    """
+
+
 
     # First, check all pd Series
 
@@ -1003,6 +1022,62 @@ def H2O_CO2_EOS_DZ2006_knownP(*, P_kbar=1, T_K=1200, XH2O=1):
 
 
 
+def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K):
+    """" This function calculates pressure for a measured CO$_2$ density, temperature and estimate of initial XH2O.
+    It first corrects the density to obtain a bulk density for a CO2-H2O mix, assuming that H2O was lost from the inclusion.
+    correcting for XH2O. It assumes that H2O has been lost from the inclusion (see Hansteen and Klugel, 2008 for method). It also calculates using other
+    pure CO2 equation of states for comparison
+
+    Parameters
+    ----------------------
+    XH2O: float, pd.Series.
+        The molar fraction of H2O in the fluid. Should be between 0 and 1. Can get an estimate from say VESical.
+
+    CO2_dens_gcm3: float, pd.Series
+        Measured CO2 density in g/cm3
+
+    T_K: float, pd.Series
+        Temperature in Kelvin.
+
+    Returns
+    -----------------------------
+    pd.DataFrame:
+        Columns showing:
+        P_kbar_pureCO2_SW96: Pressure calculated for the measured CO$_2$ density using the pure CO2 EOS from Span and Wanger (1996)
+        P_kbar_pureCO2_SP94: Pressure calculated for the measured CO$_2$ density using the pure CO2 EOS from Sterner and Pitzer (1994)
+        P_kbar_pureCO2_DZ06: Pressure calculated from the measured CO$_2$ density using the pure CO2 EOs from Duan and Zhang (2006)
+        P_kbar_mixCO2_DZ06: Pressure calculated from the reconstructed mixed fluid density using the mixed EOS from Duan and Zhang (2006)
+        P Mix/P Pure DZ06: Correction factor - e.g. how much deeper the pressure is from the mixed EOS
+        rho_mix_calc: Bulk density calculated (C+H) at time of entrapment
+        CO2_dens_gcm3: Input CO2 density
+        T_K: input temperature
+        XH2O: input molar fraction of H2O
+
+    """
+    XH2O, rho_meas, T_K=ensure_series(a=XH2O, b=CO2_dens_gcm3, c=T_K)
+    alpha=XH2O/(1-XH2O)
+    # This gets the bulk density of the CO2-H2O fluid
+    rho_orig=rho_meas*(1+alpha*(18/44))
+    # Lets calculate the pressure using SW96
+    P_SW=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SW96')
+    P_SP=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SP94')
+    # Same for DZ2006
+    P_DZ=calculate_Pressure_DZ2006(density=rho_meas, T_K=T_K, XH2O=XH2O*0)
+    # Now doing it with XH2O
+    P_DZ_mix=calculate_Pressure_DZ2006(density=rho_orig, T_K=T_K, XH2O=XH2O)
+
+    df=pd.DataFrame(data={
+        'P_kbar_pureCO2_SW96': P_SW['P_kbar'],
+        'P_kbar_pureCO2_SP94': P_SW['P_kbar'],
+        'P_kbar_pureCO2_DZ06': P_DZ/1000,
+        'P_kbar_mixCO2_DZ06': P_DZ_mix/1000,
+        'P Mix/P Pure DZ06': P_DZ_mix/P_DZ,
+        'rho_mix_calc': rho_orig,
+        'CO2_dens_gcm3': rho_meas,
+        'T_K': T_K,
+        'XH2O': XH2O})
+
+    return df
 
 
 
