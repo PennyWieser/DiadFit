@@ -154,7 +154,7 @@ class diad_id_config:
 
 
 
-def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, filename,
+def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, filename=None, diad_array=None,
  filetype='Witec_ASCII',  plot_figure=True):
 
     """ This function fits a spline to the spectral data. It then uses Scipy find peaks to identify the diad,
@@ -205,10 +205,11 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
 
     """
-    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
-
-
-    Diad=np.array(Diad_df)
+    if diad_array is None:
+        Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+        Diad=np.array(Diad_df)
+    else:
+        Diad=diad_array
 
 
 
@@ -1037,7 +1038,7 @@ def plot_diad_groups(*, x_cord,  Weak_np=None, Medium_np=None, Strong_np=None, y
     return fig
 
 
-def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII',
+def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype='Witec_ASCII', diad_array=None,
             exclude_range1=None, exclude_range2=None,N_poly=1, x_range_baseline=10,
             lower_bck=[1200, 1250], upper_bck=[1320, 1330], sigma=4,
             plot_figure=True):
@@ -1100,11 +1101,12 @@ def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype=
 
     """
 
-    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+    if diad_array is None:
+        Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+        Diad=np.array(Diad_df)
+    else:
+        Diad=diad_array
 
-
-
-    Diad=np.array(Diad_df)
 
 
     if exclude_range1 is not None and exclude_range2 is None:
@@ -2280,7 +2282,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
 def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: diad_id_config=diad_id_config(),
-    path=None, filename=None, peak_pos_voigt=None,filetype=None,
+    path=None, filename=None, peak_pos_voigt=None,filetype=None, diad_array=None,
     plot_figure=True, close_figure=False, Diad_pos=None, HB_pos=None, C13_pos=None):
     """ This function fits the background (using the function remove_diad_baseline) and then
     fits the peaks using fit_gaussian_voigt_generic_diad()
@@ -2390,8 +2392,11 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     # Check number of peaks makes sense
     fit_peaks=config1.fit_peaks
-    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
-    Diad=np.array(Diad_df)
+    if diad_array is None:
+        Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+        Diad=np.array(Diad_df)
+    else:
+        Diad=diad_array
 
 
     if fit_peaks==2:
@@ -2433,7 +2438,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     y_corr_diad2, Py_base_diad2, x_diad2,  Diad_short_diad2, Py_base_diad2, Pf_baseline_diad2,  Baseline_ysub_diad2, Baseline_x_diad2, Baseline_diad2, span_diad2=remove_diad_baseline(
    path=path, filename=filename, filetype=filetype, exclude_range1=config2.exclude_range1, exclude_range2=config2.exclude_range2, N_poly=config1.N_poly_bck_diad2,
-    lower_bck=config1.lower_bck_diad2, upper_bck=config1.upper_bck_diad2, plot_figure=False)
+    lower_bck=config1.lower_bck_diad2, upper_bck=config1.upper_bck_diad2, plot_figure=False, diad_array=diad_array)
 
 
 
@@ -2544,8 +2549,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     ybase_xlin=Pf_baseline_diad2(x_lin)
 
     # We extract the full spectra to plot at the end, and convert to a dataframe
-    Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
-    Spectra=np.array(Spectra_df)
+    #Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
+    Spectra=Diad
 
 
 
@@ -2749,9 +2754,9 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
     # Lets calculate peak skewness here.
     Skew50=assess_diad2_skewness(config1=diad2_fit_config(), int_cut_off=0.5, path=path, filename=filename, filetype=filetype,
-    skewness='abs', height=1, prominence=5, width=0.5, plot_figure=False)
+    skewness='abs', height=1, prominence=5, width=0.5, plot_figure=False, diad_array=diad_array)
     Skew80=assess_diad2_skewness(config1=diad2_fit_config(), int_cut_off=0.3, path=path, filename=filename, filetype=filetype,
-    skewness='abs', height=1, prominence=5, width=0.5, plot_figure=False)
+    skewness='abs', height=1, prominence=5, width=0.5, plot_figure=False, diad_array=diad_array)
     df_out['Diad2_Asym50']=Skew50['Skewness_diad2']
     df_out['Diad2_Asym70']=Skew80['Skewness_diad2']
     df_out['Diad2_Yuan2017_sym_factor']=(df_out['Diad2_fwhm'])*(df_out['Diad2_Asym50']-1)
@@ -2767,7 +2772,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
 def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: diad_id_config=diad_id_config(),
-    path=None, filename=None, filetype=None,  plot_figure=True, close_figure=True, Diad_pos=None, HB_pos=None):
+    path=None, filename=None, filetype=None,  plot_figure=True, close_figure=True, Diad_pos=None, HB_pos=None, diad_array=None):
     """ This function fits the background (using the function remove_diad_baseline) and then fits the peaks
     using fit_gaussian_voigt_generic_diad()
     It then checks if any parameters are right at the permitted edge (meaning fitting didnt converge),
@@ -2876,13 +2881,16 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
             config1.fit_gauss=False
             #print('Either no hb position, or prominence<-50, using 1 fit')
 
-    Diad_df=get_data(path=path, filename=filename, filetype=filetype)
-    Diad=np.array(Diad_df)
+    if diad_array is None:
+        Diad_df=get_data(path=path, filename=filename, filetype=filetype)
+        Diad=np.array(Diad_df)
+    else:
+        Diad=diad_array
     # First, we feed data into the remove baseline function, which returns corrected data
 
     y_corr_diad1, Py_base_diad1, x_diad1,  Diad_short_diad1, Py_base_diad1, Pf_baseline_diad1,  Baseline_ysub_diad1, Baseline_x_diad1, Baseline_diad1, span_diad1=remove_diad_baseline(
    path=path, filename=filename, filetype=filetype, exclude_range1=config2.exclude_range1, exclude_range2=config2.exclude_range2, N_poly=config1.N_poly_bck_diad1,
-    lower_bck=config1.lower_bck_diad1, upper_bck=config1.upper_bck_diad1, plot_figure=False)
+    lower_bck=config1.lower_bck_diad1, upper_bck=config1.upper_bck_diad1, plot_figure=False, diad_array=diad_array)
 
 
 
@@ -2997,8 +3005,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     ybase_xlin=Pf_baseline_diad1(x_lin)
 
     # We extract the full spectra to plot at the end, and convert to a dataframe
-    Spectra_df=get_data(path=path, filename=filename, filetype=filetype)
-    Spectra=np.array(Spectra_df)
+
+
+    Spectra=Diad
 
 
 
@@ -3193,9 +3202,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
     # Lets calculate peak skewness here.
     Skew50=assess_diad1_skewness(config1=diad1_fit_config(), int_cut_off=0.5, path=path, filename=filename, filetype=filetype,
-    skewness='abs', height=1, prominence=5, width=0.5, plot_figure=False)
+    skewness='abs', height=1, prominence=5, width=0.5, plot_figure=False, diad_array=diad_array)
     Skew80=assess_diad1_skewness(config1=diad1_fit_config(), int_cut_off=0.3, path=path, filename=filename, filetype=filetype,
-    skewness='abs', height=1, prominence=5, width=0.5, plot_figure=False)
+    skewness='abs', height=1, prominence=5, width=0.5, plot_figure=False, diad_array=diad_array)
 
     df_out['Diad1_Asym50']=Skew50['Skewness_diad1']
     df_out['Diad1_Asym70']=Skew80['Skewness_diad1']
@@ -4181,7 +4190,7 @@ encode="ISO-8859-1"
 
 
 def assess_diad1_skewness(*,  config1: diad1_fit_config=diad1_fit_config(), int_cut_off=0.3, path=None, filename=None, filetype=None,
-skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, peak_fit_routine=False, peak_pos=None, peak_height=None, dpi=200):
+skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, peak_fit_routine=False, peak_pos=None, peak_height=None, dpi=200, diad_array=None):
     """ Assesses Skewness of Diad peaks. Useful for identifying mixed L + V phases
     (see DeVitre et al. in review)
 
@@ -4243,7 +4252,7 @@ skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, peak_fit_ro
 
     y_corr_diad1, Py_base_diad1, x_diad1,  Diad_short, Py_base_diad1, Pf_baseline,  Baseline_ysub_diad1, Baseline_x_diad1, Baseline, span=remove_diad_baseline(
     path=path, filename=filename, filetype=filetype, N_poly=config1.N_poly_bck_diad1,
-    lower_bck=config1.lower_bck_diad1, upper_bck=config1.upper_bck_diad1, plot_figure=False)
+    lower_bck=config1.lower_bck_diad1, upper_bck=config1.upper_bck_diad1, plot_figure=False, diad_array=diad_array)
 
 
 
@@ -4434,7 +4443,7 @@ skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, peak_fit_ro
 
 
 def assess_diad2_skewness(*,  config1: diad2_fit_config=diad1_fit_config(), int_cut_off=0.3, path=None, filename=None, filetype=None,
-skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, dpi=200, peak_fit_routine=False, peak_pos=None, peak_height=None):
+skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, dpi=200, peak_fit_routine=False, peak_pos=None, peak_height=None, diad_array=None):
 
     """ Assesses Skewness of Diad peaks. Useful for identifying mixed L + V phases
     (see DeVitre et al. in review)
@@ -4498,7 +4507,7 @@ skewness='abs', height=1, prominence=5, width=0.5, plot_figure=True, dpi=200, pe
 # First, do the background subtraction
     y_corr_diad2, Py_base_diad2, x_diad2,  Diad_short, Py_base_diad2, Pf_baseline,  Baseline_ysub_diad2, Baseline_x_diad2, Baseline, span=remove_diad_baseline(
     path=path, filename=filename, filetype=filetype, N_poly=config1.N_poly_bck_diad2,
-    lower_bck=config1.lower_bck_diad2, upper_bck=config1.upper_bck_diad2, plot_figure=False)
+    lower_bck=config1.lower_bck_diad2, upper_bck=config1.upper_bck_diad2, plot_figure=False, diad_array=diad_array)
 
 
 

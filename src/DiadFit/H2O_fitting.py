@@ -305,8 +305,8 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_host_y, smoothed_MI_
                                X_min=0, X_max=1, plot_figure=True, dpi=200):
 
     """
-    This function unmixes glass and host spectra, and fits the best fit proportion 
-    where the host peak and trough disapears. Specifically, it calculates the mixed spectra by 
+    This function unmixes glass and host spectra, and fits the best fit proportion
+    where the host peak and trough disapears. Specifically, it calculates the mixed spectra by
     taking the measured MI spectra and subtracting X*Ol spectra, where X is the mixing proportions
 
     Parameters
@@ -355,7 +355,7 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_host_y, smoothed_MI_
     Dist: float
         Vertical distance between the host peak and trough (in intensity units)
     MI_Mix: np.array
-        Umixed spectra for each of the N_steps
+        Ubmixed spectra for each of the N_steps
     X: np.array
         X coordinates of unmixed spectra (along with MI_Mix and X allows plots of unmixing)
 
@@ -428,7 +428,7 @@ def make_evaluate_mixed_spectra(*, path, filename, smoothed_host_y, smoothed_MI_
         ax3.set_xlim([775, 900])
 
 
-        ax4.plot(MI_spectra[:, 0],MI_Mix_Best[:, 1], '-k', label='Umixed glass')
+        ax4.plot(MI_spectra[:, 0],MI_Mix_Best[:, 1], '-k', label='Unmixed glass')
         ax4.plot(MI_spectra[:, 0],MI_spectra[:, 1],  '-', color='salmon',label='Measured MI')
         ax4.plot(Host_spectra[:, 0],Host_spectra[:, 1], '-', color='g', label='Measured Host')
         ax4.legend()
@@ -456,7 +456,7 @@ override=False, flip=False, plot_figure=True, dpi=200):
     """
     This function checks if the unmixed specta is negative, based on two tie points.
     The first tie point is the mean y coordinate of the peak position of host +5 wavenumbers,
-    and the second tie point (tie_x_cord) is an optional input. If the specta is inverted, 
+    and the second tie point (tie_x_cord) is an optional input. If the specta is inverted,
     this function inverts it.
 
 
