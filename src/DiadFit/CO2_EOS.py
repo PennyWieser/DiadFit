@@ -473,12 +473,6 @@ def calculate_P_for_rho_T_SW96(CO2_dens_gcm3, T_K):
     except ImportError:
         raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
 
-    try:
-        import CoolProp.CoolProp as cp
-    except ImportError:
-        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
-
-
 
     P_kbar=cp.PropsSI('P', 'D', Density_kgm3, 'T', T_K, 'CO2')/10**8
     if isinstance(P_kbar, float):

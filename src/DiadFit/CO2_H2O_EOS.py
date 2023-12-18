@@ -1022,7 +1022,7 @@ def calc_prop_knownP_EOS_DZ2006(*, P_kbar=1, T_K=1200, XH2O=1):
 
 
 
-def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K):
+def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.15):
     """" This function calculates pressure for a measured CO$_2$ density, temperature and estimate of initial XH2O.
     It first corrects the density to obtain a bulk density for a CO2-H2O mix, assuming that H2O was lost from the inclusion.
     correcting for XH2O. It assumes that H2O has been lost from the inclusion (see Hansteen and Klugel, 2008 for method). It also calculates using other
@@ -1037,7 +1037,12 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K):
         Measured CO2 density in g/cm3
 
     T_K: float, pd.Series
-        Temperature in Kelvin.
+        Temperature in Kelvin fluid was trapped at
+
+    T_K_ambient: pd.Series
+        Temperature in Kelvin Raman measurement was made at.
+
+
 
     Returns
     -----------------------------
@@ -1056,28 +1061,88 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K):
     """
     XH2O, rho_meas, T_K=ensure_series(a=XH2O, b=CO2_dens_gcm3, c=T_K)
     alpha=XH2O/(1-XH2O)
-    # This gets the bulk density of the CO2-H2O fluid
-    rho_orig=rho_meas*(1+alpha*(18/44))
+    # IF water is lost
+    rho_orig_H_loss=rho_meas*(1+alpha*(18/44))
+    # IF water isnt lost
+
+    # Calculate mass ratio from molar ratio
+    mass_ratio=(XH2O*18)/((1-XH2O)*44)
+    # Calculate pressure in CO2 fluid
+    P=calculate_P_for_rho_T_SW96(CO2_dens_gcm3, T_K_ambient)
+    # Now calculate density of H2O fluid
+
+    # Calculate density of H2O
+    rho_H2O=calculate_rho_for_P_T_H2O(P['P_kbar'], T_K_ambient)
+
+
+
+    # Assume a system of unit 1. Calculate volume of CO2
+    VolCO2=(1-mass_ratio)/CO2_dens_gcm3
+    VolH2O=mass_ratio/rho_H2O
+    rho_orig_no_H_loss=1/(VolH2O+VolCO2)
+
+
+
+
     # Lets calculate the pressure using SW96
     P_SW=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SW96')
     P_SP=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SP94')
     # Same for DZ2006
     P_DZ=calculate_Pressure_DZ2006(density=rho_meas, T_K=T_K, XH2O=XH2O*0)
     # Now doing it with XH2O
-    P_DZ_mix=calculate_Pressure_DZ2006(density=rho_orig, T_K=T_K, XH2O=XH2O)
+    P_DZ_mix_H_loss=calculate_Pressure_DZ2006(density=rho_orig_H_loss, T_K=T_K, XH2O=XH2O)
+    P_DZ_mix_noH_loss=calculate_Pressure_DZ2006(density=rho_orig_no_H_loss, T_K=T_K, XH2O=XH2O)
 
     df=pd.DataFrame(data={
         'P_kbar_pureCO2_SW96': P_SW['P_kbar'],
-        'P_kbar_pureCO2_SP94': P_SW['P_kbar'],
+        'P_kbar_pureCO2_SP94': P_SP['P_kbar'],
         'P_kbar_pureCO2_DZ06': P_DZ/1000,
-        'P_kbar_mixCO2_DZ06': P_DZ_mix/1000,
-        'P Mix/P Pure DZ06': P_DZ_mix/P_DZ,
-        'rho_mix_calc': rho_orig,
+        'P_kbar_mixCO2_DZ06_Hloss': P_DZ_mix_H_loss/1000,
+        'P_kbar_mixCO2_DZ06_no_Hloss': P_DZ_mix_noH_loss/1000,
+        'P Mix_Hloss/P Pure DZ06': P_DZ_mix_H_loss/P_DZ,
+        'P Mix_no_Hloss/P Pure DZ06': P_DZ_mix_noH_loss/P_DZ,
+        'rho_mix_calc_Hloss': rho_orig_H_loss,
+        'rho_mix_calc_noHloss': rho_orig_no_H_loss,
         'CO2_dens_gcm3': rho_meas,
         'T_K': T_K,
         'XH2O': XH2O})
 
     return df
+
+
+def calculate_rho_for_P_T_H2O(P_kbar, T_K):
+    """ This function calculates H2O density in g/cm3 for a known Pressure (in kbar), a known T (in K) using the Wanger and Pru (2002) EOS from CoolProp
+    doi:10.1063/1.1461829.
+
+    Parameters
+    ---------------------
+    P_kbar: int, float, pd.Series, np.array
+        Pressure in kbar
+
+    T_K: int, float, pd.Series, np.array
+        Temperature in Kelvin
+
+    Returns
+    --------------------
+    pd.Series
+        H2O density in g/cm3
+
+    """
+    if isinstance(P_kbar, pd.Series):
+        P_kbar=np.array(P_kbar)
+    if isinstance(T_K, pd.Series):
+        T_K=np.array(T_K)
+
+    P_Pa=P_kbar*10**8
+
+    try:
+        import CoolProp.CoolProp as cp
+    except ImportError:
+        raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
+
+    H2O_dens_gcm3=cp.PropsSI('D', 'P', P_Pa, 'T', T_K, 'H2O')/1000
+
+    return pd.Series(H2O_dens_gcm3)
 
 
 
