@@ -2,9 +2,17 @@
 ================
 Change Log
 ================
+
+Dec 18th, 2023 - Penny Wieser - V.0.81
+-------------------------------------------
+Added options to calculate mixed fluids pressure assuming H2O is lost, and not lost.
+
+
 Nov 29th, 2023 - Penny Wieser - V.0.80
 -------------------------------------------
 Added significant functionality for the CO2-H2O EOS of Duan and Zhang (2006)
+
+
 Oct 25th, 2023 - Penny Wieser - v.0.78
 -----------------------------
 Major tweak of the secondary peak finding function. Instead of using a sigma filter, uses prominence_filter,
