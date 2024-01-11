@@ -968,7 +968,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
         Split=df_combo_c['Splitting']*pref_Ne
 
     else:
-       Split_err=(split_err*Split).astype(float)
+       Split_err=split_err
 
 
 

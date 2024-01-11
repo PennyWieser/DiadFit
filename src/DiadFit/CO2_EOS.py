@@ -52,18 +52,28 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
         else:
             raise TypeError('unsupported input for homog_to, has to be L or V')
 
+
+    # IF its a float or integer, just tell people outright
     if isinstance(T_h_C, float) or isinstance(T_h_C, int):
         if T_h_C>=30.9782: # 29.878:
         #print('Sorry, algorithm cant converge for Ts above 29.878')
-            raise TypeError('Sorry, algorithm cant converge for Ts above 30.9782')
+            raise TypeError('Sorry, algorithm cant converge for T_h_C above 30.9782')
+
+    # If its a panda series, set critical is false, raise a type error
     if isinstance(T_h_C, pd.Series) or isinstance(T_h_C, np.ndarray):
-        if any(T_h_C)>=30.9782 and set_to_critical is False:
+
+        if any(T_h_C>=30.9782) and set_to_critical is False:
             raise TypeError('Sorry, algorithm cant converge for Ts above 30.9782. You can put set_to_critical=True and this T_ will be replacd with 30.9782')
-        elif any(T_h_C)>=30.9782 and set_to_critical is True:
+        elif any(T_h_C>=30.9782) and set_to_critical is True:
+            print('found some with too high temps, are setting to 30.9782C - the max homog T ')
             if isinstance(T_h_C, pd.Series):
                 T_h_C = np.where(T_h_C > 30.9782, 30.9782, T_h_C)
             elif isinstance(T_h_C, np.ndarray):
+
                 T_h_C[T_h_C > 30.9782] = 30.9782
+                print('got into this loop')
+
+
 
 
     if EOS!='SW96':
@@ -72,7 +82,10 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
     T_K_hom=T_h_C+273.15
     TempTerm=1-T_K_hom/304.1282
     # This is equation 3.14 from Span and Wanger (1996)
+
+
     Liq_density=(np.exp(1.9245108*TempTerm**0.34-0.62385555*TempTerm**0.5-0.32731127*TempTerm**1.6666667+0.39245142*TempTerm**1.8333333)*0.4676)
+
     # This is equation 3.15 from Span and Wanger (1996)
     gas_density=(np.exp(-1.7074879*TempTerm**0.34-0.8227467*TempTerm**0.5-4.6008549*TempTerm**1-10.111178*TempTerm**2.333333-29.742252*TempTerm**4.6666667)*0.4676)
 

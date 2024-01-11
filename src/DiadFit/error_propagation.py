@@ -171,7 +171,7 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
         error_dist_T_h_C=error_dist_T_h_C, error_type_T_h_C=error_type_T_h_C, len_loop=1)
 
         Sample2=Sample[i]
-        MC_T=calculate_CO2_density_homog_T(T_h_C=Temp_MC, Sample_ID=Sample2, EOS=EOS, homog_to=homog_to)
+        MC_T=calculate_CO2_density_homog_T(T_h_C=Temp_MC, Sample_ID=Sample2, EOS=EOS, homog_to=homog_to, set_to_critical=set_to_critical)
 
         # Replace critical with NaN
 
