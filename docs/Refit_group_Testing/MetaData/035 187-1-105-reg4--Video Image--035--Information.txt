@@ -1,0 +1,26 @@
+187-1-105-reg4--Video Image--035
+
+General:
+System ID: 	100-1200-2200
+Start Time: 	12:55:34 PM
+Start Date: 	Thursday, January 11, 2024
+Duration: 	0h 0m 0s
+User Name: 	Witec
+Sample Name: 	187-1-105-reg4
+
+Video System:
+Objective Name: 	Zeiss EC Epiplan 20x / 0.4
+Objective Magnification: 	20
+Image Width [µm]: 	560.133
+Image Height [µm]: 	350.083
+Camera Exposure [s]: 	1/40
+Camera Gain [dB]: 	0.00
+
+Illumination:
+Reflection Light [%]: 	1.00
+Transmission Light [%]: 	33.21
+
+Sample Location (global position):
+Position X [µm]: 	-355.900
+Position Y [µm]: 	-735.300
+Position Z [µm]: 	0.730

@@ -1,0 +1,26 @@
+187-1-107-D--Video Image--126
+
+General:
+System ID: 	100-1200-2200
+Start Time: 	5:12:49 PM
+Start Date: 	Thursday, January 11, 2024
+Duration: 	0h 0m 0s
+User Name: 	Witec
+Sample Name: 	187-1-107-D
+
+Video System:
+Objective Name: 	Zeiss EC Epiplan 20x / 0.4
+Objective Magnification: 	20
+Image Width [µm]: 	560.133
+Image Height [µm]: 	350.083
+Camera Exposure [s]: 	1/25
+Camera Gain [dB]: 	23.00
+
+Illumination:
+Reflection Light [%]: 	Off
+Transmission Light [%]: 	100.00
+
+Sample Location (global position):
+Position X [µm]: 	1245.200
+Position Y [µm]: 	-1581.200
+Position Z [µm]: 	0.730
