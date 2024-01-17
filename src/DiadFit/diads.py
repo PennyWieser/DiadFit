@@ -1351,6 +1351,14 @@ class diad1_fit_config:
     # Do you want to return other parameters?
     return_other_params: bool =False
 
+    def update_par(self, **kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                raise AttributeError(f"'diad1_fit_config' object has no attribute '{key}'")
+
+
 
 
 @dataclass
@@ -1400,7 +1408,12 @@ class diad2_fit_config:
 
     C13_prom: float=10
 
-
+    def update_par(self, **kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                raise AttributeError(f"'diad2_fit_config' object has no attribute '{key}'")
 
 ## Testing generic model
 
