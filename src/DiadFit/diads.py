@@ -2390,6 +2390,8 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     if 'CRR' in filename:
         filetype='headless_txt'
 
+    model=config1.model_name
+
     # Check number of peaks makes sense
     fit_peaks=config1.fit_peaks
     if diad_array is None:
@@ -2761,6 +2763,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     df_out['Diad2_Asym70']=Skew80['Skewness_diad2']
     df_out['Diad2_Yuan2017_sym_factor']=(df_out['Diad2_fwhm'])*(df_out['Diad2_Asym50']-1)
     df_out['Diad2_Remigi2021_BSF']=df_out['Diad2_fwhm']/df_out['Diad2_Combofit_Height']
+    df_out['Diad2_PDF_Model']=model
 
 
     if  config1.return_other_params is False:
@@ -2870,8 +2873,11 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
 
 """
+
     if 'CRR' in filename:
         filetype='headless_txt'
+
+    model=config1.model_name
 
     fit_peaks=config1.fit_peaks
 
@@ -3212,7 +3218,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     df_out['Diad1_Remigi2021_BSF']=df_out['Diad1_fwhm']/df_out['Diad1_Combofit_Height']
 
 
-
+    df_out['Diad1_PDF_Model']=model
 
     if  config1.return_other_params is False:
         return df_out
@@ -3288,7 +3294,7 @@ to_clipboard=False, path=None):
                     'HB1_Cent', 'HB1_Area', 'HB1_Sigma', 'HB2_Cent', 'HB2_Area', 'HB2_Sigma', 'C13_Cent', 'C13_Area', 'C13_Sigma',
                     'Diad2_Gauss_Cent', 'Diad2_Gauss_Area','Diad2_Gauss_Sigma', 'Diad1_Gauss_Cent', 'Diad1_Gauss_Area','Diad1_Gauss_Sigma', 'Diad1_Asym50', 'Diad1_Asym70', 'Diad1_Yuan2017_sym_factor',
 'Diad1_Remigi2021_BSF','Diad2_Asym50', 'Diad2_Asym70', 'Diad2_Yuan2017_sym_factor',
-'Diad2_Remigi2021_BSF']
+'Diad2_Remigi2021_BSF', 'Diad1_PDF_Model', 'Diad2_PDF_Model']
 
 
 

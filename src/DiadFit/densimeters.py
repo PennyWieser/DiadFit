@@ -619,8 +619,12 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
     df.loc[zero, 'Preferred D']=0
     df.loc[zero, 'Notes']=0
-
-
+    
+    # Get rid of pandas 2 issue with warning of setting item of incompatible dtype
+    df['Preferred D'] = df['Preferred D'].astype('float64', errors='ignore')
+    df['Preferred D_σ'] = df['Preferred D_σ'].astype('float64', errors='ignore')
+    df['Preferred D_σ_split'] = df['Preferred D_σ_split'].astype('float64', errors='ignore')
+    df['Preferred D_σ_dens'] = df['Preferred D_σ_dens'].astype('float64', errors='ignore')
 
 
 
@@ -692,23 +696,39 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
 
         
+    # if Ne_pickle_str is not None:
+    #     
+    #     df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
+    # else:
+    #     df_merge1=df
+    # print('df')
+    # print(df['Preferred D'])
+    # print('df_merge1')
+    # print(df_merge1['Preferred D'])
     if Ne_pickle_str is not None:
         df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
+        df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
+    elif Ne_pickle_str is None and df_combo is not None:
+        df_merge=pd.concat([df, df_combo_c], axis=1).reset_index(drop=True)
     else:
-        df_merge1=df
+        df_merge=df
+        
+    
 
-    df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
+    #df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
 
         
     
 
-    df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
+   
+    
 
     df_merge = df_merge.rename(columns={'Preferred D': 'Density g/cm3'})
     df_merge = df_merge.rename(columns={'Preferred D_σ': 'σ Density g/cm3'})
     df_merge = df_merge.rename(columns={'Preferred D_σ_split': 'σ Density g/cm3 (from Ne+peakfit)'})
     df_merge = df_merge.rename(columns={'Preferred D_σ_dens': 'σ Density g/cm3 (from densimeter)'})
     df_merge = df_merge.rename(columns={'filename_x': 'filename'})
+    
 
 
     #
@@ -727,6 +747,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
         df_merge = df_merge[cols_to_move + [
             col for col in df_merge.columns if col not in cols_to_move]]
 
+    
 
     return df_merge
 
@@ -1129,6 +1150,14 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
     df.loc[zero, 'Preferred D']=0
     df.loc[zero, 'Notes']=0
+    
+    # Assign to the right type to avoid annoying pandas 2 warning
+    # Ensure the columns are of type float64
+    df['Preferred D'] = df['Preferred D'].astype('float64', errors='ignore')
+    df['Preferred D_σ'] = df['Preferred D_σ'].astype('float64', errors='ignore')
+    df['Preferred D_σ_split'] = df['Preferred D_σ_split'].astype('float64', errors='ignore')
+    df['Preferred D_σ_dens'] = df['Preferred D_σ_dens'].astype('float64', errors='ignore')
+    
 
 
 
@@ -1146,7 +1175,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ_split'] = medD_error['MedD_Density_σ_split']
     df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ_dens'] = medD_error['MedD_Density_σ_dens']
     df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Notes']='SupCrit, Med density'
-
+    
     # If SupCrit, low density
     df.loc[ SupCrit&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D'] = LowD_SC
     df.loc[ SupCrit&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D_σ'] = lowD_error['LowD_Density_σ']
