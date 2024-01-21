@@ -1,0 +1,37 @@
+General:
+System ID:	100-1200-2200
+Start Time:	1:14:47 PM
+Start Date:	Thursday, January 11, 2024
+Duration:	0h 5m 2s
+User Name:	Witec
+Sample Name:	187-1-105-reg4-A
+Configuration:	Raman CCD1
+
+UHTS600S_VIS:
+Excitation Wavelength [nm]:	532.046
+Laser Power [mW]:	6.111
+Grating:	G3: 1800 g/mm BLZ 500.00 nm
+Center Wavelength [nm]:	572.398
+Spectral Center [rel. 1/cm]:	1325.004
+
+DU401_BVF:
+Serial Number:	27499
+Readout Mode:	Single Track (6-16)
+Vertical Shift Speed [µs]:	16.25
+Horizontal Shift Speed [MHz]:	0.033
+Preamplifier Gain:	1.00
+Cycle Time [sec]:	60.09660
+Sensor Temperature [°C]:	-59
+
+Number Of Accumulations:	5
+Integration Time [s]:	60.00000
+
+Objective:
+Objective Name:	Zeiss LD EC Epiplan-Neofluar Dic 100x / 0.75
+Objective Magnification:	100.0
+
+Sample Location (global position):
+Position X [µm]:	-362.800
+Position Y [µm]:	-713.100
+Position Z [µm]:	0.730
+

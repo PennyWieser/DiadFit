@@ -1,0 +1,44 @@
+Video Stitch Foc HQ--001
+
+General:
+System ID: 	100-1200-2200
+Start Time: 	11:02:33 AM
+Start Date: 	Wednesday, January 10, 2024
+Duration: 	0h 14m 48s
+User Name: 	Witec
+
+Video System:
+Objective Name: 	Zeiss EC Epiplan 5x / 0.13
+Objective Magnification: 	5
+Image Width [µm]: 	25000.000
+Image Height [µm]: 	25000.000
+Camera Exposure [s]: 	1/38
+Camera Gain [dB]: 	0.00
+
+Illumination:
+Reflection Light [%]: 	1.00
+Transmission Light [%]: 	Off
+
+Focus Stacking Settings:
+Algorithm: 	Continuous Movement
+Number of Images: 	8
+Z Range [µm]: 	-23.000 - 121.000
+
+Stitching Settings:
+Stitching Table: 	Sample Positioner
+
+Size X [Pixel]: 	7999
+Size Y [Pixel]: 	7999
+
+Origin X [µm]: 	0.000
+Origin Y [µm]: 	0.000
+Origin Z [µm]: 	-144.100
+Gamma [°]: 	0.0
+
+Number of Stitching Images: 	441
+Number of Stitching Images X: 	21
+Number of Stitching Images Y: 	21
+
+Scan Table:
+Position X [µm]: 	0.000
+Position Y [µm]: 	0.000
