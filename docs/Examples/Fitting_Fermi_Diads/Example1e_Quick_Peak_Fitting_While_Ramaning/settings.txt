@@ -1,0 +1,7 @@
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example1d_Quick_Peak_Fitting_While_Ramaning/Spectra
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example1d_Quick_Peak_Fitting_While_Ramaning/Spectra
+filetype=headless_txt
+prefix=False
+prefix_str=' '
+file_ext=.txt
+TruPower=False

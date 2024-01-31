@@ -14,7 +14,7 @@ Welcome to DiadFits documentation!
    installation
    importing_data
    available_functions
-   Worked examples
+   Workedexamples
    ChangeLog
 
 .. toctree::
@@ -23,119 +23,73 @@ Welcome to DiadFits documentation!
 
    youtube
 
+Fitting Fermi Diads
+===================
+
+C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1a_Gas_Cell_Calibration
+
 .. toctree::
    :maxdepth: 2
-   :caption: WITEC Spectra: Fitting Diads from natural FI with secondary phases
-
-   Examples/Example1b_CO2_Fluid_Inclusions/Step1_Fit_Your_Ne_Lines_v74
-   Examples/Example1b_CO2_Fluid_Inclusions/Step2_Filtering_Numerical_v74
-   Examples/Example1b_CO2_Fluid_Inclusions/Step3_FitAll_Together_v74
-   Examples/Example1b_CO2_Fluid_Inclusions/Step3b(optional)_Secondary_Peaks_v74
-   Examples/Example1b_CO2_Fluid_Inclusions/Step4_Stitch_Outputs_Together_v74
+   :caption: Ex1a: WITEC Spectra: Fitting Diads from a CO2 gas cell
+   Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines
+   Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical
+   Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together
+   Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step3b(optional)_Secondary_Peaks
+   Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together
    %
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: WITEC Spectra: Fitting Diads from CO2 gas cell
+   :caption: Ex1b: WITEC Spectra: Fitting Diads from natural FI with secondary phases
 
-   Examples/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines_v74
-   Examples/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical_v74
-   Examples/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together_v74
-   Examples/Example1a_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together_v74
+   Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step1_Fit_Your_Ne_Lines
+   Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step2_Filtering_Numerical
+   Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step3_FitAll_Together
+   Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step3b(optional)_Secondary_Peaks
+   Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step4_Stitch_Outputs_Together
    %
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Pre 2010 HORIBA: Fitting Diads from MI VB - no clear metadata
+   :caption: Ex1bb: Filtering out spectra with high backgrounds
 
-   Examples/Example1c_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines_v74
-   Examples/Example1c_Gas_Cell_Calibration/Step2_Filtering_Numerical_v74
-   Examples/Example1c_Gas_Cell_Calibration/Step3_FitAll_Together_v74
-   Examples/Example1c_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together_v74
-   %
-
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Quick Peak Fitting (while Ramaning)
-
-   Examples/Example1d_Quick_Peak_Fitting_While_Ramaning/Quick_Peak_fitting
-
+   Examples/Fitting_Fermi_Diads/Example1bb_highbackground_FIs
 
    %
 
 .. toctree::
    :maxdepth: 2
-   :caption: CO2 density to P and depth
+   :caption: Ex1c: Fitting weak Diads from MI VB - no clear metadata
 
-   Examples/Example5_FI_density_to_depth/Fluid_Inclusion_Density_to_Depth
-   Examples/Example5_FI_density_to_depth/Dayton_etal_2023_LaPalmaExample
-   Examples/Example5_FI_density_to_depth/Different_Crustal_Density_Profiles
-   Examples/Example5_FI_density_to_depth/Monte_Carlo_Simulations
-   Examples/Example7_Useful_EOS_Calcs/EOS_Calcs1
-   Examples/Example5_FI_density_to_depth/Visualizing_EOSs_Density_Pressure
-   Examples/Example7_Useful_EOS_Calcs/H2O_CO2_fluids
-
-
-   %
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Fluid inclusion re-equilibration
-
-
-
-   Examples/Example9_Fluid_inclusion_req/Example9a_FI_stretching_during_ascent
-   Examples/Example9_Fluid_inclusion_req/Example9b_FI_stretching_slow_quenching_at_surface
-   Examples/Example9_Fluid_inclusion_req/Example9c_FI_stretching_during_stalling
-
-
+   Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step1_Fit_Your_Ne_Lines
+   Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step2_Filtering_Numerical
+   Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step3_FitAll_Together
+   Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step4_Stitch_Outputs_Together
    %
 
 .. toctree::
    :maxdepth: 2
-   :caption: Diad peak asymmetry
+   :caption: Ex1d: HORIBA instrument
 
-   Examples/Example3_Peak_Assymetry/Asessing_Diad_Skewness
-
+   Examples/Fitting_Fermi_Diads/Example1d_HORIBA_VT/Step1_Fit_Your_Ne_Lines
+   Examples/Fitting_Fermi_Diads/Example1d_HORIBA_VT/Step2_Filtering_Numerical
+   Examples/Fitting_Fermi_Diads/Example1d_HORIBA_VT/Step3_FitAll_Together
+   Examples/Fitting_Fermi_Diads/Example1d_HORIBA_VT/Step4_Stitch_Outputs_Together
    %
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Quantifying H2O:Silicate areas in glasses
-
-   Examples/Example4_H2OQuant_Glass/H2O_Fitting
-
-   %
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Quantifying H2O:Silicate areas in Ol MIs
-
-   Examples/Example4b_H2OQuant_MI/H2O_Fitting_MI
-   Examples/Example4b_H2OQuant_MI/H2O_Fitting_MI_AutoLoop
 
 
-   %
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Melt inclusion vapour bubbles
+   :caption: Ex1e: Quick Peak Fitting (while Ramaning)
 
-   Examples/Example8_Uncertainty_MI_Vapour_Bubbles/CO2_error_prop
+   Examples/Fitting_Fermi_Diads\Example1e_Quick_Peak_Fitting_While_Ramaning/Quick_Peak_fitting
 
 
-   %
-.. toctree::
-   :maxdepth: 2
-   :caption: Other things
-
-   Peak_Classification_paremeters/Peak_Classification_Parameters
 
 
 

@@ -35,7 +35,7 @@ setup(
             'matplotlib',
             'scikit-learn',
             'scipy',
-            'lmfit',
+            'lmfit>=1.1.0',
             'tqdm',
             'python-docx'
             ],
