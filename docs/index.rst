@@ -89,10 +89,47 @@ C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\
 
    Examples/Fitting_Fermi_Diads\Example1e_Quick_Peak_Fitting_While_Ramaning/Quick_Peak_fitting
 
+Water in silicate melts and melt inclusions
+======================================
+.. toctree::
+   :maxdepth: 2
+   :caption: Fitting water peaks
+
+   Examples\Fitting_Water_Silicate_Melts/Example4a_H2OQuant_Glass/H2O_Fitting
+   Examples\Fitting_Water_Silicate_Melts/Example4b_H2OQuant_MI/H2O_Fitting_MI_AutoLoop
+   Examples\Fitting_Water_Silicate_Melts/Example4b_H2OQuant_MI/H2O_Fitting_MI_ManualLoop
 
 
 
+EOS calculations
+===================
 
+.. toctree::
+   :maxdepth: 2
+   :caption: EOS calcs2
+
+   Examples/EOS_calculations/Example5a_Introducing_EOS_Calcs
+   Examples/EOS_calculations/Example5b_Visualizing_EOSs_Density_Pressure
+   Examples/EOS_calculations/Example5c_LaPalma_FluidInclusions
+   Examples/EOS_calculations/Example5d_Fluid_Inclusion_Density_to_Depth
+   Examples/EOS_calculations/Example5e_FI_Monte_Carlo_Simulations
+
+
+   %
+
+
+Modelling FI re-equilibration
+==============================
+
+.. toctree::
+   :maxdepth: 2
+   :caption: EOS calcs2
+
+   Examples/Modelling_Fluid_Inclusion_Re-equilibration/Example9a_FI_stretching_during_ascent
+   Examples/Modelling_Fluid_Inclusion_Re-equilibration/Example9b_FI_stretching_slow_quenching_at_surface
+   Examples/Modelling_Fluid_Inclusion_Re-equilibration/Example9c_FI_stretching_during_stalling
+
+   %
 
 
 

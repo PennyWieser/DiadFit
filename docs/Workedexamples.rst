@@ -22,6 +22,9 @@ Step 4 merges the diad and secondary peak outputs, and applies the Neon correcti
 
 Example 1a - Gas Calibration Data
 -----------------------------------
+see :doc:`Example 1a <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines>`
+Make sure to include the relative path from the root of your documentation source
+
 This example shows data collected on a WITEC alpha300R from a gas calibration cell (DeVitre et al. 2021). All files are headless_txt files.
 Spectral files for Neon and diads are stored in the 'Spectra' folder, and metadata files in the 'MetaData' folder.
 These spectra files show a wide range of spectral strengths, so are subdivided into weak, medium and strong spectra prior to fitting in step 3.
