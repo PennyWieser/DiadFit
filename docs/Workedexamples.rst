@@ -26,7 +26,7 @@ Example 1a - Gas Calibration Data
 This set of notebooks shows data collected on a WITEC alpha300R from a gas calibration cell (DeVitre et al. 2021). All files are headless_txt files.
 Spectral files for Neon and diads are stored in the 'Spectra' folder, and metadata files in the 'MetaData' folder.
 These spectra files show a wide range of spectral strengths, so are subdivided into weak, medium and strong spectra prior to fitting in step 3.
-We do not include Step3b, because spectra were collected on pure CO :sub:`2` gas in a calibration cell, so there are no impurities.
+We do not include Step3b, because spectra were collected on pure CO2 gas in a calibration cell, so there are no impurities.
 
 See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines>`,
 :doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical>`,
@@ -48,7 +48,7 @@ See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/St
 
 Example 1bb - Nasty backgrounds
 -----------------------------------
-:doc:`Examle 1bb <Examples/Fitting_Fermi_Diads/Example1bb_highbackground_FIs/Step2_Filtering_Numerical>`example shows how to filter out spectra which have a very slanted background, which you may want to fit with a separate set of peak parameters, or exclude entirely.
+:doc:`Example 1bb <Examples/Fitting_Fermi_Diads/Example1bb_highbackground_FIs/Step2_Filtering_Numerical>`  shows how to filter out spectra which have a very slanted background, which you may want to fit with a separate set of peak parameters, or exclude entirely.
 
 
 
@@ -73,7 +73,7 @@ Sometimes when you are Raman-ing a new set of samples, you want an approximate i
 :doc:`Example 1e <Examples/Fitting_Fermi_Diads/Example1e_Quick_Peak_Fitting_While_Ramaning/Quick_Peak_fitting>`  shows how to quickly peak fit a few spectra you have grabbed off the instrument, without doing all 4-5 steps. All spectra are stored in the folder 'Spectra'. We dont worry about Metadata,
 we just use an average Neon line correction factor for our instrument.
 
-see
+
 
 
 Example 1f - Quantifying Peak assymmetry
@@ -83,25 +83,26 @@ Example 1f - Quantifying Peak assymmetry
 
 Quantifying water contents in silicate melts
 ===============================================
+
 Example 4a -  Just Glasses
 -----------------------------------
-:doc:`Example 1f <Examples/Fitting_Fermi_Diads/Fitting_Water_Silicate_Melts\Example4a_H2OQuant_Glass>` shows how to quantify the relative peak areas of the silicate and water peaks. There are default peak positions for different compositions, and these numbers can also be fully adjusted. This Notebook allows the user to fit each spectra individually, and then the results are merged together at the end. This is useful if you want to tweak the background positions for each individual spectra to get better fits.
+:doc:`Example 4a <Examples/Fitting_Fermi_Diads/Fitting_Water_Silicate_Melts/Example4a_H2OQuant_Glass>` shows how to quantify the relative peak areas of the silicate and water peaks. There are default peak positions for different compositions, and these numbers can also be fully adjusted. This Notebook allows the user to fit each spectra individually, and then the results are merged together at the end. This is useful if you want to tweak the background positions for each individual spectra to get better fits.
 
 
 
 Example 4b, 4c, 4d -  Unmixing olivine and melt inclusions
 ---------------------------------------------------
-Acquiring Raman spectra in unexposed melt inclusions is very helpful when performin the carbonate rehomogenization techniques of DeVitre et al. (2021) to monitor for diffusive water loss. This method relies on acquiring a spectra in the center of the melt inclusion with the strongest H2O signal, and then a signal on the host olivine next to it. We provide examples showing a variety of different workflows.
+Acquiring Raman spectra in unexposed melt inclusions is very helpful when performing the carbonate rehomogenization techniques of DeVitre et al. (2021) to monitor for diffusive water loss. This method relies on acquiring a spectra in the center of the melt inclusion with the strongest H2O signal, and then a signal on the host olivine next to it. We provide examples showing a variety of different workflows.
 
-:doc:`Example 4b <Examples/Fitting_Water_Silicate_Melts\Example4b_H2OQuant_MI/H2O_Fitting_MI_AutoLoop>` loops throough a set of MI and olivine analyses, applying the same fit parameters to all of them
+:doc:`Example 4b <Examples/Fitting_Water_Silicate_Melts/Example4b_H2OQuant_MI/H2O_Fitting_MI_AutoLoop>` loops throough a set of MI and olivine analyses, applying the same fit parameters to all of them
 
-:doc:`Example 4b <Examples/Fitting_Water_Silicate_Melts\Example4b_H2OQuant_MI/H2O_Fitting_MI_ManualLoop>` allows the user to manually loop through files to apply different fit parameters to all of them.
+:doc:`Example 4b <Examples/Fitting_Water_Silicate_Melts/Example4b_H2OQuant_MI/H2O_Fitting_MI_ManualLoop>` allows the user to manually loop through files to apply different fit parameters to all of them.
 
 
 
 Equation of state (EOS) calculations
 =======================================
-DiadFit includes the CO :sub:`2` equation of state of Sterner and Pitzer (1994) and Span and Wagner (1996), as well as the mixed H/ :sub:`2`O-CO :sub:`2` EOS of Duan and Zhang (2006).
+DiadFit includes the CO2 equation of state of Sterner and Pitzer (1994) and Span and Wagner (1996), as well as the mixed H2O-CO2 EOS of Duan and Zhang (2006).
 These EOS can be used for a variety of different calculations, described below:
 
 Example 5a -  Different EOS functions
@@ -117,25 +118,24 @@ Example 5a -  Different EOS functions
 
 Example 5b -  Visualizing how CO$_2$ density relates to P and T
 --------------------------------------------------------------
-:doc:`Example 5b <Examples/EOS_calculations/Example5b_Visualizing_EOSs_Density_Pressure>`
- shows how to perform EOS calculations of CO2 density for an array of pressures at different temperatures.
-The resulting plots in pressure-density space with lines for different temperatures are very helpful to demonstrate that the CO :sub:`2` EOS isn't that sensitive to temperature.
+:doc:`Example 5b <Examples/EOS_calculations/Example5b_Visualizing_EOSs_Density_Pressure>` shows how to perform EOS calculations of CO2 density for an array of pressures at different temperatures.
+The resulting plots in pressure-density space with lines for different temperatures are very helpful to demonstrate that the CO2 EOS isn't that sensitive to temperature.
 
 Example 5c -  Calculating fluid inclusion entrapment pressures and depths in La Palma
 --------------------------------------------------------------
-:doc:`Example 5c <Examples/EOS_calculations/Example5c_LaPalma_FluidInclusions>` uses CO :sub:`2` densities from Dayton et al. (2022, Science Advances) to calculate entrapment pressures, and then a 2 step density profile to calculate storage depths
+:doc:`Example 5c <Examples/EOS_calculations/Example5c_LaPalma_FluidInclusions>` uses CO2 densities from Dayton et al. (2022, Science Advances) to calculate entrapment pressures, and then a 2 step density profile to calculate storage depths
 
 Example 5d -  Calculating fluid inclusion entrapment pressures and depths for different density profiles
 -----------------------------------------------------------------------------------------------------------
-:doc:`Example 5d <Examples/EOS_calculations/Example5d_Fluid_Inclusion_Density_to_Depth>` shows how to convert CO :sub:`2` density to depth, and then calculate storage depths using a variety of crustal density profiles (2, 3 step, etc).
+:doc:`Example 5d <Examples/EOS_calculations/Example5d_Fluid_Inclusion_Density_to_Depth>` shows how to convert CO2 density to depth, and then calculate storage depths using a variety of crustal density profiles (2, 3 step, etc).
 
 Example 5e -  Propagating uncertainties in fluid inclusion barometry
 ---------------------------------------------------------------------
-:doc:`Example 5e <Examples/EOS_calculations/Example5e_FI_Monte_Carlo_Simulations>` shows how to propagate uncertainties in temperature, CO :sub:`2` density and crustal density using Monte Carlo methods.
+:doc:`Example 5e <Examples/EOS_calculations/Example5e_FI_Monte_Carlo_Simulations>` shows how to propagate uncertainties in temperature, CO2 density and crustal density using Monte Carlo methods.
 
 Example 5f -  Calculations using CO$_2$-H$_2$O EOS
 ---------------------------------------------------------------------
-:doc:`Example 5f <Examples/EOS_calculations/Example5f_H2O_CO2_EOS>` shows how to perform calculations using CO :sub:`2`-H/ :sub:`2`O EOs, and how to integrate XH/ :sub:`2`O measurements from melt inclusions into this correction.
+:doc:`Example 5f <Examples/EOS_calculations/Example5f_H2O_CO2_EOS>` shows how to perform calculations using CO2-H2O EOs, and how to integrate XH2O measurements from melt inclusions into this correction.
 
 
 Quantifying uncertainty in the CO$_2$ contents of melt inclusion vapour bubbles
@@ -143,7 +143,7 @@ Quantifying uncertainty in the CO$_2$ contents of melt inclusion vapour bubbles
 
 Example 8 - Propagating CO2 Uncertainties
 -----------------------------------
-T:doc:`Example 8a <Examples/CO2_in_Melt_Inclusion_Vapour_Bubbles/Example8a_PropagatingCO2Uncertainties>` shows how to propagate uncertainty in bubble densities, bubble volumes and silicate melt densities into equivalent CO2 contents in glasses.
+:doc:`Example 8a <Examples/CO2_in_Melt_Inclusion_Vapour_Bubbles/Example8a_PropagatingCO2Uncertainties>` shows how to propagate uncertainty in bubble densities, bubble volumes and silicate melt densities into equivalent CO2 contents in glasses.
 
 
 
@@ -169,7 +169,7 @@ Example 9c -  Stretching during stalling
 Other Useful Functions
 ======================================
 
-Example 10 -  Crustal Density Profiles
+Example 10a -  Crustal Density Profiles
 --------------------------------------
-:doc:`Example 9c <Examples/Other_Useful_Functions/Example10_Different_Crustal_Density_Profiles>` shows how to compare different crustal density profiles you may want to use to convert fluid inclusion pressures to depths.
+:doc:`Example 10a <Examples/Other_Useful_Functions/Example10a_Different_Crustal_Density_Profiles>` shows how to compare different crustal density profiles you may want to use to convert fluid inclusion pressures to depths.
 
