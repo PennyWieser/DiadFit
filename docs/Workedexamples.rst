@@ -81,7 +81,7 @@ Example 1f - Quantifying Peak assymmetry
 -----------------------------------
 DeVitre et al. (2023) show that peak assymetry can be used to identify the presence of both vapour and liquid phases. This example shows how to quantify peak assymetry on some spectra from DeVitre et al. (2023)
 
-see :doc:` 1f <Examples/Fitting_Fermi_Diads/Example1f_Diad_Peak_Assymetry/Asessing_Diad_Skewness>`
+see :doc:`test <Examples/Fitting_Fermi_Diads/Example1f_Diad_Peak_Assymetry/Asessing_Diad_Skewness>`
 
 
 Quantifying water contents in silicate melts
