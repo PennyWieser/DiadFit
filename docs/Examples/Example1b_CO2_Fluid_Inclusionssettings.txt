@@ -1,5 +1,0 @@
-meta_path=g:\My Drive\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1b_CO2_Fluid_Inclusions\MetaData
-spectra_path=g:\My Drive\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1b_CO2_Fluid_Inclusions\Spectra
-filetype=headless_txt
-prefix=True
-prefix_str=' '
