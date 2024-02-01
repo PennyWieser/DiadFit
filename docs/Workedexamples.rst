@@ -86,7 +86,7 @@ Quantifying water contents in silicate melts
 
 Example 4a -  Just Glasses
 -----------------------------------
-:doc:`Example 4a <Examples/Fitting_Fermi_Diads/Fitting_Water_Silicate_Melts/Example4a_H2OQuant_Glass>` shows how to quantify the relative peak areas of the silicate and water peaks. There are default peak positions for different compositions, and these numbers can also be fully adjusted. This Notebook allows the user to fit each spectra individually, and then the results are merged together at the end. This is useful if you want to tweak the background positions for each individual spectra to get better fits.
+:doc:`Example 4a <Examples/Fitting_Water_Silicate_Melts/Example4a_H2OQuant_Glass>` shows how to quantify the relative peak areas of the silicate and water peaks. There are default peak positions for different compositions, and these numbers can also be fully adjusted. This Notebook allows the user to fit each spectra individually, and then the results are merged together at the end. This is useful if you want to tweak the background positions for each individual spectra to get better fits.
 
 
 
