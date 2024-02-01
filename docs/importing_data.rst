@@ -6,10 +6,9 @@ Importing Data and Metadata
 Supported Spectral File Types
 ==================================
 DiadFit currently supports data input from the following file types. The name given between quotes is the string that should be entered as the filetype argument when loading data.
+Screenshots here :doc:`Examples: <Examples/File_Formats/Extracting_HORIBA_MEtadata>`,
 
 
-
-Please see the python notebook https://github.com/PennyWieser/DiadFit/blob/master/FileFormats.ipynb for screenshots of these file types.
 If your Raman exports another file type, please get in touch and I will try to add it.
 
 Quick options:
@@ -46,3 +45,5 @@ The following options are currently supported:
 1. WITEC instruments - WITEC instruments save a separate spectra and metadata file. Ensure your metadata and spectra file have the same name and file extension. E.g. FO1.txt for spectra, and FO1.txt for metadata. If they do not have the same name, DiadFit has no way of knowing what metadata file matches which spectra file, as there is no shared information between the two
 
 2. Instruments which save the spectra file with the datastamp of the anlaysis - Some instruments set the datastamp of the file based on when the spectra was acquired. If this is the case, you can get the time using the function 'pf.loop_convert_datastamp_to_metadata'. See https://github.com/PennyWieser/DiadFit/blob/main/docs/Examples/Example1c_HORIBA_Calibration/Step4_Stitch_Outputs_Together_v74.ipynb for an example
+
+Again, we are happy to add additional functionality.
