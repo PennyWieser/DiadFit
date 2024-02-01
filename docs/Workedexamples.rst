@@ -29,9 +29,9 @@ Spectral files for Neon and diads are stored in the 'Spectra' folder, and metada
 These spectra files show a wide range of spectral strengths, so are subdivided into weak, medium and strong spectra prior to fitting in step 3.
 We do not include Step3b, because spectra were collected on pure CO2 gas in a calibration cell, so there are no impurities.
 
-:doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines>`
-:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical>`
-:doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together>`
+See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines>`,
+:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical>`,
+:doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together>`,
 :doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together>`
 
 Example 1b - Natural Fluid inclusions
@@ -40,25 +40,27 @@ This example shows data collected from natural fluid inclusions from Kilauea vol
 Spectral files for Neon and diads are stored in the 'Spectra' folder, and metadata files in the 'MetaData' folder.
 All spectra show very similar shapes, so we classify them all as 'Weak'. Additionally, unlike example 1a, these fluid inclusions also contain SO$_2$ peaks, so we utilize step3b.
 
-:doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step1_Fit_Your_Ne_Lines>`
-:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step2_Filtering_Numerical>`
-:doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step3_FitAll_Together>`
-:doc:`Step 3b <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step3b(optional)_Secondary_Peaks>`
-:doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step4_Stitch_Outputs_Together>`
+See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step1_Fit_Your_Ne_Lines>`,
+:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step2_Filtering_Numerical>`,
+:doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step3_FitAll_Together>`,
+:doc:`Step 3b <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step3b(optional)_Secondary_Peaks>`,
+:doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions/Step4_Stitch_Outputs_Together>`,
 
 
 Example 1bb - Nasty backgrounds
 -----------------------------------
 This example shows how to filter out spectra which have a very slanted background, which you may want to fit with a separate set of peak parameters, or exclude entirely.
-:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1bb_highbackground_FIs/Step2_Filtering_Numerical>`
+
+See :doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1bb_highbackground_FIs/Step2_Filtering_Numerical>`
 
 
 Example 1c - HORIBA synthetic fluid inclusions
 -----------------------------------
 This example shows data from Neon lines and qtz fluid inclusions collected on an older HORIBA instrument. The spectral resolution of this instrument is low, which makes peak fitting more of a challenge.
-:doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step1_Fit_Your_Ne_Lines>`
-:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step2_Filtering_Numerical>`
-:doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step3_FitAll_Together>`
+
+see :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step1_Fit_Your_Ne_Lines>`,
+:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step2_Filtering_Numerical>`,
+:doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step3_FitAll_Together>`,
 :doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1c_HORIBA_Calibration/Step4_Stitch_Outputs_Together>`
 
 
@@ -72,19 +74,22 @@ Example 1e - Quick Peak fitting
 Sometimes when you are Ramining a new set of samples, you want an approximate indication of what densities you are dealing with (e..g 0.2 g/cm3, 0.5 g/cm3).
 This notebook shows how to quickly peak fit a few spectra you have grabbed off the instrument, without doing all 4-5 steps. All spectra are stored in the folder 'Spectra'. We dont worry about Metadata,
 we just use an average Neon line correction factor for our instrument.
-:doc:`Step 4 <Examples/Fitting_Fermi_Diads\Example1e_Quick_Peak_Fitting_While_Ramaning/Quick_Peak_fitting>`
+
+see :doc:`Step 4 <Examples/Fitting_Fermi_Diads\Example1e_Quick_Peak_Fitting_While_Ramaning/Quick_Peak_fitting>`
 
 
 Example 1f - Quantifying Peak assymmetry
 -----------------------------------
 DeVitre et al. (2023) show that peak assymetry can be used to identify the presence of both vapour and liquid phases. This example shows how to quantify peak assymetry on some spectra from DeVitre et al. (2023)
-:doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1f_Diad_Peak_Assymetry/Asessing_Diad_Skewness>`
+
+see :doc:`<Examples/Fitting_Fermi_Diads/Example1f_Diad_Peak_Assymetry/Asessing_Diad_Skewness>`
 
 
 Quantifying water contents in silicate melts
 ===============================================
 Example 4 -  Just Glasses
 -----------------------------------
+
 
 Example 4b -  Unmixing olivine and melt inclusions
 -----------------------------------
@@ -96,8 +101,8 @@ These EOS can be used for a variety of different calculations, described below:
 
 Example 5a -  Different EOS functions
 --------------------------------------------------------------
-This example shows how to perform different CO2 EOS calculations in DiadFit:
-    - Calc 1: Calculating P for a given T and CO2 density
+This example  (:doc:`Example 5a <Examples\EOS_calculations\Example5a_Introducing_EOS_Calcs>`) shows how to perform different CO2 EOS calculations in DiadFit:
+    - Calc 1: Calculating P for a given T and CO2 density.
     - Calc 2: Calculating CO2 density for a given T and P
     - Calc 3: Calculating T for a given P and CO2 density.
     - Calc 4: Calculating co-existing liquid and vapour densities
@@ -107,31 +112,32 @@ This example shows how to perform different CO2 EOS calculations in DiadFit:
 
 Example 5b -  Visualizing how CO$_2$ density relates to P and T
 --------------------------------------------------------------
-This example shows how to perform EOS calculations of CO2 density for an array of pressures at different temperatures.
+This example (:doc:`Example 5b <Examples\EOS_calculations\Example5b_Visualizing_EOSs_Density_Pressure>`)
+ shows how to perform EOS calculations of CO2 density for an array of pressures at different temperatures.
 The resulting plots in pressure-density space with lines for different temperatures are very helpful to demonstrate that the CO2 EOS isn't that sensitive to temperature.
 
 Example 5c -  Calculating fluid inclusion entrapment pressures and depths in La Palma
 --------------------------------------------------------------
-This example uses CO2 densities from Dayton et al. (2022, Science Advances) to calculate entrapment pressures, and then a 2 step density profile to calculate storage depths
+This example (:doc:`Example 5c <Examples\EOS_calculations\Example5c_LaPalma_FluidInclusions>`) uses CO2 densities from Dayton et al. (2022, Science Advances) to calculate entrapment pressures, and then a 2 step density profile to calculate storage depths
 
 Example 5d -  Calculating fluid inclusion entrapment pressures and depths for different density profiles
 -----------------------------------------------------------------------------------------------------------
-This notebook shows how to convert CO2 density to depth, and then calculate storage depths using a variety of crustal density profiles (2, 3 step, etc).
+This example (:doc:`Example 5d <Examples\EOS_calculations\Example5d_Fluid_Inclusion_Density_to_Depth>`) shows how to convert CO2 density to depth, and then calculate storage depths using a variety of crustal density profiles (2, 3 step, etc).
 
 Example 5e -  Propagating uncertainties in fluid inclusion barometry
 ---------------------------------------------------------------------
-This notebook shows how to propagate uncertainties in temperature, CO2 density and crustal density using Monte Carlo methods.
+This example (:doc:`Example 5e <Examples\EOS_calculations\Example5e_FI_Monte_Carlo_Simulations>`) shows how to propagate uncertainties in temperature, CO2 density and crustal density using Monte Carlo methods.
 
 Example 5f -  Calculations using CO$_2$-H$_2$O EOS
 ---------------------------------------------------------------------
-This notebook shows how to perform calculations using CO2-H2O EOs, and how to integrate XH2O measurements from melt inclusions into this correction.
+This example (:doc:`Example 5f <Examples\EOS_calculations\Example5f_H2O_CO2_EOS>`) shows how to perform calculations using CO2-H2O EOs, and how to integrate XH2O measurements from melt inclusions into this correction.
 
 Quantifying uncertainty in the CO$_2$ contents of melt inclusion vapour bubbles
 ================================================================================
 
 Example 8 - Propagating CO2 Uncertainties
 -----------------------------------
-This notebook shows how to propagate uncertainty in bubble densities, bubble volumes and silicate melt densities into equivalent CO2 contents in glasses.
+This example (:doc:`Example 8a <Examples\CO2_in_Melt_Inclusion_Vapour_Bubbles\Example8a_PropagatingCO2Uncertainties>`) shows how to propagate uncertainty in bubble densities, bubble volumes and silicate melt densities into equivalent CO2 contents in glasses.
 
 
 
@@ -142,7 +148,7 @@ These examples show how to use the code of DeVitre and Wieser (2024) to model fl
 
 Example 9a -  Stretching during ascent
 --------------------------------------
-This example shows how to model stretching of a 1um radius CO2 fluid inclusion during ascent from 10 km depth to the surface.
+This example  shows how to model stretching of a 1um radius CO2 fluid inclusion during ascent from 10 km depth to the surface.
 This can be easily adapted for different starting pressures, inclusion sizes, and ascent rates
 
 Example 9a -  Stretching during quenching

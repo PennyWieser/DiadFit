@@ -26,7 +26,6 @@ Welcome to DiadFits documentation!
 Fitting Fermi Diads
 ===================
 
-C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1a_Gas_Cell_Calibration
 
 .. toctree::
    :maxdepth: 2
@@ -34,7 +33,6 @@ C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\
    Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines
    Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step2_Filtering_Numerical
    Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together
-   Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step3b(optional)_Secondary_Peaks
    Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together
    %
 
@@ -55,7 +53,7 @@ C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\
    :maxdepth: 2
    :caption: Ex1bb: Filtering out spectra with high backgrounds
 
-   Examples/Fitting_Fermi_Diads/Example1bb_highbackground_FIs
+   Examples/Fitting_Fermi_Diads/Example1bb_highbackground_FIs/
 
    %
 
