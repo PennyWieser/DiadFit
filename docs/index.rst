@@ -14,8 +14,22 @@ Welcome to DiadFits documentation!
    installation
    importing_data
    pythonjargon
-   Workedexamples
    ChangeLog
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Worked Examples
+
+   worked_examples_diads
+   worked_examples_water
+   worked_examples_EOS
+   worked_examples_VBs
+   worked_examples_Relaxfi
+   worked_examples_other
+
+
+
+   
 
 .. toctree::
    :maxdepth: 2
