@@ -1,7 +1,8 @@
-meta_path=C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example1a_Gas_Cell_Calibration\MetaData
-spectra_path=C:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Example1a_Gas_Cell_Calibration\Spectra
-filetype=headless_txt
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1a_Gas_Cell_Calibration\MetaData
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1a_Gas_Cell_Calibration\Spectra
+spectra_filetype=headless_txt
 prefix=False
 prefix_str=' '
-file_ext=.txt
+spectra_file_ext=.txt
+meta_file_ext=.txt
 TruPower=False

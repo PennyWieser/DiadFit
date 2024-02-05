@@ -1193,7 +1193,7 @@ def stitch_loop_individual_fits(*, fit_individually=True,
     
     
 ## Save settings files
-def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ext, TruPower):
+def save_settings(meta_path, spectra_path, spectra_filetype, prefix, prefix_str, spectra_file_ext, meta_file_ext, TruPower):
     """ This function saves settings so you can load them across multiple notebooks without repition
     
     Parameters
@@ -1202,14 +1202,18 @@ def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ex
         Path where your metadata is stored
     spectra_path: str
         path where your spectra is stored
-    filetype: str
+    
+    spectra_filetype: str
+        Style of data. 
         Choose from 'Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII', 'HORIBA_txt', 'Renishaw_txt'
+        
+    spectra_file_ext, meta_file_ext: str
+        Extension of spectra file and metadatafile. e.g. '.txt', '.csv' 
+        
     prefix: bool
         If True, removes 01, 02, from filename (WITEC problem)
         Also need to state prefix_str: prefix separating string (in this case, 01 Ne would be ' '
         
-    file_ext: str
-        Extension of file. e.g. txt
     
     TruPower: bool
         If WITEC instrument and you have TruPower, set as True
@@ -1223,12 +1227,12 @@ def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ex
     filetype_opts = ['Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII', 'HORIBA_txt', 'Renishaw_txt']
     
     
-    if filetype in filetype_opts:
+    if spectra_filetype in filetype_opts:
             # Proceed with your logic here
-        print(f"Filetype {filetype} is valid.")
+        print(f"Good job! Filetype {spectra_filetype} is valid.")
             # You can add more logic here if needed
     else:
-        raise TypeError(f"Invalid filetype: {filetype}. Supported filetypes are {filetype_opts}")
+        raise TypeError(f"Invalid spectra_filetype: {filetype}. Supported filetypes are {filetype_opts}")
 
     # Get the current folder
     folder = os.getcwd()
@@ -1237,10 +1241,11 @@ def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ex
     settings = {
         'meta_path': meta_path,
         'spectra_path': spectra_path,
-        'filetype': filetype,
+        'spectra_filetype': spectra_filetype,
         'prefix': prefix,
         'prefix_str': repr(prefix_str),
-        'file_ext': file_ext,
+        'spectra_file_ext': spectra_file_ext,
+        'meta_file_ext': meta_file_ext,
         'TruPower': TruPower,
     }
 
@@ -1253,6 +1258,7 @@ def save_settings(meta_path, spectra_path, filetype, prefix, prefix_str, file_ex
             file.write(f"{key}={value}\n")
 
 def get_settings():
+    """ This function reads the settings file saved in step 1, and loads the options"""
     # Get the current folder
     folder = os.getcwd()
 
@@ -1278,8 +1284,8 @@ def get_settings():
         settings['TruPower'] = settings['TruPower'].lower() == 'true'
 
     # Return the settings
-    return settings.get('meta_path'), settings.get('spectra_path'), settings.get('filetype'), \
-           settings.get('prefix'), settings.get('prefix_str'), settings.get('file_ext'), settings.get('TruPower')
+    return settings.get('meta_path'), settings.get('spectra_path'), settings.get('spectra_filetype'), \
+           settings.get('prefix'), settings.get('prefix_str'), settings.get('spectra_file_ext'), settings.get('meta_file_ext'),settings.get('TruPower')
 
 
 

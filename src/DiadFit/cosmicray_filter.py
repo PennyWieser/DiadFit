@@ -102,9 +102,7 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
 
     file=Diad_files.iloc[i]
     #open the spectrum in form of array
-    print(path)
-    print(file)
-    print(filetype)
+
     Diad_array=pf.get_data(path=path, filename=file, filetype=filetype)
 
     # Get the intensity of the next and previous pixels
@@ -405,7 +403,7 @@ def filter_singleray(*,path=None,Diad_files=None,i=None,diad_peaks=None, exclude
 
     record=pd.DataFrame([])
     record.loc[file,'filename']=file
-    record.loc[file,'rays_present']=not all_rayswave.empty
+    record.loc[file,'rays_present']=float(not all_rayswave.empty)
 
     if second_pass==True:
         clean_spec_df=pxdf_filt_pass2[['Wavenumber','Intensity']]

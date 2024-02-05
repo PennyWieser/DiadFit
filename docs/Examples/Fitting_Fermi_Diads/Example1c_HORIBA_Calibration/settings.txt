@@ -1,7 +1,8 @@
-meta_path=c:\Users\penny\OneDrive\Documents\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1c_HORIBA_Calibration\spectra
-spectra_path=c:\Users\penny\OneDrive\Documents\Berkeley_NEW\DiadFit_outer\docs\Examples\Example1c_HORIBA_Calibration\spectra
-filetype=headless_txt
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1c_HORIBA_Calibration\spectra
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1c_HORIBA_Calibration\spectra
+spectra_filetype=headless_txt
 prefix=False
 prefix_str=' '
-file_ext=.txt
-TruPower=True
+spectra_file_ext=.txt
+meta_file_ext=.txt
+TruPower=False

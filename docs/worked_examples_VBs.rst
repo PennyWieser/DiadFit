@@ -1,5 +1,5 @@
 ================================================================================
-CO$_2$ in melt inclusion vapour bubbles
+CO2 in melt inclusion vapour bubbles
 ================================================================================
 
 Example 8 - Propagating CO2 Uncertainties
