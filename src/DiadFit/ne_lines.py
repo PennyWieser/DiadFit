@@ -19,6 +19,8 @@ import scipy.stats as stats
 import pickle
 
 
+allowed_models = ["VoigtModel", "PseudoVoigtModel", "Pearson4Model", "SkewedVoigtModel"]
+
 
 
 encode="ISO-8859-1"
@@ -1023,16 +1025,12 @@ const_params=True, spec_res=0.4) :
     if peaks_pk1>1:
 
         # Setting up lmfit
-        if model_name == 'PseudoVoigtModel':
-            model0 = PseudoVoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
-        if model_name=="VoigtModel":
-            model0 = VoigtModel(prefix='p0_')#+ ConstantModel(prefix='c0')
-        if model_name=='SkewedVoigtModel':
-            model0=SkewedVoigtModel(prefix='p0_')
+        model0 = globals()[model_name](prefix='p0_')
+
         
         pars0 = model0.make_params()
         pars0['p0_center'].set(Ne_center, min=Ne_center-2*spec_res, max=Ne_center+2*spec_res)
-        pars0['p0_amplitude'].set(amplitude)
+        pars0['p0_amplitude'].set(amplitude, min=amplitude*min_off, max=amplitude*max_off)
        
         
         
@@ -1056,18 +1054,8 @@ const_params=True, spec_res=0.4) :
             Center_p0_errorval = float(match.group(1))
         else:
             Center_p0_errorval=np.nan
-
-
-
-        #Ne_center=Ne_center
-        #rough_peak_positions=Ne_center-2
-        if model_name == 'PseudoVoigtModel':
-            model1 = PseudoVoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
-        if model_name=="VoigtModel":
-            model1 = VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
             
-        if model_name=='SkewedVoigtModel':
-            model1=SkewedVoigtModel(prefix='p1_')
+        model1 = globals()[model_name](prefix='p1_')
             
         pars1 = model1.make_params()
         pars1['p1_'+ 'amplitude'].set(Amp_p0, min=min_off*Amp_p0, max=max_off*Amp_p0)
@@ -1076,13 +1064,7 @@ const_params=True, spec_res=0.4) :
 
 
         # Second wee peak
-        prefix='p2_'
-        if model_name == 'PseudoVoigtModel':
-            peak = PseudoVoigtModel(prefix='p2_')#+ ConstantModel(prefix='c0')
-        if model_name=="VoigtModel":
-            peak = VoigtModel(prefix='p2_')#+ ConstantModel(prefix='c0')
-        if model_name=='SkewedVoigtModel':
-            peak=SkewedVoigtModel(prefix='p2_')
+        peak = globals()[model_name](prefix='p2_')
 
 
         pars = peak.make_params()
@@ -1132,27 +1114,12 @@ const_params=True, spec_res=0.4) :
 
 
     if peaks_pk1==1:
-
-        if model_name == 'PseudoVoigtModel':
-            model_combo = PseudoVoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
-        if model_name=="VoigtModel":
-            model_combo= VoigtModel(prefix='p1_')#+ ConstantModel(prefix='c0')
-        if model_name=='SkewedVoigtModel':
-            model_combo=SkewedVoigtModel(prefix='p1_')
-
-
-
+        model_combo = globals()[model_name](prefix='p1_')
         # create parameters with initial values
         pars1 = model_combo.make_params()
-        pars1['p1_amplitude'].set(amplitude)
+        pars1['p1_amplitude'].set(amplitude,  min=amplitude*min_off, max=amplitude*max_off)
         pars1['p1_' + 'center'].set(Ne_center, min=Ne_center-2*spec_res,max=Ne_center+2*spec_res)
         pars1['p1_'+ 'sigma'].set(pk1_sigma, min=pk1_sigma*min_off, max=pk1_sigma*max_off)
-
-        
-
-
-
-
 
     
     result = model_combo.fit(ydat, pars1, x=xdat)
@@ -1161,52 +1128,20 @@ const_params=True, spec_res=0.4) :
     # Need to check errors output
     Error_bars=result.errorbars
 
-
-
     # Get center value
     Center_p1=result.best_values.get('p1_center')
-    
-    
-    
     error_pk1 = result.params['p1_center'].stderr
   
-    
-
     # Get mix of lorenz
     Peak1_Prop_Lor=result.best_values.get('p1_fraction')
 
 
-   
-
     if peaks_pk1>1:
         Center_p2=result.best_values.get('p2_center')
-        Center_p2_error=result.params.get('p2_center')
+        Center_p2_error=result.params['p2_center'].stderr
+        # old thing result.params.get('p2_center')
 
 
-
-        # # Check if nonsense, e.g. if center 2 miles away, just use center 0
-        # if Center_p2 is not None:
-        #     if Center_p2>Center_p0 or Center_p2<1112:
-        #         Center_pk1=Center_p0
-        #         error_pk1=Center_p0_errorval
-        #         if block_print is False:
-        #             print('No  meaningful second peak found')
-        # 
-        #     elif Center_p1 is None and Center_p2 is None:
-        #         if block_print is False:
-        #             print('No peaks found')
-        #     elif Center_p1 is None and Center_p2>0:
-        #         Center_pk1=Center_p2
-        #         error_pk1=Center_p2_errorval
-        #     elif Center_p2 is None and Center_p1>0:
-        #         Center_pk1=Center_p1
-        #         error_pk1=Center_p1_errorval
-        #     elif Center_p1>Center_p2:
-        #         Center_pk1=Center_p1
-        #         
-        #     elif Center_p1<Center_p2:
-        #         Center_pk1=Center_p2
-                
 
     Area_pk1=result.best_values.get('p1_amplitude')
     sigma_pk1=result.best_values.get('p1_sigma')
@@ -1260,6 +1195,7 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True, spec_res=0
 
 
     """
+    print(x_span)
     if const_params is True:
         min_off=0.8
         max_off=1.2
@@ -1277,20 +1213,16 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True, spec_res=0
     Ne_pk2_reg_y=y_corr[(x>lower_pk2)&(x<upper_pk2)]
     Ne_pk2_reg_x_plot=x[(x>(lower_pk2-3))&(x<(upper_pk2+3))]
     Ne_pk2_reg_y_plot=y_corr[(x>(lower_pk2-3))&(x<(upper_pk2+3))]
+        
 
-    if model_name == 'PseudoVoigtModel':
-        model = PseudoVoigtModel()#+ ConstantModel(prefix='c0')
-    if model_name=="VoigtModel":
-        model = VoigtModel()#+ ConstantModel(prefix='c0')
-    if model_name=="SkewedVoigtModel":
-        model = SkewedVoigtModel()#+ ConstantModel(prefix='c0')
+    model = globals()[model_name]()
 
 
 
     # create parameters with initial values
     params = model.make_params()
 
-    params['center'].set(Ne_center, min=Ne_center+x_span[0], max=Ne_center+x_span[1])
+    params['center'].set(Ne_center, min=Ne_center-2*spec_res,max=Ne_center+2*spec_res)
     params['amplitude'].set(amplitude, min=amplitude*min_off, max=amplitude*max_off)
     params['sigma'].set(pk2_sigma, min=pk2_sigma*min_off, max=pk2_sigma*max_off)
 
@@ -1299,7 +1231,10 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True, spec_res=0
 
     # Get center value
     Center_pk2=result.best_values.get('center')
-    Center_pk2_error=result.params.get('center')
+    error_pk2 = result.params['center'].stderr
+    print('error pk2')
+    print(error_pk2)
+    
 
     Peak2_Prop_Lor=result.best_values.get('fraction')
     
@@ -1310,21 +1245,7 @@ model_name='PseudoVoigtModel', print_report=False, const_params=True, spec_res=0
     Area_pk2=result.best_values.get('amplitude')
     sigma_pk2=result.best_values.get('sigma')
     gamma_pk2=result.best_values.get('gamma')
-    # Have to strip away the rest of the string, as center + error
-    # print('debug:')
-    # print(Center_pk2_error)
-    # Center_pk2_errorval=float(str(Center_pk2_error).split()[4].replace(",", ""))
-    # error_pk2=Center_pk2_errorval
-    
-    
-    error_pk2=np.nan
-    
-    try:
-        error_pk2_str = str(Center_pk2_error).split('+/-')[1].split(' bounds')[0].strip()
-        error_pk2 = float(error_pk2_str.replace(",", ""))
-    except IndexError:
-        pass
-    
+
    
 
     # Evaluate the peak at 100 values for pretty plotting
@@ -1409,77 +1330,86 @@ plot_figure=True, loop=True,
 
     filename and path: str
         used to save filename in datatable, and to make a new folder.
+        
+    prefix: bool
+        Whether or not the filename has a prefix
+        
+    Ne_center_1, Ne_center_2 : float
+        Approximate peak position of the 1st and 2nd Ne line
 
-    filetype: str
-        choose from 'Witec_ASCII', 'headless_txt', 'headless_csv', 'head_csv', 'Witec_ASCII',
-        'HORIBA_txt', 'Renishaw_txt'
-
-    amplitude: int or float
-        first guess of peak amplitude
-
+    Ne_prom_1, Ne_prom_2 : float
+        Approximate prominance of the 1st and 2nd Ne line      
+        
     plot_figure: bool
-        if True, saves figure of fit in a new folder
+        Plots a figure, nice to inspect fits, makes it slower
+        
+    loop: bool
+        
+    save_clipboard: bool
+        Saves results to clipboard if true
+    
+    close_figure: bool
+        Closes figure if True (useful in some editors)
+        
+    const_params: bool 
+        If true, means amplitude and peak sigma have to be closer to the guessed parameters (e.g. used after initial fit).  
+        E.g. forced within +-20% of estimated peak parameters if True, if false, +-100%.    
+        
 
-    Loop: bool
-        If True, only returns df.
-
-    x_range_baseline: flt, int
-        How much x range outside selected baseline the baseline selection plot shows.
-
-    y_range_baseline: flt, int
-        How much above the baseline position is shown on the y axis.
-
-    x_range_peak: flt, int, or None
-        How much to either side of the peak to show on the final peak fitting plot
-
-
-    DeltaNe_ideal: float
-        Theoretical distance between the two peaks you have selected. Default is 330.477634 for
-        the 1117 and 1447 Neon for the Cornell Raman. You can calculate this using the calculate_Ne_line_positions
-
-
-    Things for Neon 1 (~1117):
-
-        N_poly_pk1_baseline: int
-            Degree of polynomial used to fit the background
-
-        Ne_center_1: float
-            Center position for Ne line being fitted
-
-        lower_bck_1, upper_bck1, upper_bck1: 3 lists of length 2:
-            Positions used for background relative to peak.[-50, -20] takes a
-            background -50 and -20 from the peak center
-
-        x_span_pk1: list length 2. Default [-10, 8]
-            Span either side of peak center used for fitting,
-            e.g. by default, fits to 10 wavenumbers below peak, 8 above.
-
-
-        peaks_1: int
-            How many peaks to fit to the 1117 Neon, if 2, tries to put a shoulder peak
-
-        LH_offset_mini: list
-            If peaks>1, puts second peak within this range left of the main peak
-
-
-
-
-    Things for Neon 2 (~1447):
-        N_poly_pk2_baseline: int
-            Degree of polynomial used to fit the background
-
-        Ne_center_2: float
-            Center position for Ne line being fitted
-
-        lower_bck_2, upper_bck2, upper_bck2: 3 lists of length 2:
-            Positions used for background relative to peak.[-50, -20] takes a
-            background -50 and -20 from the peak center
-
-        x_span_pk2: list length 2. Default [-10, 8]
-            Span either side of peak center used for fitting,
-            e.g. by default, fits to 10 wavenumbers below peak, 8 above.
+    config parameters from Ne_peak_config():
+    
+        model_name: str
+            allowed_models = "VoigtModel", "PseudoVoigtModel", "Pearson4Model", "SkewedVoigtModel"
             
+        N_poly_pk1_baseline, N_poly_pk1_baseline: int (default 1)
+            Degree of polynomial to fit to baseline around pk 
+            
+        lower_bck_pk1, upper_bck1_pk1, upper_bck2_pk1: tuple
+        lower_bck_pk2, upper_bck1_pk2, upper_bck2_pk2: tuple
+            Background positions relative to estimated peak center. 
+            
+        peaks_1: int
+            Number of peaks to fit to peak 1. If you need 2 overlapping peaks, put this Ne line as pk1
+            if not 1, you also need LH_offset_mini=(1.5, 3). Means second peak put between 1.5 and 3 units left of the 1st peak.
+            
+        DeltaNe_ideal: float
+            Ideal distance between two lines calculated for your laser wavelength. 
+            
+        x_range_baseline_pk1, x_range_baseline_pk2: int, float
+            test
+            
+        y_range_baseline_pk1, y_range_baseline_pk2: int, float
+            test
+        
+        pk1_sigma, pk2_sigma: float (Default 0.4)
+            Estimated sigma of each peak
+        
+        x_range_peak:  flt, int, or None
+            How much to either side of the peak to show on the final peak fitting plot
+        
+        x_range_residual: flt
+            How much either side of the peak is used for calculating residual
+        
+        x_span_pk1,  x_span_pk2: float, default None
+            By default, function fits up to background, but can shrink that range here. 
+            
+    Returns
+    ------------
+    if loop is False:
+        return df, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot
+    if loop is True:
+        return df
+        
+    Also returns figure. 
+    
     """
+    # Check model is supported
+    if config.model_name not in allowed_models:
+        raise ValueError(f"Unsupported model: {config.model_name}. Supported models are: {', '.join(allowed_models)}")
+
+
+    
+    
 
     # check they havent messed up background
     if config.lower_bck_pk1[0]>config.lower_bck_pk1[1]:
@@ -1534,8 +1464,8 @@ plot_figure=True, loop=True,
         x_span_pk2=config.x_span_pk2
         x_span_pk2_dist=abs(config.x_span_pk2[1]-config.x_span_pk2[0])
 
-    # Fit the 1117 peak
-    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1,model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
+    # Fit Pk1
+    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
     const_params=const_params, spec_res=spec_res)
 
 

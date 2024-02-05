@@ -19,6 +19,10 @@ from numpy import trapz
 from scipy.integrate import simps
 from scipy.interpolate import interp1d
 
+# Allowed models
+
+allowed_models = ["VoigtModel", "PseudoVoigtModel", "Pearson4Model", "SkewedVoigtModel"]
+
 # For debuggin
 
 #import warnings
@@ -1269,14 +1273,8 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, min
     params: Peak fit parameters
 
     """
-    if model_name == "VoigtModel":
-        Model_combo=VoigtModel(prefix=prefix)#+ConstantModel(prefix=prefix) #Stops getting results
+    Model_combo = globals()[model_name](prefix=prefix)
 
-    if model_name == "PseudoVoigtModel":
-        Model_combo=PseudoVoigtModel(prefix=prefix)#+ConstantModel(prefix=prefix) #Stops getting results
-
-    if model_name== "Pearson4Model":
-        Model_combo=Pearson4Model(prefix=prefix)#+ConstantModel(prefix=prefix) #Stops getting results
     peak =  Model_combo
     pars = peak.make_params()
 
@@ -1517,16 +1515,10 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     C13_initial_guess=C13_pos
 
 
+    model_ini = globals()[config1.model_name]()
 
 
-    if config1.model_name=="VoigtModel":
-        model_ini = VoigtModel()#+ ConstantModel()
-    elif config1.model_name=="PseudoVoigtModel":
-        model_ini = PseudoVoigtModel()#+ ConstantModel()
-    elif config1.model_name=='Pearson4Model':
-        model_ini = Pearson4Model()#+ ConstantModel()
-    else:
-        TypeError('Choice of model not yet supported - select VoigtModel, PseudoVoigtModel or Pearson4Model')
+
 
     # Create initial peak params
     # Set peak position to 2 spectral res units either side of the initial guess made above
@@ -1554,13 +1546,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
         # If there is 1 peak, e.g. if have a Nan for hotband
         if fit_peaks==1:
-            if config1.model_name=='VoigtModel':
-                model_F = VoigtModel(prefix='lz1_') #+ ConstantModel(prefix='c1')
-            if config1.model_name=='PseudoVoigtModel':
-                model_F = PseudoVoigtModel(prefix='lz1_') + ConstantModel(prefix='c1')
-            if config1.model_name=='Pearson4Model':
-                model_F = Pearson4Model(prefix='lz1_') + ConstantModel(prefix='c1')
-
+            model_F = globals()[config1.model_name](prefix='lz1_')
             pars1 = model_F.make_params()
             pars1['lz1_'+ 'amplitude'].set(calc_diad_amplitude, min=0, max=calc_diad_amplitude*10)
             pars1['lz1_'+ 'center'].set(Center_ini, min=Center_ini-5*spec_res, max=Center_ini+5*spec_res)
@@ -1571,13 +1557,8 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
         # If there is more than one peak
         else:
-            # Set up Lz1 the same for all situations
-            if config1.model_name=='VoigtModel':
-                model1 = VoigtModel(prefix='lz1_')# + ConstantModel(prefix='c1')
-            if config1.model_name=='PseudoVoigtModel':
-                model1 = PseudoVoigtModel(prefix='lz1_') #+ ConstantModel(prefix='c1')
-            if config1.model_name=='Pearson4Model':
-                model1 = Pearson4Model(prefix='lz1_') #+ ConstantModel(prefix='c1')
+            # Previous versions had a constant for PV and P4 but not Voigt. Now removed for all
+            model1 = globals()[config1.model_name](prefix='lz1_')
             pars1 = model1.make_params()
             pars1['lz1_'+ 'amplitude'].set(calc_diad_amplitude, min=0, max=calc_diad_amplitude*10)
 
@@ -1597,12 +1578,8 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
                 # Second wee peak
                 prefix='lz2_'
-                if config1.model_name=='VoigtModel':
-                    peak = VoigtModel(prefix='lz2_')# + ConstantModel(prefix='c1')
-                if config1.model_name=='PseudoVoigtModel':
-                    peak = PseudoVoigtModel(prefix='lz2_')# + ConstantModel(prefix='c1')
-                if config1.model_name=='Pearson4Model':
-                    peak = Pearson4Model(prefix='lz2_')# + ConstantModel(prefix='c1')
+
+                peak = globals()[config1.model_name](prefix='lz2_')
 
 
                 pars = peak.make_params()
@@ -1852,7 +1829,6 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
     Peak1_Prop_Lor=result.best_values.get('lz1_fraction')
     Peak1_fwhm=result.params['lz1_fwhm'].value
 
-    Center_pk2_error=result.params.get('lz1_center')
 
     error_pk2 = result.params['lz1_center'].stderr
 
@@ -2312,7 +2288,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
             degree of polynomial to fit to the background.
 
         model_name: str
-            What type of peak you want to fit, either 'PseudoVoigtModel' or 'VoigtModel'
+            What type of peak you want to fit, either 'PseudoVoigtModel', 'VoigtModel', 'Pearson4Model'
 
         fit_peaks: int
             Number of peaks to fit. 1 = just diad, 2= diad and Hotband, 3= diad, hotband, C13
@@ -2404,6 +2380,11 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
         filetype='headless_txt'
 
     model=config1.model_name
+
+    if model not in allowed_models:
+        raise ValueError(f"Unsupported model: {model}. Supported models are: {', '.join(allowed_models)}")
+
+
 
     # Check number of peaks makes sense
     fit_peaks=config1.fit_peaks
@@ -2891,6 +2872,9 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
         filetype='headless_txt'
 
     model=config1.model_name
+
+    if model not in allowed_models:
+        raise ValueError(f"Unsupported model: {model}. Supported models are: {', '.join(allowed_models)}")
 
     fit_peaks=config1.fit_peaks
 
