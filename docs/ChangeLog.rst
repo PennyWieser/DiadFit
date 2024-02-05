@@ -2,12 +2,14 @@
 ================
 Change Log
 ================
-DFeb 4th, 2024 - Penny Wieser - V.0.82
+
+Feb 4th, 2024 - Penny Wieser - V.0.82
 -------------------------------------------
-Changes after review. Major restructuring of docs. 
+Changes after review. Major restructuring of docs.
 When loading files, options for spectra_filetype, meta_file_ext, spectra_file_ext, old code with new versions will return error for these.
 No real way to make backwards compatible and get functionality for reviewer 2.
 
+Also simplified Ne fitting to only use 1 function for baseline and peak, means can have 2 peaks for either pk1 or pk2
 
 Dec 18th, 2023 - Penny Wieser - V.0.81
 -------------------------------------------

@@ -787,7 +787,7 @@ Ne_array=None):
 
 
 ## Ne baselines
-def remove_Ne_baseline_pk1(Ne, N_poly_pk1_baseline=None, Ne_center_1=None,
+def remove_Ne_baseline_pk(Ne, N_poly_pk1_baseline=None, Ne_center_1=None,
 lower_bck=None, upper_bck1=None, upper_bck2=None, sigma_baseline=None):
     """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
     around a specified peak
@@ -869,97 +869,10 @@ lower_bck=None, upper_bck1=None, upper_bck2=None, sigma_baseline=None):
 
     return y_corr, Py_base, x,  Ne_short, Py_base, Baseline_y, Baseline_x
 
-def remove_Ne_baseline_pk2(Ne, N_poly_pk2_baseline=None, Ne_center_2=None, sigma_baseline=None,
-lower_bck=None, upper_bck1=None, upper_bck2=None):
-
-    """ This function uses a defined range of values to fit a baseline of Nth degree polynomial to the baseline
-    around a second selected peak
-
-    Parameters
-    -----------
-
-    Ne: np.array
-        np.array of x and y coordinates from the spectra
-
-    N_poly_pk1_baseline: int
-        Degree of polynomial used to fit the background
-
-    Ne_center_1: float
-        Center position for Ne line being fitted
-
-    lower_bck: list (length 2) Default [-44.2, -22]
-        position used for lower background relative to peak, so =[-50, -20] takes a
-        background -50 and -20 from the peak center
-
-    upper_bck1: list (length 2). Default [15, 50]
-        position used for 1st upper background relative to peak, so =[8, 15] takes a
-        background +8 and +15 from the peak center
-
-    upper_bck2: list (length 2) Default [50, 51]
-        position used for 2nd upper background relative to peak, so =[30, 50] takes a
-        background +30 and +50 from the peak center
-
-    Returns
-    -----------
-    y_corr, Py_base, x,  Ne_short, Py_base, Baseline_y, Baseline_x
-
-    y_corr (numpy.ndarray): The corrected y-values after subtracting the fitted polynomial baseline from the original data.
-    Py_base (numpy.ndarray): The y-values of the fitted polynomial baseline.
-    x (numpy.ndarray): The x-values of the trimmed data within the specified range.
-    Ne_short (numpy.ndarray): The trimmed data within the specified range.
-    Baseline_y (numpy.ndarray): The y-values of the baseline data points.
-    Baseline_x (numpy.ndarray): The x-values of the baseline data points.
-
-    
-    """
 
 
 
-    lower_0baseline_pk2=Ne_center_2+lower_bck[0]
-    upper_0baseline_pk2=Ne_center_2+lower_bck[1]
-    lower_1baseline_pk2=Ne_center_2+upper_bck1[0]
-    upper_1baseline_pk2=Ne_center_2+upper_bck1[1]
-    lower_2baseline_pk2=Ne_center_2+upper_bck2[0]
-    upper_2baseline_pk2=Ne_center_2+upper_bck2[1]
-
-    # Trim for entire range
-    Ne_short=Ne[ (Ne[:,0]>lower_0baseline_pk2) & (Ne[:,0]<upper_2baseline_pk2) ]
-
-    # Get actual baseline
-    Baseline_with_outl=Ne_short[
-    ((Ne_short[:, 0]<upper_0baseline_pk2) &(Ne_short[:, 0]>lower_0baseline_pk2))
-    |
-    ((Ne_short[:, 0]<upper_1baseline_pk2) &(Ne_short[:, 0]>lower_1baseline_pk2))
-    |
-    ((Ne_short[:, 0]<upper_2baseline_pk2) &(Ne_short[:, 0]>lower_2baseline_pk2))]
-
-    # Calculates the median for the baseline and the standard deviation
-    Median_Baseline=np.median(Baseline_with_outl[:, 1])
-    Std_Baseline=np.std(Baseline_with_outl[:, 1])
-
-    # Removes any points in the baseline outside of 2 sigma (helps remove cosmic rays etc).
-    Baseline=Baseline_with_outl[(Baseline_with_outl[:, 1]<Median_Baseline+sigma_baseline*Std_Baseline)
-                                &
-                                (Baseline_with_outl[:, 1]>Median_Baseline-sigma_baseline*Std_Baseline)
-                               ]
-
-    # Fits a polynomial to the baseline of degree
-    Pf_baseline = np.poly1d(np.polyfit(Baseline[:, 0], Baseline[:, 1], N_poly_pk2_baseline))
-    Py_base =Pf_baseline(Ne_short[:, 0])
-    Baseline_ysub=Pf_baseline(Baseline[:, 0])
-    Baseline_x=Baseline[:, 0]
-    Baseline_y=Baseline[:, 1]
-    y_corr= Ne_short[:, 1]-  Py_base
-    x=Ne_short[:, 0]
-
-
-    return y_corr, Py_base, x,  Ne_short, Py_base, Baseline_y, Baseline_x
-
-
-
-
-
-def fit_pk1(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98.1, pk1_sigma=0.28,
+def fit_Ne_pk(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98.1, pk1_sigma=0.28,
 LH_offset_mini=[1.5, 3], peaks_pk1=2, model_name='PseudoVoigtModel', block_print=True,
 const_params=True, spec_res=0.4) :
     """ This function fits the 1117 Ne line as 1 or two voigt peaks
@@ -1046,15 +959,6 @@ const_params=True, spec_res=0.4) :
             print('first iteration, peak Amplitude='+str(np.round(Amp_p0, 4)))
         fwhm_p0=result0.params.get('p0_fwhm')
 
-
-
-        pattern = r"\+/-\s*([\d.]+)"
-        match = re.search(pattern, str(Center_p0_error))
-        if match:
-            Center_p0_errorval = float(match.group(1))
-        else:
-            Center_p0_errorval=np.nan
-            
         model1 = globals()[model_name](prefix='p1_')
             
         pars1 = model1.make_params()
@@ -1131,15 +1035,13 @@ const_params=True, spec_res=0.4) :
     # Get center value
     Center_p1=result.best_values.get('p1_center')
     error_pk1 = result.params['p1_center'].stderr
+    
+    Center_pk2_error=result.params.get('p1_center')
+
   
     # Get mix of lorenz
     Peak1_Prop_Lor=result.best_values.get('p1_fraction')
 
-
-    if peaks_pk1>1:
-        Center_p2=result.best_values.get('p2_center')
-        Center_p2_error=result.params['p2_center'].stderr
-        # old thing result.params.get('p2_center')
 
 
 
@@ -1163,101 +1065,7 @@ const_params=True, spec_res=0.4) :
     return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor
 
 
-def fit_pk2(x, y_corr, x_span=[-5, 5], Ne_center=1447.5, amplitude=1000, pk2_sigma=0.4,
-model_name='PseudoVoigtModel', print_report=False, const_params=True, spec_res=0.4) :
-    """ This function fits the 1447 Ne line as a single Voigt
 
-    Parameters
-    -----------
-
-    x: np.array
-        x coordinate (wavenumber)
-
-    y: np.array
-        Background corrected intensiy
-
-    x_span: list length 2. Default [-5, 5]
-        Span either side of peak center used for fitting,
-        e.g. by default, fits to 5 wavenumbers below peak, 5 above.
-
-    Ne_center: float (default=1447.5)
-        Center position for Ne line being fitted
-
-    amplitude: integer (default = 1000)
-        peak amplitude
-
-    sigma: float (default =0.28)
-        sigma of the voigt peak
-
-
-    print_report: bool
-        if True, prints fit report.
-
-
-    """
-    print(x_span)
-    if const_params is True:
-        min_off=0.8
-        max_off=1.2
-    if const_params is False:
-        min_off=0
-        max_off=100
-
-
-    # This defines the range you want to fit (e.g. how big the tails are)
-    lower_pk2=Ne_center+x_span[0]
-    upper_pk2=Ne_center+x_span[1]
-
-    # This segments into the x and y variable, and variables to plot, which are a bit bigger.
-    Ne_pk2_reg_x=x[(x>lower_pk2)&(x<upper_pk2)]
-    Ne_pk2_reg_y=y_corr[(x>lower_pk2)&(x<upper_pk2)]
-    Ne_pk2_reg_x_plot=x[(x>(lower_pk2-3))&(x<(upper_pk2+3))]
-    Ne_pk2_reg_y_plot=y_corr[(x>(lower_pk2-3))&(x<(upper_pk2+3))]
-        
-
-    model = globals()[model_name]()
-
-
-
-    # create parameters with initial values
-    params = model.make_params()
-
-    params['center'].set(Ne_center, min=Ne_center-2*spec_res,max=Ne_center+2*spec_res)
-    params['amplitude'].set(amplitude, min=amplitude*min_off, max=amplitude*max_off)
-    params['sigma'].set(pk2_sigma, min=pk2_sigma*min_off, max=pk2_sigma*max_off)
-
-
-    result = model.fit(Ne_pk2_reg_y.flatten(), params, x=Ne_pk2_reg_x.flatten())
-
-    # Get center value
-    Center_pk2=result.best_values.get('center')
-    error_pk2 = result.params['center'].stderr
-    print('error pk2')
-    print(error_pk2)
-    
-
-    Peak2_Prop_Lor=result.best_values.get('fraction')
-    
-
-
-    #print(result.best_values)
-
-    Area_pk2=result.best_values.get('amplitude')
-    sigma_pk2=result.best_values.get('sigma')
-    gamma_pk2=result.best_values.get('gamma')
-
-   
-
-    # Evaluate the peak at 100 values for pretty plotting
-    xx_pk2=np.linspace(lower_pk2, upper_pk2, 2000)
-
-    result_pk2=result.eval(x=xx_pk2)
-    result_pk2_origx=result.eval(x=Ne_pk2_reg_x)
-
-    if print_report is True:
-         print(result.fit_report(min_correl=0.5))
-
-    return Center_pk2,Area_pk2, sigma_pk2, gamma_pk2,  Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, Peak2_Prop_Lor
 
 ## Setting default Ne fitting parameters
 @dataclass
@@ -1277,6 +1085,7 @@ class Ne_peak_config:
 
     # Whether you want a secondary peak
     peaks_1: float=2
+    peaks_2: float=1
 
     # SPlitting
     DeltaNe_ideal: float= 330.477634
@@ -1298,8 +1107,12 @@ class Ne_peak_config:
     # Things for plotting the residual
     x_range_residual: float=7 # Shows how many x units to left and right is shown on residual plot
 
-    # Things for fitting a secondary peak on 1117
+    # Things for fitting a secondary peak on pk1
     LH_offset_mini: Tuple[float, float] = (1.5, 3)
+    # Same for Pk2
+    LH_offset_mini2: Tuple[float, float] = None
+    
+    
 
     # Optional, by default, fits to the points inside the baseline. Can also specify as values to make a smaller peak fit.
     x_span_pk1: Optional [Tuple[float, float]] = None # Tuple[float, float] = (-10, 8)
@@ -1368,7 +1181,7 @@ plot_figure=True, loop=True,
         lower_bck_pk2, upper_bck1_pk2, upper_bck2_pk2: tuple
             Background positions relative to estimated peak center. 
             
-        peaks_1: int
+        peaks_1, peaks_2: int
             Number of peaks to fit to peak 1. If you need 2 overlapping peaks, put this Ne line as pk1
             if not 1, you also need LH_offset_mini=(1.5, 3). Means second peak put between 1.5 and 3 units left of the 1st peak.
             
@@ -1432,6 +1245,7 @@ plot_figure=True, loop=True,
     spec_res=np.abs(x[1]-x[0])
     # Getting things from config file
     peaks_1=config.peaks_1
+    peaks_2=config.peaks_2
     DeltaNe_ideal=config.DeltaNe_ideal
 
     # Estimate amplitude from prominence and sigma you entered
@@ -1440,11 +1254,11 @@ plot_figure=True, loop=True,
 
 
     #Remove the baselines
-    y_corr_pk1, Py_base_pk1, x_pk1, Ne_short_pk1, Py_base_pk1, Baseline_ysub_pk1, Baseline_x_pk1=remove_Ne_baseline_pk1(Ne,
+    y_corr_pk1, Py_base_pk1, x_pk1, Ne_short_pk1, Py_base_pk1, Baseline_ysub_pk1, Baseline_x_pk1=remove_Ne_baseline_pk(Ne,
     N_poly_pk1_baseline=config.N_poly_pk1_baseline, Ne_center_1=Ne_center_1, sigma_baseline=config.sigma_baseline,
     lower_bck=config.lower_bck_pk1, upper_bck1=config.upper_bck1_pk1, upper_bck2=config.upper_bck2_pk1)
 
-    y_corr_pk2, Py_base_pk2, x_pk2, Ne_short_pk2, Py_base_pk2, Baseline_ysub_pk2, Baseline_x_pk2=remove_Ne_baseline_pk2(Ne, Ne_center_2=Ne_center_2, N_poly_pk2_baseline=config.N_poly_pk2_baseline, sigma_baseline=config.sigma_baseline,
+    y_corr_pk2, Py_base_pk2, x_pk2, Ne_short_pk2, Py_base_pk2, Baseline_ysub_pk2, Baseline_x_pk2=remove_Ne_baseline_pk(Ne, Ne_center_1=Ne_center_2, N_poly_pk1_baseline=config.N_poly_pk2_baseline, sigma_baseline=config.sigma_baseline,
     lower_bck=config.lower_bck_pk2, upper_bck1=config.upper_bck1_pk2, upper_bck2=config.upper_bck2_pk2)
 
 
@@ -1465,13 +1279,11 @@ plot_figure=True, loop=True,
         x_span_pk2_dist=abs(config.x_span_pk2[1]-config.x_span_pk2[0])
 
     # Fit Pk1
-    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_pk1(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
+    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_Ne_pk(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
     const_params=const_params, spec_res=spec_res)
 
-
-
-    # Fit the 1447 peak
-    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, Peak2_Prop_Lor = fit_pk2( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, amplitude=Pk2_Amp, pk2_sigma=config.pk2_sigma, const_params=const_params,spec_res=spec_res)
+    # Fit pk2 
+    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, comps2, Peak2_Prop_Lor = fit_Ne_pk( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, LH_offset_mini=config.LH_offset_mini2, peaks_pk1=peaks_2, amplitude=Pk2_Amp, pk1_sigma=config.pk2_sigma, const_params=const_params,spec_res=spec_res)
 
 
     # Calculate difference between peak centers, and Delta Ne
