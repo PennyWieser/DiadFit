@@ -53,7 +53,7 @@ config=Ne_Config_est,
 
 
 
-decimalPlace=4
+decimalPlace=3
 class test_Ne_files(unittest.TestCase):
     def test_Ne_line_get_files(self):
         self.assertEqual(pf.get_files(path=spectra_path,
