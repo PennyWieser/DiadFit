@@ -3,13 +3,14 @@ Fitting Fermi Diads
 ================
 
 
-DiadFit uses a 4-5 step workflow to fit neon lines, fit diads, and inspect for secondary peaks. We provide a number of worked examples below.
+DiadFit uses a 4-5 step workflow to fit neon lines, fit diads, and inspect for secondary peaks.
+You should run through the files in order (Step 1, Step 2, Step 3, Step3 (opt) Step 4).
 
-Step 1 fits Neon lines to build a model of instrument drift throughout the day.
-Step 2 performs a preliminary fit on diad spectra to classify them into groups (this allows tweaking of instrument parameters for each group to optimize fits)
-Step 3 fits diad spectra.
-Step 3b (optional) looks for secondary peaks such as SO2 and carbonate
-Step 4 merges the diad and secondary peak outputs, and applies the Neon correction model to obtain corrected splitting.
+-Step 1 fits Neon lines to build a model of instrument drift throughout the day.
+-Step 2 performs a preliminary fit on diad spectra to classify them into groups (this allows tweaking of instrument parameters for each group to optimize fits)
+-Step 3 fits diad spectra.
+-Step 3b (optional) looks for secondary peaks such as SO2 and carbonate. If you dont have these (e.g. didnt spot them on Raman), you can miss the step.
+-Step 4 merges the diad and secondary peak outputs, and applies the Neon correction model to obtain corrected splitting.
 
 
 
