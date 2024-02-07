@@ -1022,7 +1022,7 @@ def calc_prop_knownP_EOS_DZ2006(*, P_kbar=1, T_K=1200, XH2O=1):
 
 
 
-def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.15):
+def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.15, fast_calcs=False, Hloss=True):
     """" This function calculates pressure for a measured CO$_2$ density, temperature and estimate of initial XH2O.
     It first corrects the density to obtain a bulk density for a CO2-H2O mix, assuming that H2O was lost from the inclusion.
     correcting for XH2O. It assumes that H2O has been lost from the inclusion (see Hansteen and Klugel, 2008 for method). It also calculates using other
@@ -1042,21 +1042,34 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
     T_K_ambient: pd.Series
         Temperature in Kelvin Raman measurement was made at.
 
+    fast_calcs: bool (default False)
+        If True, only performs one EOS calc for DZ06, not 4 (with water, without water, SP94 and SW96).
+        also specify H2Oloss=True or False
+
 
 
     Returns
     -----------------------------
+    if fast_calcs is False:
     pd.DataFrame:
         Columns showing:
         P_kbar_pureCO2_SW96: Pressure calculated for the measured CO$_2$ density using the pure CO2 EOS from Span and Wanger (1996)
         P_kbar_pureCO2_SP94: Pressure calculated for the measured CO$_2$ density using the pure CO2 EOS from Sterner and Pitzer (1994)
         P_kbar_pureCO2_DZ06: Pressure calculated from the measured CO$_2$ density using the pure CO2 EOs from Duan and Zhang (2006)
-        P_kbar_mixCO2_DZ06: Pressure calculated from the reconstructed mixed fluid density using the mixed EOS from Duan and Zhang (2006)
-        P Mix/P Pure DZ06: Correction factor - e.g. how much deeper the pressure is from the mixed EOS
-        rho_mix_calc: Bulk density calculated (C+H) at time of entrapment
+        P_kbar_mixCO2_DZ06_Hloss: Pressure calculated from the reconstructed mixed fluid density using the mixed EOS from Duan and Zhang (2006) assuming H loss
+        P_kbar_mixCO2_DZ06_noHloss: Pressure calculated from the reconstructed mixed fluid density using the mixed EOS from Duan and Zhang (2006) assuming H loss
+        P Mix_Hloss/P Pure DZ06: Correction factor - e.g. how much deeper the pressure is from the mixed EOS with H loss
+        P Mix_noHloss/P Pure DZ06: Correction factor - e.g. how much deeper the pressure is from the mixed EOS with H loss
+        rho_mix_calc_noHloss: Bulk density calculated (C+H)
+        rho_mix_calc_Hloss: Bulk density calculated (C+H) after h loss
         CO2_dens_gcm3: Input CO2 density
         T_K: input temperature
         XH2O: input molar fraction of H2O
+
+    if fast_calcs is True:
+        P_kbar_mixCO2_DZ06: Pressure calculated from the reconstructed mixed fluid density using the mixed EOS from Duan and Zhang (2006)
+
+
 
     """
     XH2O, rho_meas, T_K=ensure_series(a=XH2O, b=CO2_dens_gcm3, c=T_K)
@@ -1081,33 +1094,39 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
     VolH2O=mass_ratio/rho_H2O
     rho_orig_no_H_loss=1/(VolH2O+VolCO2)
 
+    if fast_calcs is True:
+        if Hloss is True:
+            P=calculate_Pressure_DZ2006(density=rho_orig_H_loss, T_K=T_K, XH2O=XH2O)
+        if Hloss is False:
+            P=calculate_Pressure_DZ2006(density=rho_orig_H_loss, T_K=T_K, XH2O=XH2O)
+        return P/1000
 
+    else:
 
+        # Lets calculate the pressure using SW96
+        P_SW=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SW96')
+        P_SP=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SP94')
+        # Same for DZ2006
+        P_DZ=calculate_Pressure_DZ2006(density=rho_meas, T_K=T_K, XH2O=XH2O*0)
+        # Now doing it with XH2O
+        P_DZ_mix_H_loss=calculate_Pressure_DZ2006(density=rho_orig_H_loss, T_K=T_K, XH2O=XH2O)
+        P_DZ_mix_noH_loss=calculate_Pressure_DZ2006(density=rho_orig_no_H_loss, T_K=T_K, XH2O=XH2O)
 
-    # Lets calculate the pressure using SW96
-    P_SW=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SW96')
-    P_SP=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SP94')
-    # Same for DZ2006
-    P_DZ=calculate_Pressure_DZ2006(density=rho_meas, T_K=T_K, XH2O=XH2O*0)
-    # Now doing it with XH2O
-    P_DZ_mix_H_loss=calculate_Pressure_DZ2006(density=rho_orig_H_loss, T_K=T_K, XH2O=XH2O)
-    P_DZ_mix_noH_loss=calculate_Pressure_DZ2006(density=rho_orig_no_H_loss, T_K=T_K, XH2O=XH2O)
+        df=pd.DataFrame(data={
+            'P_kbar_pureCO2_SW96': P_SW['P_kbar'],
+            'P_kbar_pureCO2_SP94': P_SP['P_kbar'],
+            'P_kbar_pureCO2_DZ06': P_DZ/1000,
+            'P_kbar_mixCO2_DZ06_Hloss': P_DZ_mix_H_loss/1000,
+            'P_kbar_mixCO2_DZ06_no_Hloss': P_DZ_mix_noH_loss/1000,
+            'P Mix_Hloss/P Pure DZ06': P_DZ_mix_H_loss/P_DZ,
+            'P Mix_no_Hloss/P Pure DZ06': P_DZ_mix_noH_loss/P_DZ,
+            'rho_mix_calc_Hloss': rho_orig_H_loss,
+            'rho_mix_calc_noHloss': rho_orig_no_H_loss,
+            'CO2_dens_gcm3': rho_meas,
+            'T_K': T_K,
+            'XH2O': XH2O})
 
-    df=pd.DataFrame(data={
-        'P_kbar_pureCO2_SW96': P_SW['P_kbar'],
-        'P_kbar_pureCO2_SP94': P_SP['P_kbar'],
-        'P_kbar_pureCO2_DZ06': P_DZ/1000,
-        'P_kbar_mixCO2_DZ06_Hloss': P_DZ_mix_H_loss/1000,
-        'P_kbar_mixCO2_DZ06_no_Hloss': P_DZ_mix_noH_loss/1000,
-        'P Mix_Hloss/P Pure DZ06': P_DZ_mix_H_loss/P_DZ,
-        'P Mix_no_Hloss/P Pure DZ06': P_DZ_mix_noH_loss/P_DZ,
-        'rho_mix_calc_Hloss': rho_orig_H_loss,
-        'rho_mix_calc_noHloss': rho_orig_no_H_loss,
-        'CO2_dens_gcm3': rho_meas,
-        'T_K': T_K,
-        'XH2O': XH2O})
-
-    return df
+        return df
 
 
 def calculate_rho_for_P_T_H2O(P_kbar, T_K):

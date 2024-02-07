@@ -215,11 +215,12 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
 def calculate_temperature_density_MC(sample_i=0,  N_dup=1000, 
 CO2_dens_gcm3=None, error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
  T_K=None, error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
-crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='normal',
+crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='normal', XH2O=None,
+error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
  model=None):
 
     """
-    This function generates the range of T_K, CO2 densities and crustal densities for 1 sample 
+    This function generates the range of T_K, CO2 densities, XH2O and crustal densities for 1 sample 
     for performing Monte Carlo simulations
     using the function propagate_FI_uncertainty (e.g. this function makes the range of 
     input parameters for each sample, but doesnt do the EOS calculations). 
@@ -284,23 +285,30 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
 
     """
 
-    # print('entered T_K')
-    # print(T_K)
-    # print('entered CO2')
-    # print(CO2_dens_gcm3)
     # If any of them are panda series or numpy nd array, you dont need an index
-    if isinstance(T_K, pd.Series) or isinstance(CO2_dens_gcm3, pd.Series) or isinstance(T_K, np.ndarray) or isinstance(CO2_dens_gcm3, np.ndarray):
-        df_c=pd.DataFrame(data={'T_K': T_K,
-                            'CO2_dens_gcm3': CO2_dens_gcm3})
+    if XH2O is None:
+        if isinstance(T_K, pd.Series) or isinstance(CO2_dens_gcm3, pd.Series) or isinstance(T_K, np.ndarray) or isinstance(CO2_dens_gcm3, np.ndarray):
+            df_c=pd.DataFrame(data={'T_K': T_K,
+                                'CO2_dens_gcm3': CO2_dens_gcm3})
+        else:
+            #print('here')
+            df_c=pd.DataFrame(data={'T_K': T_K,
+                                'CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+    # IF have XH2O add here
+    else:
+        if isinstance(T_K, pd.Series) or isinstance(CO2_dens_gcm3, pd.Series) or isinstance(T_K, np.ndarray) or isinstance(CO2_dens_gcm3, np.ndarray) or isinstance(XH2O, np.ndarray):
+            df_c=pd.DataFrame(data={'T_K': T_K,
+                                'CO2_dens_gcm3': CO2_dens_gcm3,
+                                'XH2O': XH2O})
+        else:
+            df_c=pd.DataFrame(data={'T_K': T_K,
+                                'CO2_dens_gcm3': CO2_dens_gcm3,
+                                'XH2O': XH2O}, index=[0])
+        
         
     # you do need an index here
-    else:
-        #print('here')
-        df_c=pd.DataFrame(data={'T_K': T_K,
-                            'CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+
         
-
-
     # Temperature error distribution
     if error_type_T_K=='Abs':
         error_T_K=error_T_K
@@ -331,6 +339,25 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
 
     CO2_dens_with_noise=Noise_to_add_CO2_dens+df_c['CO2_dens_gcm3'].iloc[sample_i]
     CO2_dens_with_noise[CO2_dens_with_noise < 0.0001] = 0.0001
+    
+    # XH2O error distribution (if relevant)
+    if XH2O is not None:
+        if error_type_XH2O=='Abs':
+            error_XH2O=error_XH2O
+        if error_type_XH2O =='Perc':
+            error_XH2O=df_c['XH2O'].iloc[sample_i]*error_XH2O/100
+        if error_dist_XH2O=='normal':
+            Noise_to_add_XH2O = np.random.normal(0, error_XH2O, N_dup)
+        if error_dist_XH2O=='uniform':
+            Noise_to_add_XH2O = np.random.uniform(- error_XH2O, +
+                                                        error_XH2O, N_dup)
+    
+        XH2O_with_noise=Noise_to_add_XH2O+df_c['XH2O'].iloc[sample_i]
+        XH2O_with_noise[XH2O_with_noise < 0.000001] = 0.000001
+        XH2O_with_noise[XH2O_with_noise > 0.999999999] = 0.999999999
+            
+    
+    
 
     # Crustal density noise
     # First need to work out what crustal density is
@@ -380,6 +407,10 @@ crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dis
                                 'error_type_crust_dens': error_type_crust_dens,
                                 'error_dist_crust_dens': error_dist_crust_dens,
                                 })
+    if XH2O is not None:
+        df_out['error_XH2O']=error_XH2O
+        df_out['error_type_XH2O']=error_type_XH2O
+        df_out['error_dist_XH2O']=error_dist_XH2O
 
 
 
@@ -399,13 +430,16 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
 
 
-def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K,   N_dup=1000, EOS='SW96', 
+def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K,  N_dup=1000, EOS='SW96', 
 plot_figure=False, fig_i=0, 
 error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
- crust_dens_kgm3=None, model=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
-error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='uniform',
+ crust_dens_kgm3=None, 
+ error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='uniform',
+ model=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
 error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
-                 ):
+XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=True,
+
+):
 
     """
     This function performs Monte Carlo simulations of uncertainty in CO2 density, input temperature, 
@@ -450,6 +484,19 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
         Type of temperature error. Can be 'Abs' or 'Perc'.
     error_dist_T_K: str
         Distribution of temperature error. Can be 'normal' or 'uniform'.
+
+
+
+
+    X_H2O: pd.Series, integer, float
+        mol proportion of H2O in the fluid phase
+    error_XH2O: float
+        Error in XH2O
+    error_type_XH2O: str
+        Type of XH2O error. Can be 'Abs' or 'Perc'.
+    error_dist_XH2O: str
+        Distribution of XH2O error. Can be 'normal' or 'uniform'.
+
 
     For converting pressure to depth in the crust, choose either
 
@@ -507,6 +554,9 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 
 
     """
+    if XH2O is not None:
+        print('You have entered a value for XH2O, so we are now using the EOS of Duan and Zhang 2006. If you dont want this, specify XH2O=None')
+        print('Please note, the DZ2006 EOS is about 5-40X slower to run than the SP94 and SW94 EOS')
     if isinstance(T_K, float) or isinstance(T_K, int) :
         if pd.isna(T_K):
             raise TypeError("Your Input Temperature is NaN - We cant do EOS calculatoins")
@@ -523,6 +573,8 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
         len_loop=len(CO2_dens_gcm3)
     else:
         len_loop=1
+        
+    
 
 
 
@@ -551,7 +603,7 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
     CO2_dens_gcm3=CO2_dens_gcm3,
     crust_dens_kgm3=crust_dens_kgm3, output='kbar',
     g=9.81, model=model,
-    d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3, EOS=EOS)
+    d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3, EOS=EOS, XH2O=XH2O, Hloss=Hloss)
 
 
 
@@ -586,19 +638,36 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
             error_CO2_dens=error_CO2_dens.iloc[i]
         else:
             error_CO2_dens=error_CO2_dens
+            
+        if XH2O is not None:
+            if type(error_XH2O) is pd.Series:
+                error_XH2O=error_XH2O.iloc[i]
+            else:
+                error_XH2O=error_XH2O
 
         if type(error_crust_dens) is pd.Series:
             error_crust_dens=error_crust_dens.iloc[i]
         else:
             error_crust_dens=error_crust_dens
+            
+        
 
 
         # This is the function doing the work to actually make the simulations for each variable.
-        df_synthetic=calculate_temperature_density_MC(sample_i=i, N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3,
+        if XH2O is None:
+            df_synthetic=calculate_temperature_density_MC(sample_i=i, N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3,
         T_K=T_K, error_T_K=error_T_K, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
         error_CO2_dens=error_CO2_dens, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
         crust_dens_kgm3=crust_dens_kgm3,  error_crust_dens=error_crust_dens, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
     model=model)
+    
+        if XH2O is not None:
+            df_synthetic=calculate_temperature_density_MC(sample_i=i, N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3,
+        T_K=T_K, error_T_K=error_T_K, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
+        error_CO2_dens=error_CO2_dens, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
+        crust_dens_kgm3=crust_dens_kgm3,  error_crust_dens=error_crust_dens, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
+    model=model, XH2O=XH2O, error_XH2O=error_XH2O, error_type_XH2O=error_type_XH2O, error_dist_XH2O=error_dist_XH2O)
+            
 
         # Convert to densities for MC
 
@@ -606,11 +675,13 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
             MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
                                             CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
                                         crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
+                                        XH2O=XH2O, Hloss=Hloss,
                                         d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
-                                            EOS=EOS)
+                                            EOS=EOS,  )
         else:
             MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
                                             CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                           XH2O=XH2O, Hloss=Hloss,
                                             d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
                                         model=model, EOS=EOS)
 
@@ -663,7 +734,7 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 
 
 
-
+    
     df_step=pd.DataFrame(data={'Filename': Sample,
                         'CO2_dens_gcm3': CO2_density_input,
                          'SingleFI_D_km': SingleCalc_D_km,
@@ -686,80 +757,80 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
                         'crust_dens_kgm3':crust_dens_kgm3,
                         'EOS': EOS
                          })
+    if XH2O is not None:
+        df_step['error_XH2O']=error_XH2O
+
 
 
 
 
     if plot_figure is True:
         df_1_sample=All_outputs.loc[All_outputs['Filename']==All_outputs['Filename'].iloc[fig_i]]
-        fig, ((ax1, ax4), (ax2, ax5), (ax3, ax6)) = plt.subplots(3, 2, figsize=(12,8))
+        
+        df_1_step=df_step.loc[df_step['Filename']==All_outputs['Filename'].iloc[fig_i]]
+        fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(12,8))
+        
+        
         fig.suptitle('Simulations for sample = ' + str(All_outputs['Filename'].iloc[fig_i]), fontsize=20)
-        ax4.set_title('Calculated distribution of depths')
-        ax5.set_title('Calculated distribution of pressures (MPa)')
-        ax6.set_title('Calculated distribution of pressures (kbar)')
 
 
-        ax1.hist(df_1_sample['MC_T_K'], color='red',  ec='k')
-        ax2.hist(df_1_sample['MC_CO2_dens_gcm3'], facecolor='white', ec='k')
-        ax2.xaxis.set_major_formatter(plt.FormatStrFormatter('%.3f'))
-        if model is None:
-            ax3.hist(df_1_sample['input_crust_dens_kgm3'], color='salmon', ec='k')
-        ax4.hist(df_1_sample['Depth (km)'], color='cornflowerblue', ec='k')
-        ax5.hist(df_1_sample['Pressure (MPa)'], color='cyan', ec='k')
-        ax6.hist(df_1_sample['Pressure (kbar)'], color='cyan', ec='k')
-
-        ax4.set_xlabel('Depth (km)')
-        ax5.set_xlabel('Pressure (MPa)')
-        ax6.set_xlabel('Pressure (kbar)')
-
-
+        # Ax1 is temperature
         if error_dist_T_K=='normal' and error_type_T_K == 'Abs':
             ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K) + ' K')
         if error_dist_T_K=='normal' and error_type_T_K == 'Perc':
             ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K) + '%')
-
-
-
+        if df_1_step['error_T_K'][0]!=0:
+            ax1.hist(df_1_sample['MC_T_K'], color='red',  ec='k')
+        else:
+            ax1.plot([0, 0], [0, N_dup], '-r')
+            
+        # ax2 is CO2 density
         if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Abs':
             ax2.set_title('Input distribution CO$_2$ density: Normally-distributed, 1σ =' +str(error_CO2_dens) + ' g/cm$^{3}$')
         if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Perc':
             ax2.set_title('Input distribution CO$_2$ density: Normally-distributed, 1σ =' +str(error_CO2_dens) + '%')
-
-
+        if df_1_step['error_CO2_dens_gcm3'][0]!=0:
+            ax2.hist(df_1_sample['MC_CO2_dens_gcm3'], facecolor='white',  ec='k')
+        else:
+            ax2.plot([0, 0], [0, N_dup], '-r')
+        ax2.xaxis.set_major_formatter(plt.FormatStrFormatter('%.3f'))
+        
+        # ax3 is the crustal density error
         if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Abs':
             ax3.set_title('Input Distribution Crustal density: Normally-distributed, 1σ =' +str(error_crust_dens) + 'kg/m$^{3}$')
         if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Perc':
             ax3.set_title('Input distribution crustal density: Normally-distributed, 1σ =' +str(error_crust_dens) + '%')
-
-        if error_dist_T_K=='uniform' and error_type_T_K == 'Abs':
-            ax1.set_title('Input Distribution Temp=+-' +str(error_T_K))
-        if error_dist_T_K=='uniform' and error_type_T_K == 'Perc':
-            ax1.set_title('Input distribution Temp=+-' +str(error_T_K) + '%')
-
-
-
-
-
-        if error_dist_CO2_dens=='uniform' and error_type_CO2_dens == 'Abs':
-            ax2.set_title('Input Distribution CO$_2$ density: uniformly-distributed, +-' +str(error_CO2_dens))
-        if error_dist_CO2_dens=='uniform' and error_type_CO2_dens == 'Perc':
-            ax2.set_title('Input distribution CO$_2$ density=+-' +str(error_CO2_dens) + '%')
-
-
-        if error_dist_crust_dens=='uniform' and error_type_crust_dens == 'Abs':
-            ax3.set_title('Input distribution crustal density: uniformly-distributed, +- ' +str(error_crust_dens))
-        if error_dist_crust_dens=='uniform' and error_type_crust_dens == 'Perc':
-            ax3.set_title('Input distribution crustal density: uniformly-distributed, +- ' +str(error_crust_dens) + '%')
-
-
-
-        ax1.set_xlabel('Temperature simulation (K)')
-        ax2.set_xlabel('CO$_2$ density simulation (g/cm$^{3}$)')
-        ax3.set_xlabel('Crustal density simulation (g/cm$^{3}$)')
+        if model is None and df_1_step['error_crust_dens_kgm3'][0]!=0:
+            ax3.hist(df_1_sample['input_crust_dens_kgm3'], facecolor='white',  ec='k')
+        else:
+            ax3.plot([0, 0], [0, N_dup], '-r')
+        ax3.ticklabel_format(useOffset=False)
+            
+        # ax4 is XH2O
+        if error_dist_XH2O=='normal' and error_type_XH2O == 'Abs':
+            ax4.set_title('Input Distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + 'kg/m$^{3}$')
+        if error_dist_XH2O=='normal' and error_type_XH2O == 'Perc':
+            ax4.set_title('Input distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + '%')
+        if XH2O is not None and df_1_step['error_XH2O'][0]!=0:
+            ax4.hist(df_1_sample['MC_XH2O'], facecolor='white',  ec='k')
+        else:
+            ax4.plot([0, 0], [0, N_dup], '-r')
+        ax4.ticklabel_format(useOffset=False)
+        
+        
+        # ax5 is pressure output of simulation
+        ax5.hist(df_1_sample['Pressure (kbar)'], color='cyan', ec='k')
+        ax5.set_xlabel('Pressure (kbar)')
+            
+        # ax6
+        ax6.hist(df_1_sample['Depth (km)'], color='cornflowerblue', ec='k')
+        ax6.set_xlabel('Depth (km)')
+        
         ax1.set_ylabel('# of synthetic samples')
-        ax2.set_ylabel('# of synthetic samples')
         ax3.set_ylabel('# of synthetic samples')
-
+        ax5.set_ylabel('# of synthetic samples')
+        
+        
         fig.tight_layout()
 
     #return df_step, All_outputs, fig
@@ -771,8 +842,8 @@ error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
     CO2_dens_gcm3=None,
     crust_dens_kgm3=None, output='kbar',
-    g=9.81, model=None,
-    d1=None, d2=None, rho1=None, rho2=None, rho3=None, ):
+    g=9.81, model=None, XH2O=None, Hloss=True,
+    d1=None, d2=None, rho1=None, rho2=None, rho3=None,T_K_ambient=37+273.15 ):
 
     """ This function calculates pressure and depth based on input CO2 densities, 
     temperatures, and crustal density information from the user
@@ -826,42 +897,98 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
 
 
     # First step is to get pressure
-    Pressure=calculate_P_for_rho_T(T_K=T_K,
-                CO2_dens_gcm3=CO2_dens_gcm3,
-                 EOS=EOS)
+    if XH2O is None:
+        Pressure=calculate_P_for_rho_T(T_K=T_K,
+                    CO2_dens_gcm3=CO2_dens_gcm3,
+                    EOS=EOS)
+                    
+        # Second step is to get crustal depths
 
-    # Second step is to get crustal depths
+        Depth_km=convert_pressure_to_depth(P_kbar=Pressure['P_kbar'],
+                    crust_dens_kgm3=crust_dens_kgm3,     g=9.81, model=model,
+        d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
+        
+        
+        if type(Depth_km) is float:
+                # Crustal density, using P=rho g H
+            df=pd.DataFrame(data={'Pressure (kbar)': Pressure['P_kbar'],
+                                        'Pressure (MPa)': Pressure['P_MPa'],
+                                        'Depth (km)': Depth_km,
+                                        'input_crust_dens_kgm3': crust_dens_kgm3,
+                                        'model': model,
+                                        'MC_T_K': T_K,
+                                        'MC_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+            
+        else:
+            
+            
+            df=pd.DataFrame(data={'Pressure (kbar)': Pressure['P_kbar'],
+                                        'Pressure (MPa)': Pressure['P_MPa'],
+                                        'Depth (km)': Depth_km,
+                                        'input_crust_dens_kgm3': crust_dens_kgm3,
+                                        'model': model,
+                                        'MC_T_K': T_K,
+                                        'MC_CO2_dens_gcm3': CO2_dens_gcm3})
+    
+        #df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    
+                    
+        # Make as a dict to allow index=0 if depth is float, else not. 
+        data_dict = {
+            'Pressure (kbar)': [Pressure['P_kbar']],
+            'Pressure (MPa)': [Pressure['P_MPa']],
+            'Depth (km)': [Depth_km] if isinstance(Depth_km, float) else Depth_km,
+            'input_crust_dens_kgm3': [crust_dens_kgm3],
+            'model': [model],
+            'MC_T_K': [T_K],
+            'MC_CO2_dens_gcm3': [CO2_dens_gcm3]
+        }
+        
 
-    Depth_km=convert_pressure_to_depth(P_kbar=Pressure['P_kbar'],
-                crust_dens_kgm3=crust_dens_kgm3,     g=9.81, model=model,
-    d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
-
-
-
-    if type(Depth_km) is float:
-    # Crustal density, using P=rho g H
-        df=pd.DataFrame(data={'Pressure (kbar)': Pressure['P_kbar'],
-                            'Pressure (MPa)': Pressure['P_MPa'],
-                            'Depth (km)': Depth_km,
-                            'input_crust_dens_kgm3': crust_dens_kgm3,
-                            'model': model,
-                            'MC_T_K': T_K,
-                            'MC_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
-
+    
+        
+    # If XH2O, need different outputs. 
     else:
-
-
-        df=pd.DataFrame(data={'Pressure (kbar)': Pressure['P_kbar'],
-                            'Pressure (MPa)': Pressure['P_MPa'],
-                            'Depth (km)': Depth_km,
-                            'input_crust_dens_kgm3': crust_dens_kgm3,
-                             'model': model,
-                            'MC_T_K': T_K,
-                            'MC_CO2_dens_gcm3': CO2_dens_gcm3})
-
+        
+        P_kbar_calc=pf.calculate_entrapment_P_XH2O(XH2O=XH2O, CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K, T_K_ambient=T_K_ambient, fast_calcs=True, Hloss=Hloss )
+        
+        
+        Depth_km=convert_pressure_to_depth(P_kbar_calc,
+                        crust_dens_kgm3=crust_dens_kgm3,     g=9.81, model=model,
+            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
+            
+        if type(Depth_km) is float:
+                # Crustal density, using P=rho g H
+            df=pd.DataFrame(data={'Pressure (kbar)': P_kbar_calc,
+                                        'Pressure (MPa)': 100*P_kbar_calc,
+                                        'Depth (km)': Depth_km,
+                                        'input_crust_dens_kgm3': crust_dens_kgm3,
+                                        'model': model,
+                                        'MC_T_K': T_K,
+                                        'MC_CO2_dens_gcm3': CO2_dens_gcm3,
+                                        'MC_XH2O': XH2O}, index=[0])
+            
+        else:
+            
+            
+            df=pd.DataFrame(data={'Pressure (kbar)': P_kbar_calc,
+                                        'Pressure (MPa)': 100*P_kbar_calc,
+                                        'Depth (km)': Depth_km,
+                                        'input_crust_dens_kgm3': crust_dens_kgm3,
+                                        'model': model,
+                                        'MC_T_K': T_K,
+                                        'MC_CO2_dens_gcm3': CO2_dens_gcm3,
+                                        'MC_XH2O': XH2O})
+            
+            
+            
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
-
+    
     return df
+
+
+
+
 
 
 

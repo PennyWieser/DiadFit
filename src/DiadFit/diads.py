@@ -241,7 +241,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
 
     # Spacing of HB from main peak.
     diad1_HB1_min_offset=19.8-spec_res
-    diad1_HB1_max_offset=20.4+spec_res
+    # Tweaked for denser diads to 22
+    diad1_HB1_max_offset=22+spec_res
 
     # Spacing of c13 from main peak
     diad2_C13_min_offset=16.5-spec_res

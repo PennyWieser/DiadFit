@@ -42,7 +42,7 @@ Many of the workflows in DiadFit use, or even rely on metadata. For example, to 
 There are a huge number of ways that Raman instruments generate their metadata.
 
 The following options are currently supported:
-1. WITEC instruments - WITEC instruments save a separate spectra and metadata file. Ensure your metadata and spectra file have the same name and file extension. E.g. FO1.txt for spectra, and FO1.txt for metadata. If they do not have the same name, DiadFit has no way of knowing what metadata file matches which spectra file, as there is no shared information between the two
+1. WITEC instruments - WITEC instruments save a separate spectra and metadata file. Ensure your metadata and spectra file have the SAME name. E.g. FO1.txt for spectra, and FO1.txt for metadata. If they do not have the same name, DiadFit has no way of knowing what metadata file matches which spectra file, as there is no shared information between the two. WITEC does add a prefix which can make the names different (e.g. 01 FO1.txt for spectra, 03 Fo1.txt for metadata)- this is fine, as long as you specify Prefix=True, this prefix will be stripped off prior to merging.
 
 2. Instruments which save the spectra file with the datastamp of the anlaysis - Some instruments set the datastamp of the file based on when the spectra was acquired. If this is the case, you can get the time using the function 'pf.loop_convert_datastamp_to_metadata'. See https://github.com/PennyWieser/DiadFit/blob/main/docs/Examples/Example1c_HORIBA_Calibration/Step4_Stitch_Outputs_Together_v74.ipynb for an example
 
