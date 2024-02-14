@@ -353,8 +353,8 @@ error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
                                                         error_XH2O, N_dup)
     
         XH2O_with_noise=Noise_to_add_XH2O+df_c['XH2O'].iloc[sample_i]
-        XH2O_with_noise[XH2O_with_noise < 0.000001] = 0.000001
-        XH2O_with_noise[XH2O_with_noise > 0.999999999] = 0.999999999
+        XH2O_with_noise[XH2O_with_noise < 0.000000] = 0.00000
+        XH2O_with_noise[XH2O_with_noise > 1] = 1
             
     
     
@@ -409,6 +409,7 @@ error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
                                 })
     if XH2O is not None:
         df_out['error_XH2O']=error_XH2O
+        df_out['XH2O_with_noise']=XH2O_with_noise
         df_out['error_type_XH2O']=error_type_XH2O
         df_out['error_dist_XH2O']=error_dist_XH2O
 
@@ -675,13 +676,13 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
             MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
                                             CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
                                         crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
-                                        XH2O=XH2O, Hloss=Hloss,
+                                        XH2O=df_synthetic['XH2O_with_noise'], Hloss=Hloss,
                                         d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
                                             EOS=EOS,  )
         else:
             MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
                                             CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
-                                           XH2O=XH2O, Hloss=Hloss,
+                                           XH2O=df_synthetic['XH2O_with_noise'], Hloss=Hloss,
                                             d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
                                         model=model, EOS=EOS)
 
@@ -759,7 +760,10 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
                          })
     if XH2O is not None:
         df_step['error_XH2O']=error_XH2O
-
+        df_step['error_type_XH2O']=error_type_XH2O
+        df_step['error_dist_XH2O']=error_dist_XH2O
+        
+       
 
 
 
@@ -829,6 +833,11 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
         ax1.set_ylabel('# of synthetic samples')
         ax3.set_ylabel('# of synthetic samples')
         ax5.set_ylabel('# of synthetic samples')
+        
+        ax1.set_xlabel('T (K)')
+        ax2.set_xlabel('CO$_2$ Density (g/cm$^{3}$)')
+        ax3.set_xlabel('Crustal Density (kg/m$^{3}$)')
+        ax4.set_xlabel('X$_{H_{2}O}$ (molar)')
         
         
         fig.tight_layout()

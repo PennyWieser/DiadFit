@@ -19,7 +19,7 @@ DiadFit_dir=Path(__file__).parent
 
 def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=None, set_to_critical=False):
     """ Calculates CO2 density for a specified homogenization temperature in Celcius
-    using the Span and Wanger (1996) equation of state.
+    using eq 3.14 and 3.15 from the Span and Wanger (1996) equation of state.
 
     Parameters
     --------------

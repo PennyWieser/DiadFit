@@ -240,9 +240,8 @@ def identify_diad_peaks(*, config: diad_id_config=diad_id_config(), path=None, f
     diad2_HB2_max_offset=23+spec_res
 
     # Spacing of HB from main peak.
-    diad1_HB1_min_offset=19.8-spec_res
-    # Tweaked for denser diads to 22
-    diad1_HB1_max_offset=22+spec_res
+    diad1_HB1_min_offset=19-spec_res
+    diad1_HB1_max_offset=23+spec_res
 
     # Spacing of c13 from main peak
     diad2_C13_min_offset=16.5-spec_res
@@ -1307,7 +1306,83 @@ min_cent=None, max_cent=None, min_sigma=None, max_sigma=None, amplitude=100, min
 ## Overall function for fitting diads in 1 single step
 @dataclass
 class diad1_fit_config:
+    """
+    Configuration class for fitting Diad 1
 
+    This class stores configuration parameters for fitting Diad 1 and associated peaks.
+    The class allows for easy customization of the fitting process.
+
+    Attributes:
+        model_name (str): Default 'PseudoVoigtModel'.
+            Model name for peak fitting. Choose from
+            'PseudoVoigtModel', 'VoigtModel', 'GaussianModel', 'LorentzianModel', etc.
+
+        fit_peaks (int): Default 2
+            Number of peaks to fit. 2 = Diad + HB, 1 = Diad.
+
+        N_poly_bck_diad1 (float): Default = 1
+            Degree of polynomial for background subtraction. Default 1.
+
+        lower_bck_diad1 (Tuple[float, float]):
+            Lower boundary for background fitting in cm-1. Default (1180, 1220)
+
+        upper_bck_diad1 (Tuple[float, float]):
+            Upper boundary for background fitting in cm-1 Default (1300, 1350).
+
+        fit_gauss (Optional[bool]): Default True
+            Fit a Gaussian peak if True. Helpful for very elevated spectra
+
+        gauss_amp (Optional[float]):  Default = 1000
+            Gaussian peak amplitude if `fit_gauss` is True. Default 1000.
+            We find 2X HB intensity is a good guess on many instruments
+
+        diad_sigma (float): Default = 0.2
+            Sigma of diad peak.
+
+        diad_sigma_min_allowance (float): Default = 0.2
+            Tolerance on entered sigma. Means minimum allowed sigma is 0.2*sigma
+
+        diad_sigma_max_allowance (float): Default = 5
+            Tolerance on entered sigma. Means minimum allowed sigma is 5*sigma
+
+
+        diad_prom (float): Default = 100
+            Peak amplitude for of the diad. Suggest users obtain from the estimated peak parameter dataframe
+
+        HB_prom (float):  Default = 20
+            Peak amplitude for HB. Suggest users obtain from the estimated peak parameter dataframe
+
+        HB_sigma_min_allowance (float): Default = 0.05
+            Means HB sigma cant be less than 0.05* sigma of first fitting peak (diad).
+
+        HB_sigma_max_allowance (float): Default = 3:
+            Means HB sigma cant exceed 3* sigma of first fitting peak (diad)
+
+        HB_amp_min_allowance (float): Default =0.01
+            Means HB amplitude cant be less than 0.01*amplitude of first fitted peak (diad).
+
+        HB_amp_max_allowance (float): Default = 1
+            Means HB amplitude cant be more than 1*amplitude of first fitted peak (diad).
+
+        x_range_baseline (float): Default 75.
+            Means that x axis of baseline shows diad position +- 75 x units.
+
+        y_range_baseline (float): Y-axis range for baseline display. Default 100.
+            Shows a y axis scale that is 100 y units above the minimum baseline value, and 100 units above the maximum value
+
+        dpi (float): Default 200
+            Figure resolution in dots per inch. Default 200.
+
+        x_range_residual (float):  Default 20.
+            Shows x values +-20 either side of the diad peak position in the residual plot.
+
+        return_other_params (bool): Return non-fitted parameters if True. Default False.
+
+    Methods:
+        update_par(**kwargs):
+            Updates configuration parameters. Raises AttributeError for unknown attributes.
+
+    """
     # What model to use
     model_name: str = 'PseudoVoigtModel'
     fit_peaks:int = 2
@@ -1362,6 +1437,88 @@ class diad1_fit_config:
 
 @dataclass
 class diad2_fit_config:
+
+    """
+    Configuration class for fitting Diad 2
+
+    This class stores configuration parameters for fitting Diad 2 and associated peaks.
+    The class allows for easy customization of the fitting process.
+
+    Attributes:
+        model_name (str): Default 'PseudoVoigtModel'.
+            Model name for peak fitting. Choose from
+            'PseudoVoigtModel', 'VoigtModel', 'GaussianModel', 'LorentzianModel', etc.
+
+        fit_peaks (int): Default 2
+            Number of peaks to fit. 3 = HB + Diad + C13, 2 = Diad + HB, 1 = Diad.
+
+        N_poly_bck_diad2 (float): Default = 1
+            Degree of polynomial for background subtraction. Default 1.
+
+        lower_bck_diad2 (Tuple[float, float]):
+            Lower boundary for background fitting in cm-1. Default (1300, 1360)
+
+        upper_bck_diad2 (Tuple[float, float]):
+            Upper boundary for background fitting in cm-1 Default (1440, 1470)
+
+        fit_gauss (Optional[bool]): Default True
+            Fit a Gaussian peak if True. Helpful for very elevated spectra
+
+        gauss_amp (Optional[float]):  Default = 1000
+            Gaussian peak amplitude if `fit_gauss` is True. Default 1000.
+            We find 2X HB intensity is a good guess on many instruments
+
+        diad_sigma (float): Default = 0.2
+            Sigma of diad peak.
+
+        diad_sigma_min_allowance (float): Default = 0.2
+            Tolerance on entered sigma. Means minimum allowed sigma is 0.2*sigma
+
+        diad_sigma_max_allowance (float): Default = 5
+            Tolerance on entered sigma. Means minimum allowed sigma is 5*sigma
+
+
+        diad_prom (float): Default = 100
+            Peak amplitude for of the diad. Suggest users obtain from the estimated peak parameter dataframe
+
+        HB_prom (float):  Default = 20
+            Peak amplitude for HB. Suggest users obtain from the estimated peak parameter dataframe
+
+        C13_prom (float):  Default = 10
+            Peak amplitude for C13. Suggest users obtain from the estimated peak parameter dataframe
+
+        HB_sigma_min_allowance (float): Default = 0.05
+            Means HB sigma cant be less than 0.05* sigma of first fitting peak (diad).
+
+        HB_sigma_max_allowance (float): Default = 3:
+            Means HB sigma cant exceed 3* sigma of first fitting peak (diad)
+
+        HB_amp_min_allowance (float): Default =0.01
+            Means HB amplitude cant be less than 0.01*amplitude of first fitted peak (diad).
+
+        HB_amp_max_allowance (float): Default = 1
+            Means HB amplitude cant be more than 1*amplitude of first fitted peak (diad).
+
+        x_range_baseline (float): Default 75.
+            Means that x axis of baseline shows diad position +- 75 x units.
+
+        y_range_baseline (float): Y-axis range for baseline display. Default 100.
+            Shows a y axis scale that is 100 y units above the minimum baseline value, and 100 units above the maximum value
+
+        dpi (float): Default 200
+            Figure resolution in dots per inch. Default 200.
+
+        x_range_residual (float):  Default 20.
+            Shows x values +-20 either side of the diad peak position in the residual plot.
+
+        return_other_params (bool): Return non-fitted parameters if True. Default False.
+
+    Methods:
+        update_par(**kwargs):
+            Updates configuration parameters. Raises AttributeError for unknown attributes.
+
+    """
+
     # Do you need a gaussian? Set position here if so
 
     # What model to use
@@ -1389,6 +1546,7 @@ class diad2_fit_config:
     # Peak amplitude
     diad_prom: float = 100
     HB_prom: float = 20
+    C13_prom: float=10
     HB_sigma_min_allowance=0.05
     HB_sigma_max_allowance=3
     HB_amp_min_allowance=0.01
@@ -1405,7 +1563,7 @@ class diad2_fit_config:
     # Do you want to return other parameters?
     return_other_params: bool =False
 
-    C13_prom: float=10
+
 
     def update_par(self, **kwargs):
         for key, value in kwargs.items():
@@ -2282,60 +2440,13 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
     Parameters
-    -----------
-    config1: by default uses diad2_fit_config(). Options to edit within this:
+    ------------------
 
-        N_poly_bck_diad2: int
-            degree of polynomial to fit to the background.
+    diad_id_config()
+        Dataclass of parameters used to look for peaks. Uses any excluded ranges from this.
 
-        model_name: str
-            What type of peak you want to fit, either 'PseudoVoigtModel', 'VoigtModel', 'Pearson4Model'
-
-        fit_peaks: int
-            Number of peaks to fit. 1 = just diad, 2= diad and Hotband, 3= diad, hotband, C13
-
-        lower_bck_diad2, upper_bck_diad2: [float, float]
-            background position to left and right of overal diad region (inc diad+-HB+-C13)
-
-        fit_gauss: bool
-            If True, fits a gaussian peak
-
-        gauss_amp:  float
-            Estimate of amplitude of Gaussian peak (we find a good first guess is 2* the absolute prominence of the HB peak)
-
-        diad_sigma, HB_sigma: float
-            Estimate of the amplitude of the diad peak/HB peak
-
-        diad_prom, HB_prom, C13_prom: float
-            Estimate of prominence of peak. Used alongside sigma to estimate the amplitude of the diad to aid peak fitting.
-
-
-        diad_sigma_min_allowance, diad_sigma_min_allowance: float
-        HB_sigma_min_allowance, HB_sigma_max_allowance: float
-            Factor that sigma of peak is allowed to deviate from 1st guess (e.g. max=2, 2* guess, min=0.5, 0.5 * guess).
-
-        diad_amp_min_allowance, diad_amp_min_allowance: float
-        HB_amp_min_allowance, HB_amp_max_allowance: float
-            Factor that the amplitude of peak is allowed to deviate from 1st guess (e.g. max=2, 2* guess, min=0.5, 0.5 * guess).
-
-        * Note, for C13, we find the code works better, if sigma is set as 1st fit of diad sigma/5, allowed to vary
-        between diad_sigma/20 to diad_sigma/2. The min and max amplitude are got 0.5 and 2* the allowance entered for HB2
-
-        x_range_baseline: float or None
-            Sets x limit of plot showing baselines to diad center - x_range_baseline, and +x_range_baseline
-
-        y_range_baseline: float or None
-            Sets y axis of baseline plot as minimum balue of baseline region -y_range_baseline/3,
-            and the upper value as max value of baseline region + y_range_baseline
-            Baseline region is the defined region of baseline minus any points outside the sigma filter
-
-        x_range_residual: float
-            Distance either side of diad center to show on residual plot.
-
-        dpi: float
-            dpi to save figure at of overall fits
-
-    config2: diad_id_config() file. Only thing it uses from this is any excluded ranges
+    diad2_fit_config()
+        Dataclass of parameters used to find peaks. Use help on this dataclass to get options.
 
     path: str
         Folder user wishes to read data from
@@ -2350,28 +2461,28 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
     plot_figure: bool
         if True, saves figure
 
-    Diad_pos: float
-        Estimate of diad position
-
-    HB_pos: float
-        Estimate of HB position
-
-    C13_pos: float
-        Estimate of C13 position
-
     close_fig: bool
         if True, displays figure in Notebook. If False, closes it (you can still find it saved)
 
-    return_other_params: bool (default False)
-        if False, just returns a dataframe of peak parameters
-        if True, also returns:
+    Diad_pos: float
+        Estimate of diad peak position
+
+    HB_pos: float
+        Estimate of HB peak position
+
+    C13_pos: float
+        Estimate of C13 peak position
+
+
+    Returns
+    ------------
+    if return_other_params is False (default)
+        returns a dataframe of peak parameters
+    if True, also returns:
             result: fit parameters
             y_best_fit: best fit to all curves in y
             x_lin: linspace of best fit coordinates in x.
 
-    Returns
-    ------------
-    see above. Depends in returns_other_params
 
 
 
@@ -2780,57 +2891,12 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
 
     Parameters
     -----------
-    config1: by default uses diad1_fit_config(). Options to edit within this:
+    diad_id_config()
+        Dataclass of parameters used to look for peaks. Uses any excluded ranges from this.
 
-        N_poly_bck_diad1: int
-            degree of polynomial to fit to the background.
+    diad1_fit_config()
+        Dataclass of parameters used to find peaks. Use help on this dataclass to get options
 
-        model_name: str
-            What type of peak you want to fit, either 'PseudoVoigtModel' or 'VoigtModel'
-
-        fit_peaks: int
-            Number of peaks to fit. 1 = just diad, 2= diad
-
-        lower_bck_diad1, upper_bck_diad1: [float, float]
-            background position to left and right of overal diad region (inc diad+-HB+-C13)
-
-        fit_gauss: bool
-            If True, fits a gaussian peak
-
-        gauss_amp:  float
-            Estimate of amplitude of Gaussian peak (we find a good first guess is 2* the absolute prominence of the HB peak)
-
-        diad_sigma, HB_sigma: float
-            Estimate of the amplitude of the diad peak/HB peak
-
-        diad_prom, HB_prom, C13_prom: float
-            Estimate of prominence of peak. Used alongside sigma to estimate the amplitude of the diad to aid peak fitting.
-
-
-        diad_sigma_min_allowance, diad_sigma_min_allowance: float
-        HB_sigma_min_allowance, HB_sigma_max_allowance: float
-            Factor that sigma of peak is allowed to deviate from 1st guess (e.g. max=2, 2* guess, min=0.5, 0.5 * guess).
-
-        diad_amp_min_allowance, diad_amp_min_allowance: float
-        HB_amp_min_allowance, HB_amp_max_allowance: float
-            Factor that the amplitude of peak is allowed to deviate from 1st guess (e.g. max=2, 2* guess, min=0.5, 0.5 * guess).
-
-
-        x_range_baseline: float or None
-            Sets x limit of plot showing baselines to diad center - x_range_baseline, and +x_range_baseline
-
-        y_range_baseline: float or None
-            Sets y axis of baseline plot as minimum balue of baseline region -y_range_baseline/3,
-            and the upper value as max value of baseline region + y_range_baseline
-            Baseline region is the defined region of baseline minus any points outside the sigma filter
-
-        x_range_residual: float
-            Distance either side of diad center to show on residual plot.
-
-        dpi: float
-            dpi to save figure at of overall fits
-
-    config2: diad_id_config() file. Only thing it uses from this is any excluded ranges
 
     path: str
         Folder user wishes to read data from
@@ -2855,16 +2921,14 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
     close_fig: bool
         if True, displays figure in Notebook. If False, closes it (you can still find it saved)
 
-    return_other_params: bool (default False)
-        if False, just returns a dataframe of peak parameters
-        if True, also returns:
+    Returns
+    ------------
+    if return_other_params is False (default)
+        returns a dataframe of peak parameters
+    if True, also returns:
             result: fit parameters
             y_best_fit: best fit to all curves in y
             x_lin: linspace of best fit coordinates in x.
-
-    Returns
-    ------------
-    see above. Depends in returns_other_params
 
 
 """
