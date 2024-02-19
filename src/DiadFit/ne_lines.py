@@ -75,12 +75,16 @@ def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447
 
     closest1=find_closest(df_Ne, line1_shift).loc['Raman_shift (cm-1)']
     closest2=find_closest(df_Ne, line2_shift).loc['Raman_shift (cm-1)']
+    closest_1_int=find_closest(df_Ne, line1_shift).loc['Intensity']
+    closest_2_int=find_closest(df_Ne, line2_shift).loc['Intensity']
 
     diff=abs(closest1-closest2)
 
     df=pd.DataFrame(data={'Ne_Split': diff,
     'Line_1': closest1,
     'Line_2': closest2,
+    'Line_1_int': closest_1_int,
+    'Line_2_int': closest_2_int,
     'Entered Pos Line 1': line1_shift,
     'Entered Pos Line 2': line2_shift}, index=[0])
 
