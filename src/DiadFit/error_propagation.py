@@ -289,11 +289,13 @@ error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
     if XH2O is None:
         if isinstance(T_K, pd.Series) or isinstance(CO2_dens_gcm3, pd.Series) or isinstance(T_K, np.ndarray) or isinstance(CO2_dens_gcm3, np.ndarray):
             df_c=pd.DataFrame(data={'T_K': T_K,
-                                'CO2_dens_gcm3': CO2_dens_gcm3})
+                                'CO2_dens_gcm3': CO2_dens_gcm3,
+                                'XH2O': 0})
         else:
             #print('here')
             df_c=pd.DataFrame(data={'T_K': T_K,
-                                'CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
+                                'CO2_dens_gcm3': CO2_dens_gcm3,
+                                'XH2O': 0}, index=[0])
     # IF have XH2O add here
     else:
         if isinstance(T_K, pd.Series) or isinstance(CO2_dens_gcm3, pd.Series) or isinstance(T_K, np.ndarray) or isinstance(CO2_dens_gcm3, np.ndarray) or isinstance(XH2O, np.ndarray):
@@ -355,6 +357,8 @@ error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
         XH2O_with_noise=Noise_to_add_XH2O+df_c['XH2O'].iloc[sample_i]
         XH2O_with_noise[XH2O_with_noise < 0.000000] = 0.00000
         XH2O_with_noise[XH2O_with_noise > 1] = 1
+
+        
             
     
     
@@ -412,6 +416,11 @@ error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
         df_out['XH2O_with_noise']=XH2O_with_noise
         df_out['error_type_XH2O']=error_type_XH2O
         df_out['error_dist_XH2O']=error_dist_XH2O
+    else:
+        df_out['error_XH2O']=0
+        df_out['XH2O_with_noise']=0
+
+        
 
 
 
