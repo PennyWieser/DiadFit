@@ -1647,7 +1647,6 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
 
-
     # Calculate the amplitude from the sigma and the prominence
     calc_diad_amplitude=((config1.diad_sigma)*(config1.diad_prom))/0.3939
     calc_HB_amplitude=((config1.diad_sigma)*(config1.HB_prom))/0.3939
@@ -3186,6 +3185,7 @@ def fit_diad_1_w_bck(*, config1: diad1_fit_config=diad1_fit_config(), config2: d
         else:
             axc_xmin=config1.lower_bck_diad1[0]
             axc_xmax=config1.upper_bck_diad1[1]
+
         axc_ymin=np.min(Baseline_diad1[:, 1])-config1.y_range_baseline
         axc_ymax=np.max(Baseline_diad1[:, 1])+config1.y_range_baseline
 
