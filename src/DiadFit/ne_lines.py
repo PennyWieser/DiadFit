@@ -957,7 +957,7 @@ const_params=True, spec_res=0.4) :
         if block_print is False:
             print('first iteration, peak Center='+str(np.round(Center_p0, 4)))
 
-        Center_p0_error=result0.params.get('p0_center')
+        
         Amp_p0=result0.params.get('p0_amplitude')
         if block_print is False:
             print('first iteration, peak Amplitude='+str(np.round(Amp_p0, 4)))
@@ -1039,9 +1039,8 @@ const_params=True, spec_res=0.4) :
     # Get center value
     Center_p1=result.best_values.get('p1_center')
     error_pk1 = result.params['p1_center'].stderr
+    error_pk1_amp = result.params['p1_amplitude'].stderr
     
-    Center_pk2_error=result.params.get('p1_center')
-
   
     # Get mix of lorenz
     Peak1_Prop_Lor=result.best_values.get('p1_fraction')
@@ -1066,7 +1065,7 @@ const_params=True, spec_res=0.4) :
     Center_pk1=Center_p1
 
 
-    return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor
+    return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor, error_pk1_amp
 
 
 
@@ -1283,11 +1282,11 @@ plot_figure=True, loop=True,
         x_span_pk2_dist=abs(config.x_span_pk2[1]-config.x_span_pk2[0])
 
     # Fit Pk1
-    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor = fit_Ne_pk(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
+    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor, error_pk1_amp= fit_Ne_pk(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
     const_params=const_params, spec_res=spec_res)
 
     # Fit pk2 
-    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, comps2, Peak2_Prop_Lor = fit_Ne_pk( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, LH_offset_mini=config.LH_offset_mini2, peaks_pk1=peaks_2, amplitude=Pk2_Amp, pk1_sigma=config.pk2_sigma, const_params=const_params,spec_res=spec_res)
+    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, comps2, Peak2_Prop_Lor, error_pk2_amp = fit_Ne_pk( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, LH_offset_mini=config.LH_offset_mini2, peaks_pk1=peaks_2, amplitude=Pk2_Amp, pk1_sigma=config.pk2_sigma, const_params=const_params,spec_res=spec_res)
 
 
     # Calculate difference between peak centers, and Delta Ne
@@ -1497,6 +1496,8 @@ plot_figure=True, loop=True,
                          'residual_pk2':residual_pk2,
                          'residual_pk1': residual_pk1,
                          'residual_pk1+pk2':residual_pk1+residual_pk2,
+                         'error_pk1_amplitude': error_pk1_amp,
+                         'error_pk2_amplitude': error_pk2_amp
                          }, index=[0])
                          
                          

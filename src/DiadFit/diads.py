@@ -3419,6 +3419,44 @@ def calculate_HB_Diad_area_ratio(df):
 
 @dataclass
 class generic_peak_config:
+    """
+    Configuration class for fitting secondary peaks (e.g. SO2, Carbonate)
+
+    Attributes:
+        name (str): Default 'Generic'
+            Name of component you are fitting that gets stamped onto the peak parameters, e.g. if 'SO2', get Peak_Area_SO2'
+
+        lower_bck, upper_bck: Tuple[float, float]
+            Background positions in wavenumbers
+
+        model_name: Default 'PseudoVoigt'
+            Type of peak fit. Choose from 'GaussianModel', 'VoigtModel', 'PseudoVoigtModel', 'Spline'.
+
+        x_range_bck: float (default 10)
+            When showing bck collected plot, shows peak center +- this amount
+
+        N_poly_carb_bck: float (default 1)
+            Degree of polynomial to fit to background.
+
+        amplitude: float (default 100)
+            Approximate amplitude of peak fit (first guess for Gaussian , voigt and Psuedovoigt needed)
+
+        cent: float (default 1090)
+            Approximate peak position of species you are looking for. E.g. 1090 for CO2, 1150 for SO2
+
+        outlier_sigma: float (default 12)
+            Code calculates standard deviation of background, and excludes points more than outlier_sigma*this standard deviatoin from nearby background points
+
+        distance, prominence, width, threshold, height: float
+            Scipy find peak parameters to get initial fit of peak
+
+
+
+
+        fit_peaks (int): Default 2
+            Number of peaks to fit. 2 = Diad + HB, 1 = Diad.
+
+    """
 
     # Name that gets stamped onto fits
     name: str= 'generic'
@@ -3566,24 +3604,24 @@ path=None, filename=None, filetype=None,
     # To make a nice plot, give 50 wavenumber units on either side as a buffer
     Spectra_plot=Spectra[ (Spectra[:,0]>lower_0baseline-50) & (Spectra[:,0]<upper_1baseline+50) ]
 
-    # Find peaks using Scipy find peaks
+    # # Find peaks using Scipy find peaks
     y=Spectra_fit[:, 1]
     x=Spectra_fit[:, 0]
     spec_res=np.abs(x[0]-x[1])
-
-
-    peaks = find_peaks(y,height = config.height, threshold = config.threshold,
-    distance = config.distance, prominence=config.prominence, width=config.width)
-
-    height = peaks[1]['peak_heights'] #list of the heights of the peaks
-    peak_pos = x[peaks[0]] #list of the peaks positions
-    df_sort=pd.DataFrame(data={'pos': peak_pos,
-                        'height': height})
-
-    df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
-
-    # Trim number of peaks based on user-defined N peaks
-    df_peak_sort_short=df_peak_sort[0:config.N_peaks]
+    #
+    #
+    # peaks = find_peaks(y,height = config.height, threshold = config.threshold,
+    # distance = config.distance, prominence=config.prominence, width=config.width)
+    #
+    # height = peaks[1]['peak_heights'] #list of the heights of the peaks
+    # peak_pos = x[peaks[0]] #list of the peaks positions
+    # df_sort=pd.DataFrame(data={'pos': peak_pos,
+    #                     'height': height})
+    #
+    # df_peak_sort=df_sort.sort_values('height', axis=0, ascending=False)
+    #
+    # # Trim number of peaks based on user-defined N peaks
+    # df_peak_sort_short=df_peak_sort[0:config.N_peaks]
 
 
     # Get actual baseline
@@ -3828,32 +3866,18 @@ path=None, filename=None, filetype=None,
 
         if config.model_name != 'Spline' and config.model_name != 'Poly':
             ax2.plot(xx_carb, y_carb, '-k', label='Peak fit')
-            cent=df['Peak_Cent_{}'.format(name)].iloc[0]
-            ax2.set_xlim([cent-config.x_range_bck, cent+config.x_range_bck])
+
+
         else:
             ax2.plot(x_new, Baseline_ysub_sil, '-k')
             ax2.fill_between(x_new, Baseline_ysub_sil, color='yellow', label='fit area', alpha=0.5)
 
 
+        cent=df['Peak_Cent_{}'.format(name)].iloc[0]
+        ax2.set_xlim([cent-config.x_range_bck, cent+config.x_range_bck])
+
         ax2.set_title('Bkg-subtracted, ' + name + ' peak fit')
 
-
-
-
-
-
-
-
-    # ax2.set_ylim([min(y_carb)-0.5*(max(y_carb)-min(y_carb)),
-    #             max(y_carb)+0.1*max(y_carb),
-    # ])
-
-
-
-        if find_peaks is True:
-
-            ax1.plot(df_peak_sort_short['pos'], df_peak_sort_short['height'], '*k', mfc='yellow', label='SciPy Peaks')
-            ax1.plot(Spectra_short[:, 0], Py_base, '-k')
 
         ax1.set_ylabel('Intensity')
         ax1.set_xlabel('Wavenumber (cm$^{-1}$)')

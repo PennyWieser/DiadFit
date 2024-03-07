@@ -102,45 +102,7 @@ aH2[13] = -4.13039220 / 10**1  # alpha for CO2
 aH2[14] = -8.47988634  # beta for CO2
 aH2[15] = 2.800 / 10**2  # gamma for CO2
 
-## This is for when you only feed a numpy array
-# def ensure_series(a, b, c):
-#     # Determine the target length
-#     lengths = [len(a) if isinstance(a, pd.Series) else None,
-#                len(b) if isinstance(b, pd.Series) else None,
-#                len(c) if isinstance(c, pd.Series) else None]
-#     lengths = [l for l in lengths if l is not None]
-#     target_length = max(lengths) if lengths else 1
-#
-#     # Convert each input to a Series of the target length
-#     if not isinstance(a, pd.Series):
-#         a = pd.Series([a] * target_length)
-#     if not isinstance(b, pd.Series):
-#         b = pd.Series([b] * target_length)
-#     if not isinstance(c, pd.Series):
-#         c = pd.Series([c] * target_length)
-#
-#     return a, b, c
-#
-#
-# def ensure_series_4(a, b, c, d):
-#     # Determine the target length
-#     lengths = [len(a) if isinstance(a, pd.Series) else None,
-#                len(b) if isinstance(b, pd.Series) else None,
-#                len(c) if isinstance(c, pd.Series) else None,
-#                len(d) if isinstance(d, pd.Series) else None]
-#     lengths = [l for l in lengths if l is not None]
-#     target_length = max(lengths) if lengths else 1
-#
-#     # Convert each input to a Series of the target length
-#     if not isinstance(a, pd.Series):
-#         a = pd.Series([a] * target_length)
-#     if not isinstance(b, pd.Series):
-#         b = pd.Series([b] * target_length)
-#     if not isinstance(c, pd.Series):
-#         c = pd.Series([c] * target_length)
-#     if not isinstance(d, pd.Series):
-#         d = pd.Series([d] * target_length)
-#     return a, b, c, d
+
 
 import pandas as pd
 import numpy as np
@@ -257,7 +219,7 @@ def pureEOS_CF(i, V, P, B, C, D, E, F, Vc, TK, b, g):
 
 # Volume iterative function using Netwon-Raphson method.
 def purevolume(i, V, P, B, C, D, E, F, Vc, TK, b, g):
-    """ Using the pure EOS, this function solves for the best volume using the pureEOS residual calculated above
+    """ Using the pure EOS, this function solves for the best molar volume (in cm3/mol) using the pureEOS residual calculated above
 
     It returns the volume.
 
@@ -280,9 +242,9 @@ def purevolume(i, V, P, B, C, D, E, F, Vc, TK, b, g):
     return V
 
 def purepressure(i, V, P, TK):
-    """ Using the pure EOS, this function solves for the best pressure using the pureEOS residual calculated above
+    """ Using the pure EOS, this function solves for the best pressure (in bars) using the pureEOS residual calculated above
 
-    It returns the pressure.
+    It returns the pressure in bars
 
     """
     for iter in range(1, 51):
@@ -293,6 +255,10 @@ def purepressure(i, V, P, TK):
 
         # Update the pressure using the Newton-Raphson method
         Pnew = P - pureEOS(i, V, P, B, C, D, E, F, Vc, TK, b, g) / diff
+
+        # Dont allow negative solutions
+        if Pnew < 0:
+            Pnew = 30000
 
         # Check if the update is within the tolerance (0.000001)
         if abs(Pnew - P) <= 0.000001:
@@ -308,13 +274,13 @@ def purepressure(i, V, P, TK):
 
 
 def mol_vol_to_density(mol_vol, XH2O):
-    """ Converts molar mass to molar density for a given XH2O"""
+    """ Converts molar volume (cm3/mol) to density (g/cm3) for a given XH2O"""
     density=((1-XH2O)*44 + (XH2O)*18)/mol_vol
     return density
 
 def pure_lnphi(i, Z, B, Vc, V, C, D, E, F, g, b):
     """
-    This function calculates the fugacity coefficient from the equation of state for a pure fluid
+    This function calculates the fugacity coefficient (kbar) from the equation of state for a pure fluid
 
     """
     lnph = Z[i] - 1.0 - math.log(Z[i]) + (B[i] * Vc[i] / V[i]) + (C[i] * Vc[i] * Vc[i] / (2.0 * V[i] * V[i]))
@@ -358,7 +324,7 @@ def mixEOS_CF(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK):
 
 
 def mixvolume(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK):
-    """ This function iterates in volume space to get the best match to the entered pressure using the mixEOS function above.
+    """ This function iterates in volume space to get the best match volume (cm3/mol) to the entered pressure using the mixEOS function above.
 
     """
     for iter in range(1, 51):
@@ -371,10 +337,60 @@ def mixvolume(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK):
 
     return V
 
+import warnings as w
+
+## We are going to have to use a look up table to help the netwon raphson converge.
+
+# Load the lookup table from the CSV file
+DiadFit_dir=Path(__file__).parent
+file_str='lookup_table.csv'
+dz06_lookuptable=pd.read_csv(DiadFit_dir/file_str)
+#df = pd.read_csv('lookup_table_noneg.csv')
+
+
+import pkg_resources
+
+
+
+
+def get_initial_guess(V_target, T_K_target, XH2O_target):
+    # Calculate the Euclidean distance from the target point to all points in the table
+    # We normalize each dimension by its range to give equal weight to all parameters
+
+    df=dz06_lookuptable
+
+    # code to find best value
+
+    P_range = df['P_kbar'].max() - df['P_kbar'].min()
+    T_K_range = df['T_K'].max() - df['T_K'].min()
+    XH2O_range = df['XH2O'].max() - df['XH2O'].min()
+    V_range = df['V'].max() - df['V'].min()
+
+    # Calculate normalized distances
+    distances = np.sqrt(
+        ((df['P_kbar'] - df['P_kbar'].mean()) / P_range) ** 2 +
+        ((df['T_K'] - T_K_target) / T_K_range) ** 2 +
+        ((df['XH2O'] - XH2O_target) / XH2O_range) ** 2 +
+        ((df['V'] - V_target) / V_range) ** 2
+    )
+
+    # Find the index of the closest row in the DataFrame
+    closest_index = distances.argmin()
+
+    # Retrieve the P_kbar value from the closest row
+    initial_guess_P = df.iloc[closest_index]['P_kbar']
+
+    return initial_guess_P
+
+
+
+
 def mixpressure(P, V, TK, Y):
-    """ This function iterates in pressure space to get the best match to the entered volume using the mixEOS function above.
+    """ This function iterates in pressure space to get the best match in bars to the entered volume in cm3/mol using the mixEOS function above.
 
     """
+
+
     for iter in range(1, 51):
         k1_temperature, k2_temperature, k3_temperature, a1, a2, g, b, Vc, B, C, D, E, F, Vguess=get_EOS_params(P, TK)
         Bij, Vcij, BVc_prm, BVc, Cijk, Vcijk, CVc2_prm, CVc2, Dijklm, Vcijklm, DVc4_prm, DVc4, Eijklmn, Vcijklmn, EVc5_prm,  EVc5, Fij, FVc2_prm, FVc2, bmix, b_prm, gijk, gVc2_prm, gVc2=mixing_rules(B, C,D, E, F, Vc, Y, b,    g, k1_temperature, k2_temperature, k3_temperature)
@@ -382,15 +398,63 @@ def mixpressure(P, V, TK, Y):
         diff = ((mixEOS(V, P + 0.0001, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK)
         - mixEOS(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK)) / 0.0001)
         Pnew = P - mixEOS(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK) / diff
+
+
+
+
         if abs(Pnew - P) <= 0.000001:
             break
+
         P = Pnew
 
     return P
 
+        # # Dont allow negative solutions
+        # if Pnew<0:
+        #     Pnew = 3000
+
+        # if Pnew < 10000 and Pnew>0 and V<50:
+        #     w.warn('Sometimes the adapted Newton Raphson method will find a second root at lower (or negative pressure). This initially found a root at P=' + str(np.round(Pnew, 2)) + ', V=' + str(np.round(V)) + '. The algorithm has started its search again at P=3000 bars. Double check your results make sense')
+        #
+        #     Pnew = 10000  # Replace 0.0001 with a small positive value that makes sense for your system
+        #
+
+
+# def mixpressure(P_init, V, TK, Y, max_restarts=3):
+#     """This function iterates in pressure space to get the best match to the entered volume using the mixEOS function above."""
+#
+#     restarts = 0
+#     while restarts <= max_restarts:
+#         P = P_init
+#         for iter in range(1, 51):
+#             # Your EOS parameters and mixing rules calculations here
+#
+#             diff = ((mixEOS(V, P + 0.0001, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK) - mixEOS(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK)) / 0.0001)
+#             Pnew = P - mixEOS(V, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, TK) / diff
+#
+#             # Don't allow unrealistic solutions but provide a chance to reset
+#             if Pnew < 5000 and V > 10:
+#                 warnings.warn('Root forced above 5000 bars due to conditions, attempting restart...')
+#                 Pnew = 5000  # Force the pressure up due to your condition
+#                 break  # Break out of the current iteration loop to allow for a restart
+#
+#             if abs(Pnew - P) <= 0.000001:  # Convergence criterion
+#                 return Pnew  # Return the converged value
+#             P = Pnew
+#
+#         restarts += 1  # Increment the number of restarts attempted
+#         P_init = 5000  # Set a new starting point that might be closer to the suspected real root
+#
+#     warnings.warn('Max restarts reached, solution may not be optimal.')
+#     return P  # Return the last computed pressure if all restart attempts fail
+
+
+
+
 
 
 def mix_lnphi(i, Zmix, BVc_prm, CVc2_prm, DVc4_prm, EVc5_prm, FVc2_prm, FVc2, bmix, b_prm, gVc2, gVc2_prm, Vmix):
+    """ This function calculates lnphi values"""
     lnph=0
 
     lnph = -math.log(Zmix)
@@ -562,6 +626,8 @@ def mix_fugacity_ind(*, P_kbar, T_K, XH2O, Vmix):
 
 
 def mixing_rules(B, C, D, E, F, Vc, Y, b, g, k1_temperature, k2_temperature, k3_temperature):
+    """ This function applies the DZ06 mixing rules"""
+
     Bij = np.zeros((2, 2))
     Vcij = np.zeros((2, 2))
     BVc_prm = np.zeros(2)
@@ -739,7 +805,7 @@ def mixing_rules(B, C, D, E, F, Vc, Y, b, g, k1_temperature, k2_temperature, k3_
 ## Getting EOS contsants themselves
 
 def get_EOS_params(P, TK):
-    """ This function returns the EOS 'constants' if you know the pressure and temperature
+    """ This function returns the EOS 'constants' if you know the pressure (in bars) and temperature (in Kelvin)
 
     """
 
@@ -813,7 +879,7 @@ def get_EOS_params(P, TK):
 ## Lets wrap all these functions up.
 
 def calculate_molar_volume_ind_DZ2006(*, P_kbar, T_K, XH2O):
-    """ This function calculates molar volume for a known pressure, T in K and XH2O (mol frac) for a single value
+    """ This function calculates molar volume (cm3/mol) for a known pressure (kbar), T in K and XH2O (mol frac) for a single value
     """
 
     P=P_kbar*1000
@@ -838,11 +904,14 @@ def calculate_molar_volume_ind_DZ2006(*, P_kbar, T_K, XH2O):
 
         mol_vol=mixvolume(Vguess, P, BVc, CVc2, DVc4, EVc5, FVc2, bmix, gVc2, T_K)
 
+    if mol_vol<0:
+        mol_vol=np.nan
+
     return mol_vol
 
 
 def calculate_molar_volume_DZ2006(*, P_kbar, T_K, XH2O):
-    """ Used to calculate molar volume in a loop for multiple inputs
+    """ Used to calculate molar volume (cm3/mol) in a loop for multiple inputs
 
 
     """
@@ -867,40 +936,48 @@ def calculate_molar_volume_DZ2006(*, P_kbar, T_K, XH2O):
     return mol_vol
 
 def calculate_Pressure_ind_DZ2006(*, mol_vol, T_K, XH2O, Pguess=None):
-    """ This function calculates pressure for a known molar volume, T in K and XH2O (mol frac) for a single value
+    """ This function calculates pressure  (in bars) for a known molar volume, T in K and XH2O (mol frac) for a single value. It uses a look up table to get pressure, then a newton and raphson method (implemented in the function mixpressure) to find the best fit pressure. There are some densities, T_K and XH2O values where the volume is negative.
     """
     V=mol_vol
-    if Pguess is None:
-        if V>1000:
-            Pguess=1000
-        elif V<10:
-            Pguess=20000
-        else:
-            Pguess=200
+    # if Pguess is None:
+    #     if V>1000:
+    #         Pguess=1000
+    #     elif V<10:
+    #         Pguess=20000
+    #     else:
+    #         Pguess=200
+
+    # Lets get P guess from a look up table
+    # uses a look up table
+    Pguess=get_initial_guess(V_target=V, T_K_target=T_K, XH2O_target=XH2O)*1000
+
+    if Pguess <= 0:
+            return np.nan
+
 
     TK=T_K
 
     # lets do for low pressure initially
 
 
-    if XH2O==0:
-        P=purepressure(1,  V, Pguess, TK)
+    # if XH2O==0:
+    #     P=purepressure(1,  V, Pguess, TK)
+    #
+    # elif XH2O==1:
+    #     P=purepressure(0, V, Pguess, TK)
+    #
+    # else:
+    XCO2=1-XH2O
+    Y = [0] * 2
+    Y[0]=XH2O
+    Y[1]=XCO2
 
-    elif XH2O==1:
-        P=purepressure(0, V, Pguess, TK)
-
-    else:
-        XCO2=1-XH2O
-        Y = [0] * 2
-        Y[0]=XH2O
-        Y[1]=XCO2
-
-        P=mixpressure(Pguess, V, T_K, Y)
+    P=mixpressure(Pguess, V, T_K, Y)
 
     return P
 
 def calculate_Pressure_DZ2006(*, mol_vol=None, density=None, T_K, XH2O):
-    """ Used to calculate molar volume in a loop for multiple inputs
+    """ Used to calculate pressure in a loop for multiple inputs. Dens - bulk density.
 
 
     """

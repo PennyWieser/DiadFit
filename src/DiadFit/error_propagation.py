@@ -453,7 +453,8 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
 
     """
     This function performs Monte Carlo simulations of uncertainty in CO2 density, input temperature, 
-    and crustal density. 
+   crustal density and XH2O. If XH2O is specified as not None, it will use Duan and Zhang 2006 EOS
+   
     It uses the function 'calculate_temperature_density_MC' to make the simulated variables, 
     and then uses this to calculate a resulting 
     pressure using the equation of state of choice
@@ -821,7 +822,7 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
             
         # ax4 is XH2O
         if error_dist_XH2O=='normal' and error_type_XH2O == 'Abs':
-            ax4.set_title('Input Distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + 'kg/m$^{3}$')
+            ax4.set_title('Input Distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + 'molar prop')
         if error_dist_XH2O=='normal' and error_type_XH2O == 'Perc':
             ax4.set_title('Input distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + '%')
         if XH2O is not None and df_1_step['error_XH2O'][0]!=0:
@@ -846,7 +847,7 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
         ax1.set_xlabel('T (K)')
         ax2.set_xlabel('CO$_2$ Density (g/cm$^{3}$)')
         ax3.set_xlabel('Crustal Density (kg/m$^{3}$)')
-        ax4.set_xlabel('X$_{H_{2}O}$ (molar)')
+        ax4.set_xlabel('X$_{H_{2}O}$ (molar prop)')
         
         
         fig.tight_layout()

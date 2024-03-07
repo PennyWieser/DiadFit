@@ -2,6 +2,13 @@
 ================
 Change Log
 ================
+March 7th, 2024 - Penny Wieser - V.0.85
+-------------------------------------------
+
+
+Duan and Zhang (2006) inverts for pressure from density using an adapted newton raphson method. At high densities, it was finding a negative root.
+
+Built in a look up table to get starting pressure. Helps convergence. Now gives Nans for things in the look up table that yielded negative volumes.
 
 Feb 4th, 2024 - Penny Wieser - V.0.82
 -------------------------------------------

@@ -30,7 +30,7 @@ Example 5d -  Calculating fluid inclusion entrapment pressures and depths for di
 
 Example 5e -  Propagating uncertainties in fluid inclusion barometry
 ---------------------------------------------------------------------
-:doc:`Example 5e <Examples/EOS_calculations/Example5e_FI_Monte_Carlo_Simulations>` shows how to propagate uncertainties in temperature, CO2 density and crustal density using Monte Carlo methods.
+:doc:`Example 5e <Examples/EOS_calculations/Example5e_FI_Monte_Carlo_Simulations>` shows how to propagate uncertainties in temperature, CO2 density, XH2O and crustal density using Monte Carlo methods.
 
 Example 5f -  Calculations using CO$_2$-H$_2$O EOS
 ---------------------------------------------------------------------
