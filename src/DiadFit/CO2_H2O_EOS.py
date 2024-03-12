@@ -343,12 +343,10 @@ import warnings as w
 
 # Load the lookup table from the CSV file
 DiadFit_dir=Path(__file__).parent
-file_str='lookup_table.csv'
+file_str='lookup_table_noneg.csv'
 dz06_lookuptable=pd.read_csv(DiadFit_dir/file_str)
 #df = pd.read_csv('lookup_table_noneg.csv')
 
-
-import pkg_resources
 
 
 
@@ -356,6 +354,7 @@ import pkg_resources
 def get_initial_guess(V_target, T_K_target, XH2O_target):
     # Calculate the Euclidean distance from the target point to all points in the table
     # We normalize each dimension by its range to give equal weight to all parameters
+
 
     df=dz06_lookuptable
 
@@ -379,6 +378,8 @@ def get_initial_guess(V_target, T_K_target, XH2O_target):
 
     # Retrieve the P_kbar value from the closest row
     initial_guess_P = df.iloc[closest_index]['P_kbar']
+
+
 
     return initial_guess_P
 
@@ -972,6 +973,8 @@ def calculate_Pressure_ind_DZ2006(*, mol_vol, T_K, XH2O, Pguess=None):
     Y[0]=XH2O
     Y[1]=XCO2
 
+    # Now iteratively solve for pressure starting from this initial guess.
+
     P=mixpressure(Pguess, V, T_K, Y)
 
     return P
@@ -1156,7 +1159,7 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
     # IF water isnt lost
 
     # Calculate mass ratio from molar ratio
-    mass_ratio=(XH2O*18)/((1-XH2O)*44)
+    mass_ratio=(XH2O*18)/((1-XH2O)*44 +(XH2O*18) )
     # Calculate pressure in CO2 fluid
     P=calculate_P_for_rho_T_SW96(CO2_dens_gcm3, T_K_ambient)
     # Now calculate density of H2O fluid
@@ -1175,7 +1178,7 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
         if Hloss is True:
             P=calculate_Pressure_DZ2006(density=rho_orig_H_loss, T_K=T_K, XH2O=XH2O)
         if Hloss is False:
-            P=calculate_Pressure_DZ2006(density=rho_orig_H_loss, T_K=T_K, XH2O=XH2O)
+            P=calculate_Pressure_DZ2006(density=rho_orig_no_H_loss, T_K=T_K, XH2O=XH2O)
         return P/1000
 
     else:
@@ -1183,9 +1186,10 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
         # Lets calculate the pressure using SW96
         P_SW=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SW96')
         P_SP=calculate_P_for_rho_T(T_K=T_K, CO2_dens_gcm3=rho_meas, EOS='SP94')
-        # Same for DZ2006
+        # Run Duan and Zhang with no XHO@ to start with
         P_DZ=calculate_Pressure_DZ2006(density=rho_meas, T_K=T_K, XH2O=XH2O*0)
-        # Now doing it with XH2O
+        # Now doing it with XH2O for two different densities
+
         P_DZ_mix_H_loss=calculate_Pressure_DZ2006(density=rho_orig_H_loss, T_K=T_K, XH2O=XH2O)
         P_DZ_mix_noH_loss=calculate_Pressure_DZ2006(density=rho_orig_no_H_loss, T_K=T_K, XH2O=XH2O)
 

@@ -2,9 +2,14 @@
 ================
 Change Log
 ================
+
+March 12th, 2024 - Penny Wieser - V.0.86
+-------------------------------------------
+Was an issue in the math for the CO2-H2O EOS in the situation where H2O wasnt loss - mass ratio not calculated correctly. Caused convergence issues.
+
+
 March 7th, 2024 - Penny Wieser - V.0.85
 -------------------------------------------
-
 
 Duan and Zhang (2006) inverts for pressure from density using an adapted newton raphson method. At high densities, it was finding a negative root.
 
