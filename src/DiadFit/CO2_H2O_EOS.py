@@ -1159,20 +1159,22 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
     # IF water isnt lost
 
     # Calculate mass ratio from molar ratio
-    mass_ratio=(XH2O*18)/((1-XH2O)*44 +(XH2O*18) )
-    # Calculate pressure in CO2 fluid
-    P=calculate_P_for_rho_T_SW96(CO2_dens_gcm3, T_K_ambient)
+    XH2O_mass=(XH2O*18)/((1-XH2O)*44 +(XH2O*18) )
+    # Calculate pressure in CO2 fluid - returns answer in kbar
+    P_CO2=calculate_P_for_rho_T_SW96(CO2_dens_gcm3, T_K_ambient)['P_kbar']
     # Now calculate density of H2O fluid
 
-    # Calculate density of H2O
-    rho_H2O=calculate_rho_for_P_T_H2O(P['P_kbar'], T_K_ambient)
+    # See https://www.youtube.com/watch?v=6wE4Tk6OjGY
+    Ptotal=P_CO2/(1-XH2O) # Calculate the total pressure from the pressure we know for CO2.
+    P_H2O=Ptotal*XH2O # Now calculate the pressure of H2O. You could also do this as PTot*XH2O
+
+    # calculate density of H2O using EOS
+    H2O_dens=calculate_rho_for_P_T_H2O(P_kbar=P_H2O,T_K=T_K_ambient)
+
+    # Calculate the bulk density by re-arranging the two volume equations
+    rho_orig_no_H_loss=(CO2_dens_gcm3*H2O_dens)/((1-XH2O_mass)*H2O_dens+XH2O_mass*CO2_dens_gcm3)
 
 
-
-    # Assume a system of unit 1. Calculate volume of CO2
-    VolCO2=(1-mass_ratio)/CO2_dens_gcm3
-    VolH2O=mass_ratio/rho_H2O
-    rho_orig_no_H_loss=1/(VolH2O+VolCO2)
 
     if fast_calcs is True:
         if Hloss is True:
