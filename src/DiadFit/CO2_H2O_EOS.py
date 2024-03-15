@@ -1139,7 +1139,7 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
         P_kbar_mixCO2_DZ06_Hloss: Pressure calculated from the reconstructed mixed fluid density using the mixed EOS from Duan and Zhang (2006) assuming H loss
         P_kbar_mixCO2_DZ06_noHloss: Pressure calculated from the reconstructed mixed fluid density using the mixed EOS from Duan and Zhang (2006) assuming H loss
         P Mix_Hloss/P Pure DZ06: Correction factor - e.g. how much deeper the pressure is from the mixed EOS with H loss
-        P Mix_noHloss/P Pure DZ06: Correction factor - e.g. how much deeper the pressure is from the mixed EOS with H loss
+        P Mix_noHloss/P Pure DZ06: Correction factor - e.g. how much deeper the pressure is from the mixed EOS (assuming no H loss)
         rho_mix_calc_noHloss: Bulk density calculated (C+H)
         rho_mix_calc_Hloss: Bulk density calculated (C+H) after h loss
         CO2_dens_gcm3: Input CO2 density

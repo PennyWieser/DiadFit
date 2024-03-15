@@ -3,8 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def propagate_CO2_in_bubble(*, N_dup=1000, sample_ID, vol_perc_bub, melt_dens_kgm3, CO2_bub_dens_gcm3,
-error_vol_perc_bub=0, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='normal',
+def propagate_CO2_in_bubble(*, N_dup=1000, sample_ID, vol_perc_bub=None, error_vol_perc_bub=None, error_type_vol_perc_bub='Abs',
+MI_x=None, MI_y=None,MI_z=None,VB_x=None, VB_y=None,VB_z=None,
+
+melt_dens_kgm3, CO2_bub_dens_gcm3,
+ error_dist_vol_perc_bub='normal',
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
 error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal',
 plot_figure=True, fig_i=0, neg_values=True):
@@ -23,8 +26,27 @@ plot_figure=True, fig_i=0, neg_values=True):
     N_dup: int
         Number of duplicates when generating errors for Monte Carlo simulations
 
+    Now, either you know the vol% of the bubble and the associated error, in which case enter these two arguements:
+
     vol_perc_bub: int, float, pd.series
         Volume proportion of sulfide in melt inclusion
+
+    error_vol_perc_bub, CO2_bub_dens_gcm3, error_melt_dens_kgm3: int, float, pd.Series
+        Error for each variable, can be absolute or %
+
+    error_type_vol_perc_bub, error_type_bub_dens_gcm3, error_type_melt_dens_kgm3: 'Abs' or 'Perc'
+        whether given error is perc or absolute
+
+    Or, you have measured the x-y-z dimensions of the MI and VB (e.g. by perpendicular polishing).
+
+    MI_x, MI_y, MI_Z, VB_x, VB_y, VB_Z: int, float, pd.Series
+        x, y, z dimensions of vapour bubble and melt inclusion
+
+    error_MI_x, error_MI_y, error_MI_Z, error_VB_x, error_VB_y, error_VB_Z: int, float, pd.Series
+        Error on x, y, z dimension meausurement
+
+
+
 
     melt_dens_kgm3:int, float, pd.series
         Density of the silicate melt in kg/m3, e.g. from DensityX
@@ -33,13 +55,7 @@ plot_figure=True, fig_i=0, neg_values=True):
         Density of the vapour bubble in g/cm3
 
 
-    error_vol_perc_bub, CO2_bub_dens_gcm3, error_melt_dens_kgm3: int, float, pd.Series
-        Error for each variable, can be absolute or %
-
-    error_type_vol_perc_bub, error_type_bub_dens_gcm3, error_type_melt_dens_kgm3: 'Abs' or 'Perc'
-        whether given error is perc or absolute
-
-    error_dist_vol_perc_bub, error_dist_bub_dens_gcm3, error_dist_melt_dens_kgm3: 'normal' or 'uniform'
+    error_dist_vol_perc_bub, error_dist_bub_dens_gcm3, error_dist_melt_dens_kgm3, error_dist_dimension: 'normal' or 'uniform'
         Distribution of simulated error
 
     plot_figure: bool
@@ -56,8 +72,14 @@ plot_figure=True, fig_i=0, neg_values=True):
         df_step has average and standard deviation for each sample
 
     """
-
-
+    # Constant for sphere calcs
+    const=(4/3)*np.pi
+     # Lets check what they entered for volume
+    if vol_perc_bub is None:
+        Vol_VB_sphere=const*VB_x*VB_y*VB_z
+        Vol_MI_sphere=const*MI_x*MI_y*MI_z
+        # Assume its an octahedral
+        vol_MI_oct=(MI_x*MI_y_MI_z)/6
 
     # Set up empty things to fill up.
 
