@@ -80,11 +80,13 @@ plot_figure=True, fig_i=0, neg_values=True):
         Vol_MI_sphere=const*MI_x*MI_y*MI_z
         # Assume its an octahedral
         vol_MI_oct=(MI_x*MI_y_MI_z)/6
+        print('still in progress, ask Penny if you need this')
 
     # Set up empty things to fill up.
 
     if type(vol_perc_bub) is pd.Series:
         len_loop=len(vol_perc_bub)
+
     else:
         len_loop=1
 
