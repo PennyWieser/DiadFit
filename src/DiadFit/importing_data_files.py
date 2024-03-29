@@ -14,6 +14,70 @@ import datetime
 import calendar
 
 encode="ISO-8859-1"
+## GEt video mag
+
+# Function to check if "Video Image" is in the first line, considering variations
+def line_contains_video_image(line):
+    """ This function returns video image information """
+    return "video image" in line.lower()
+    
+
+def get_video_mag(metadata_path):
+    """ This function finds all the video files in a single folder, and returns a dataframe of the filename and the magnification used. 
+    """
+    folder_path=metadata_path
+    data=[]
+    
+    
+    # Code below this
+    
+    
+    
+    # Ensure the directory exists and contains files
+    if os.path.exists(folder_path) and os.path.isdir(folder_path):
+        # Go through each file in the folder
+        for filename in os.listdir(folder_path):
+            if filename.endswith('.txt'):  # Confirming it's a text file
+                file_path = os.path.join(folder_path, filename)
+                with open(file_path, 'r', encoding="ISO-8859-1") as file:
+                    first_line = file.readline()
+                    # Initialize placeholders for magnification, width, and height
+                    magnification = None
+                    image_width = None
+                    image_height = None
+                    
+                    if "video image" in first_line.lower():  # Checks if "Video Image" is in the line
+                        for line in file:
+                            if "Objective Magnification:" in line:
+                                magnification = line.split(":")[-1].strip()
+                            elif "Image Width [µm]:" in line:
+                                image_width = line.split(":")[-1].strip()
+                            elif "Image Height [µm]:" in line:
+                                image_height = line.split(":")[-1].strip()
+                                
+                        # Add to data if magnification is found (assuming it's mandatory)
+                        if magnification:
+                            data.append({
+                                "Filename": filename,
+                                "Mag": magnification,
+                                "Width (µm)": image_width,
+                                "Height (µm)": image_height
+                            })
+    else:
+        print(f"The specified path {folder_path} does not exist or is not a directory.")
+    
+    # Create a DataFrame from the data
+    df = pd.DataFrame(data)
+    
+    # Display the DataFrame or a message if empty
+    if not df.empty:
+        return df
+    else:
+        print("No data found. Please check the folder path and the content of the files.")
+
+
+
+
 
 ## Functions for getting file names
 
@@ -129,6 +193,8 @@ def get_all_txt_files(path):
         if '.txt' in file and 'pandas' not in file:
             All_files.append(format(file))
     return All_files
+    
+# Function to get magnification of 
 
 
 ## Functions to just simply get data to plot up

@@ -594,6 +594,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     # If splitting is 0
     zero=df['Corrected_Splitting']==0
 
+
     # Range for SC low density
     min_lowD_SC_Split=df['Corrected_Splitting']>=102.7623598753032
     max_lowD_SC_Split=df['Corrected_Splitting']<=103.1741034592534
@@ -1125,29 +1126,30 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     # If splitting is 0
     zero=df['Corrected_Splitting']==0
 
-    # Range for SC low density
-    min_lowD_SC_Split=df['Corrected_Splitting']>=102.7623598753032
-    max_lowD_SC_Split=df['Corrected_Splitting']<=103.1741034592534
-    # Range for SC med density
-    min_MD_SC_Split=df['Corrected_Splitting']>103.0608505403591
-    max_MD_SC_Split=df['Corrected_Splitting']<=104.3836704771313
-    # Range for SC high density
-    min_HD_SC_Split=df['Corrected_Splitting']>=104.2538992302499
-    max_HD_SC_Split=df['Corrected_Splitting']<=105.3438707618937
-    # Range for Room T low density
-    min_lowD_RoomT_Split=df['Corrected_Splitting']>=102.734115670188
-    max_lowD_RoomT_Split=df['Corrected_Splitting']<=103.350311768435
-    # Range for Room T high density
-    min_HD_RoomT_Split=df['Corrected_Splitting']>=104.407308904012
-    max_HD_RoomT_Split=df['Corrected_Splitting']<=105.1
-    # Impossible densities, room T
-    Imposs_lower_end=(df['Corrected_Splitting']>103.350311768435) & (df['Corrected_Splitting']<103.88)
-    # Impossible densities, room T
-    Imposs_upper_end=(df['Corrected_Splitting']<104.407308904012) & (df['Corrected_Splitting']>103.88)
-    # Too low density
-    Too_Low_SC=df['Corrected_Splitting']<102.7623598753032
-    Too_Low_RT=df['Corrected_Splitting']<102.734115670188
+    
+    offset=0
+    if Ne_line_combo=='1220_1400':
+        offset=0.55
 
+    
+        
+    
+        
+        
+    min_lowD_SC_Split=df['Corrected_Splitting']>=102.7623598753032+offset
+    max_lowD_SC_Split=df['Corrected_Splitting']<=103.1741034592534+offset
+    # Range for SC med density
+    min_MD_SC_Split=df['Corrected_Splitting']>103.0608505403591+offset
+    max_MD_SC_Split=df['Corrected_Splitting']<=104.3836704771313+offset
+    # Range for SC high density
+    min_HD_SC_Split=df['Corrected_Splitting']>=104.2538992302499+offset
+    max_HD_SC_Split=df['Corrected_Splitting']<=105.3438707618937+offset
+    Too_Low_SC=df['Corrected_Splitting']<102.72+offset
+    Too_Low_RT=df['Corrected_Splitting']<102.734115670188+offset
+    
+    Imposs_lower_end=(df['Corrected_Splitting']>103.350311768435+offset) # & (df['Splitting']<103.88+offset)
+    # Impossible densities, room T
+    Imposs_upper_end=(df['Corrected_Splitting']<104.407308904012+offset)# & (df['Splitting']>103.88+offset)  
     df.loc[zero, 'Preferred D']=0
     df.loc[zero, 'Notes']=0
     

@@ -76,6 +76,33 @@ def ryan_lerner(P_kbar):
 
     return D
 
+
+def denlinger_lerner(P_kbar):
+    """ Calculates depth for a given pressure using the Parameterization of Denlinger and Flinders (2022) with the addition of 200 kg/m3 at shallow depths, from Lerner et al. (2024).
+    After 15 km returns NaN following Lerner
+
+    Parameters
+    -------------
+    P_kbar: int, float, pd.series
+        Pressure in kbar
+
+    Returns
+    -------------
+    Depth in km (same datatype as input)
+
+
+    """
+
+    D=0.0684*P_kbar**3 - 0.5008*P_kbar**2 + 4.47*P_kbar
+    if D>15:
+        D=np.nan
+
+    return D
+
+
+
+
+
 def mavko_debari(P_kbar):
     """ Calculates depth for a given pressure using the parameterization of Mavko and Thompson (1983) and DeBari and Greene (2011)
     as given in Putirka (2017) Down the Crater Elements supplement, used for Cascades
@@ -143,7 +170,7 @@ def prezzi(P_kbar):
     return D
 
 
-Profile_funcs={ryan_lerner, mavko_debari, hill_zucca, prezzi, rasmussen}
+Profile_funcs={ryan_lerner, denlinger_lerner, mavko_debari, hill_zucca, prezzi, rasmussen}
 Profile_funcs_by_name= {p.__name__: p for p in Profile_funcs}
 
 
@@ -363,6 +390,11 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
         ryan_lerner:
             Parameterization of Ryan 1987, actual equation from Lerner et al. 2021
             After 16.88 km (455 MPa), assume density is 2.746, as density turns around again. This profile is tweaked for Hawaii
+
+        denlinger_lerner:
+            Parameterization of Denlinger and Flinders (2022) with the addition of 200 kg/m3 at shallow depths, from Lerner et al. (2024).
+            After 15 km returns NaN following Lerner
+
 
         mavko_debari:
             Parameterization of Mavko and Thompson (1983) and DeBari and Greene (2011)

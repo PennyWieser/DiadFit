@@ -6,6 +6,7 @@ Change Log
 March 12th, 2024 - Penny Wieser - V.0.86
 -------------------------------------------
 Was an issue in the math for the CO2-H2O EOS in the situation where H2O wasnt loss - mass ratio not calculated correctly. Caused convergence issues.
+Also fixed bug in MC code for FI - was using error from first sample for all samples (clear in output columns)
 
 
 March 7th, 2024 - Penny Wieser - V.0.85

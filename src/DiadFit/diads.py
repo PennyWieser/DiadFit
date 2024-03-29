@@ -61,7 +61,9 @@ def calculate_mole_fraction_2comp(peak_area_a, peak_area_b, cross_section_a, cro
     Sum_phase_a=peak_area_a/(cross_section_a*instrument_eff_a)
     Sum_phase_b=peak_area_b/(cross_section_b*instrument_eff_b)
 
-    df=pd.DataFrame(data={'A:B molar ratio': Sum_phase_a/Sum_phase_b})
+    df=pd.DataFrame(data={'% A': 100*Sum_phase_a/(Sum_phase_b+Sum_phase_a),
+    '% B': 100-100*Sum_phase_a/(Sum_phase_b+Sum_phase_a)}
+    )
 
     return df
 def plot_diad(*,path=None, filename=None, filetype='Witec_ASCII', Spectra_x=None, Spectra_y=None):
