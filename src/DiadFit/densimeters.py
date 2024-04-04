@@ -732,19 +732,28 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     
 
 
-    #
-    #
 
-    if Ne_pickle_str is not None:
+    
+    
+    if Ne_pickle_str is not None: # If its not none, have all the columns for Ne
         cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
         'Corrected_Splitting', 'Corrected_Splitting_σ',
         'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
         df_merge = df_merge[cols_to_move + [
             col for col in df_merge.columns if col not in cols_to_move]]
-    elif pref_Ne is not None:
+            
+    # If pref Ne is not none and you dont have a dataframe 
+    elif pref_Ne is not None and df_combo is not None: #If Pref Ne, 
         cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
         'Corrected_Splitting', 'Corrected_Splitting_σ',
         'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
+            
+    elif df_combo is None:
+        
+        cols_to_move = ['Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting']
         df_merge = df_merge[cols_to_move + [
             col for col in df_merge.columns if col not in cols_to_move]]
 
@@ -1278,5 +1287,67 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
 
     return df_merge
+    
+    ## Method from FLuids laboratory from FRANCIS Program
+    
+
+
+def Francis_pureCO2(FDS, FDS_std, uncer_FDS, uncer_FDS_std=0):
+    """ Returns density using a densimeter made from a single CO2 standard
+    """
+    offset= 0.035089020233933815 # Calculated FDS at 0.01 g/cm3
+    FDS_normalized_1=(FDS - FDS_std) + (uncer_FDS**2 + uncer_FDS_std**2)**0.5 + offset
+    FDS_normalized=(FDS - FDS_std)  + offset
+    FDS_normalized_2=(FDS - FDS_std) - (uncer_FDS**2 + uncer_FDS_std**2)**0.5 + offset
+
+    p0= 0
+    p1= 148.73
+    p2= 20.946
+    p3= -180.85
+    p4= 96.503
+    p5= -9.8157
+
+    d0= 0
+    d1= +0.31273
+    d2= +0.11155
+    d3= -0.01843
+    d4= -0.0044
+    d5= 0
+
+
+    pressure1 = p5*FDS_normalized_1**5 + p4*FDS_normalized_1**4 + p3*FDS_normalized_1**3 + p2*FDS_normalized_1**2 +p1*FDS_normalized_1**1 + p0
+    pressure2 = p5*FDS_normalized_2**5 + p4*FDS_normalized_2**4 + p3*FDS_normalized_2**3 + p2*FDS_normalized_2**2 +p1*FDS_normalized_2**1 + p0
+    pressure_final = (pressure1 + pressure2)/2
+    uncer_pressure_final = 8.7 + (np.maximum(pressure1, pressure2) - np.minimum(pressure1, pressure2))/(2*np.sqrt(3))  #uncertainty=8
+
+
+    density1 = d5*FDS_normalized_1**5 + d4*FDS_normalized_1**4 + d3*FDS_normalized_1**3 + d2*FDS_normalized_1**2 + d1*FDS_normalized_1**1 + d0
+    density2 = d5*FDS_normalized_2**5 + d4*FDS_normalized_2**4 + d3*FDS_normalized_2**3 + d2*FDS_normalized_2**2 + d1*FDS_normalized_2**1 + d0
+    
+    densityPW = d5*FDS_normalized**5 + d4*FDS_normalized**4 + d3*FDS_normalized**3 + d2*FDS_normalized**2 + d1*FDS_normalized**1 + d0
+        
+    density_final = (density1 + density2)/2
+    uncer_density_final = 0.006 + (np.maximum(density1,density2)-np.minimum(density1,density2))/(2*np.sqrt(3)) #uncertainty = 0.003
+    
+
+    if len(FDS)==1:
+        df=pd.DataFrame(data={'Density': density_final,
+                                'Density_PW': densityPW,
+                           'Density_err': uncer_density_final,
+                           'Input_Split':FDS,
+                           'Split_err':uncer_FDS,
+                           'Split_Std':FDS_std,
+                           }, index=[0])
+    else:
+        df=pd.DataFrame(data={'Density': density_final,
+         'Density_PW': densityPW,
+                           'Density_err': uncer_density_final,
+                           'Input_Split':FDS,
+                           'Split_err':uncer_FDS,
+                           'Split_Std':FDS_std,
+
+                           })
+        
+    return df
 
 
