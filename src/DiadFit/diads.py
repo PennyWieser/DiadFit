@@ -31,6 +31,17 @@ allowed_models = ["VoigtModel", "PseudoVoigtModel", "Pearson4Model", "SkewedVoig
 encode="ISO-8859-1"
 ## Ratio of different peaks
 
+
+def calculate_SO2_CO2_ratio(SO2_area, diad1_area, diad2_area, SO2_cross_sec=5.3, diad1_cross_sec=0.89, diad2_cross_sec=1.4):
+    """ Calculates SO2:CO2 ratio using the parameters from Marie-Camille Caumons lab"""
+
+
+    A_CO2_star=( diad1_area + diad2_area)/(diad2_cross_sec+diad1_cross_sec)
+    A_SO2_star=(SO2_area)/(SO2_cross_sec)
+    Ratio=A_SO2_star/(A_SO2_star+A_CO2_star)
+
+    return Ratio
+
 def calculate_mole_fraction_2comp(peak_area_a, peak_area_b, cross_section_a, cross_section_b, instrument_eff_a, instrument_eff_b):
     """ This function calculates the molar ration of 2 components a and b based on peak areas,
     cross section and instrument efficiency
