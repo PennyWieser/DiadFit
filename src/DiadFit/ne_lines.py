@@ -46,7 +46,16 @@ error_pk2
     dist = (df['Raman_shift (cm-1)'] - line1_shift).abs()
     return df.loc[dist.idxmin()]
 
-
+def find_max_row(df, target_shift, tol=2):
+    """ This function is used to find the highest amplitude within a predefined ampl range for finding the right Ne line
+    """
+    
+    df_filtered = df[(df['Raman_shift (cm-1)'] >= target_shift - tol) & (df['Raman_shift (cm-1)'] <= target_shift + tol)]
+    
+    # Find the row with the maximum intensity within this filtered DataFrame
+    max_intensity_row = df_filtered.loc[df_filtered['Intensity'].idxmax()]
+    
+    return max_intensity_row
 
 def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447, cut_off_intensity=2000):
     """
@@ -72,23 +81,48 @@ def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447
     """
 
     df_Ne=calculate_Ne_line_positions(wavelength=wavelength, cut_off_intensity=cut_off_intensity)
-
-    closest1=find_closest(df_Ne, line1_shift).loc['Raman_shift (cm-1)']
-    closest2=find_closest(df_Ne, line2_shift).loc['Raman_shift (cm-1)']
-    closest_1_int=find_closest(df_Ne, line1_shift).loc['Intensity']
-    closest_2_int=find_closest(df_Ne, line2_shift).loc['Intensity']
-
-    diff=abs(closest1-closest2)
-
-    df=pd.DataFrame(data={'Ne_Split': diff,
+    # 
+    # closest1=find_closest(df_Ne, line1_shift).loc['Raman_shift (cm-1)']
+    # closest2=find_closest(df_Ne, line2_shift).loc['Raman_shift (cm-1)']
+    # closest_1_int=find_closest(df_Ne, line1_shift).loc['Intensity']
+    # closest_2_int=find_closest(df_Ne, line2_shift).loc['Intensity']
+    # 
+    # diff=abs(closest1-closest2)
+    # 
+    # df=pd.DataFrame(data={'Ne_Split': diff,
+    # 'Line_1': closest1,
+    # 'Line_2': closest2,
+    # 'Line_1_int': closest_1_int,
+    # 'Line_2_int': closest_2_int,
+    # 'Entered Pos Line 1': line1_shift,
+    # 'Entered Pos Line 2': line2_shift}, index=[0])
+    # 
+    # 
+    # return df
+# Use the new function to find the lines of interest
+    closest1_row = find_max_row(df_Ne, line1_shift)
+    closest2_row = find_max_row(df_Ne, line2_shift)
+    
+    # Extract the required values from the rows
+    closest1 = closest1_row['Raman_shift (cm-1)']
+    closest2 = closest2_row['Raman_shift (cm-1)']
+    closest_1_int = closest1_row['Intensity']
+    closest_2_int = closest2_row['Intensity']
+    
+    # Calculate the difference
+    diff = abs(closest1 - closest2)
+    
+    # Create the DataFrame
+    df = pd.DataFrame(data={
+    'Ne_Split': diff,
     'Line_1': closest1,
     'Line_2': closest2,
     'Line_1_int': closest_1_int,
     'Line_2_int': closest_2_int,
     'Entered Pos Line 1': line1_shift,
-    'Entered Pos Line 2': line2_shift}, index=[0])
-
-
+    'Entered Pos Line 2': line2_shift
+    }, index=[0])
+    
     return df
 
 def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):

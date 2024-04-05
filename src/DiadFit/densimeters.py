@@ -916,7 +916,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
     Parameters
     -------------
-    Ne_line_combo: str, '1117_1447', '1220_1447', '1220_1400'
+    Ne_line_combo: str, '1117_1447', '1117_1400', '1220_1447', '1220_1400', '1220_1567'
         Combination of Ne lines used for drift correction
         
     Either:
@@ -1052,6 +1052,22 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
         with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
             highrho_pickle_data = pickle.load(f)
             
+            
+    if Ne_line_combo=='1220_1567':
+       
+        pickle_str_lowr='Lowrho_polyfit_dataUCB_1220_1567.pkl'
+        with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
+            lowrho_pickle_data = pickle.load(f)
+
+        # This gets the densimeter at medium density
+        pickle_str_medr='Mediumrho_polyfit_dataUCB_1220_1567.pkl'
+        with open(DiadFit_dir/pickle_str_medr, 'rb') as f:
+            medrho_pickle_data = pickle.load(f)
+        # This gets the densimeter at high density.
+        pickle_str_highr='Highrho_polyfit_dataUCB_1220_1567.pkl'
+        with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
+            highrho_pickle_data = pickle.load(f)
+            
     if Ne_line_combo=='1117_1400':
         pickle_str_lowr='Lowrho_polyfit_dataUCB_1117_1400.pkl'
         with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
@@ -1138,7 +1154,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     
     offset=0
     if Ne_line_combo=='1220_1400':
-        offset=0.55
+        offset=105.257-105.3438707618937
 
     
         
@@ -1158,7 +1174,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     
     Imposs_lower_end=(df['Corrected_Splitting']>103.350311768435+offset) # & (df['Splitting']<103.88+offset)
     # Impossible densities, room T
-    Imposs_upper_end=(df['Corrected_Splitting']<104.407308904012+offset)# & (df['Splitting']>103.88+offset)  
+    Imposs_upper_end=(df['Corrected_Splitting']<105.3438707618937+offset)# & (df['Splitting']>103.88+offset)  
     df.loc[zero, 'Preferred D']=0
     df.loc[zero, 'Notes']=0
     
