@@ -250,7 +250,7 @@ def loop_pressure_depth_2step(P_kbar=None, d1=14, rho1=2800, rho2=3100, g=9.81):
         depth_km_loop=convert_pressure_depth_2step(P_kbar,
             d1=d1, rho1=rho1, rho2=rho2, g=g)
     else:
-        depth_km_loop=np.empty(len(P_kbar))
+        depth_km_loop=np.zeros(len(P_kbar))
         for i in range(0, len(P_kbar)):
             depth_km_loop[i]=convert_pressure_depth_2step(P_kbar[i],
             d1=d1, rho1=rho1, rho2=rho2, g=g)
@@ -355,7 +355,7 @@ def loop_pressure_depth_3step(P_kbar=None,  d1=5, d2=14,
             d1=d1, rho1=rho1, rho2=rho2, g=g)
     else:
 
-        depth_km_loop=np.empty(len(P_kbar))
+        depth_km_loop=np.zeros(len(P_kbar))
         for i in range(0, len(P_kbar)):
             depth_km_loop[i]=convert_pressure_depth_3step(P_kbar[i],
             d1=d1, d2=d2,rho1=rho1, rho2=rho2, rho3=rho3, g=g)
@@ -495,12 +495,12 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
                 D=func(P_kbar)
 
             if isinstance(P_kbar, pd.Series):
-                D=np.empty(len(P_kbar), float)
+                D=np.zeros(len(P_kbar), float)
                 for i in range(0, len(P_kbar)):
                     D[i]=func(P_kbar.iloc[i])
 
             if isinstance(P_kbar, np.ndarray):
-                D=np.empty(len(P_kbar), float)
+                D=np.zeros(len(P_kbar), float)
                 for i in range(0, len(P_kbar)):
                     D[i]=func(P_kbar[i])
 

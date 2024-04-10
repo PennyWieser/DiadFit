@@ -1756,8 +1756,8 @@ def filter_Ne_Line_neighbours(*, df_combo=None, Corr_factor=None, number_av=6, o
     """
     if df_combo is not None:
         Corr_factor=df_combo['Ne_Corr']
-    Corr_factor_Filt=np.empty(len(Corr_factor), dtype=float)
-    median_loop=np.empty(len(Corr_factor), dtype=float)
+    Corr_factor_Filt=np.zeros(len(Corr_factor), dtype=float)
+    median_loop=np.zeros(len(Corr_factor), dtype=float)
 
     for i in range(0, len(Corr_factor)):
         if i<len(Corr_factor)/2: # For first half, do 5 after

@@ -626,8 +626,8 @@ def loop_approx_diad_fits(*, spectra_path, config, Diad_Files, filetype, plot_fi
     # Now do for all files
     fit_params = pd.DataFrame([])
     x_cord=Diad[:, 0]
-    data_y_all=np.empty([  len(x_cord), len(Diad_Files)], float)
-    data_x_all=np.empty([  len(x_cord), len(Diad_Files)], float)
+    data_y_all=np.zeros([  len(x_cord), len(Diad_Files)], float)
+    data_x_all=np.zeros([  len(x_cord), len(Diad_Files)], float)
     i=0
     for file in tqdm(Diad_Files):
 
@@ -855,8 +855,8 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
     if np.shape(data_y)[1]==0:
         Group1_df=pd.DataFrame().reindex_like(fit_params)
         Groupnot1_df=pd.DataFrame().reindex_like(fit_params)
-        Group1_np_y=np.empty(0, dtype='float')
-        Groupnot1_np_y=np.empty(0, dtype='float')
+        Group1_np_y=np.zeros(0, dtype='float')
+        Groupnot1_np_y=np.zeros(0, dtype='float')
         return Group1_df, Groupnot1_df, Group1_np_y, Groupnot1_np_y
 
     else:
@@ -4047,15 +4047,15 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
 
     i=0
     Y=0
-    peak_pos_saved=np.empty(len(Diad_Files), dtype=float)
-    peak_prom_saved=np.empty(len(Diad_Files), dtype=float)
-    peak_height_saved=np.empty(len(Diad_Files), dtype=float)
-    peak_bck=np.empty(len(Diad_Files), dtype=float)
-    y_star=np.empty(len(Diad_Files), dtype=float)
-    yplot=np.empty(len(Diad_Files), dtype=float)
+    peak_pos_saved=np.zeros(len(Diad_Files), dtype=float)
+    peak_prom_saved=np.zeros(len(Diad_Files), dtype=float)
+    peak_height_saved=np.zeros(len(Diad_Files), dtype=float)
+    peak_bck=np.zeros(len(Diad_Files), dtype=float)
+    y_star=np.zeros(len(Diad_Files), dtype=float)
+    yplot=np.zeros(len(Diad_Files), dtype=float)
     Diad_df=get_data(path=path, filename=Diad_Files[0], filetype=filetype)
     x_data=Diad_df[:, 0]
-    y_data=np.empty([  len(x_data), len(Diad_Files)], float)
+    y_data=np.zeros([  len(x_data), len(Diad_Files)], float)
 
 
     for file in Diad_Files:

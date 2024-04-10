@@ -112,13 +112,15 @@ plot_figure=True, fig_i=0, neg_values=True):
 
 
 
-    mean_CO2_eq_melt = np.empty(len_loop, dtype=float)
-    mean_CO2_eq_melt_ind = np.empty(len_loop, dtype=float)
-    med_CO2_eq_melt  = np.empty(len_loop, dtype=float)
-    std_CO2_eq_melt  = np.empty(len_loop, dtype=float)
-    preferred_val_CO2_melt= np.empty(len_loop, dtype=float)
-    std_IQR_CO2_eq_melt= np.empty(len_loop, dtype=float)
-    Sample=np.empty(len_loop,  dtype=np.dtype('U100') )
+    mean_CO2_eq_melt = np.zeros(len_loop, dtype=float)
+    mean_CO2_eq_melt_ind = np.zeros(len_loop, dtype=float)
+    med_CO2_eq_melt  = np.zeros(len_loop, dtype=float)
+    std_CO2_eq_melt  = np.zeros(len_loop, dtype=float)
+    preferred_val_CO2_melt= np.zeros(len_loop, dtype=float)
+    std_IQR_CO2_eq_melt= np.zeros(len_loop, dtype=float)
+    Q84= np.zeros(len_loop, dtype=float)
+    Q16= np.zeros(len_loop, dtype=float)
+    Sample=np.zeros(len_loop,  dtype=np.dtype('U100') )
 
 
     All_outputs=pd.DataFrame([])
@@ -241,12 +243,16 @@ error_type_dimension=error_type_dimension, error_dist_dimension=error_dist_dimen
         med_CO2_eq_melt[i]=np.nanmedian(df['CO2_eq_melt_ppm_MC'])
         std_CO2_eq_melt[i]=np.nanstd(df['CO2_eq_melt_ppm_MC'])
         var=df['CO2_eq_melt_ppm_MC']
+        Q16[i]=np.percentile(var, 16)
+        Q84[i]=np.percentile(var, 84)
         std_IQR_CO2_eq_melt[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
 
-        preferred_val_CO2_melt[i]=np.nanmean(df['CO2_eq_melt_ppm_noMC'])
 
 
-        mean_CO2_eq_melt_ind[i]=df['CO2_eq_melt_ppm_noMC'].iloc[0]
+        # Values all the same, so can just take the 1st.
+        preferred_val_CO2_melt[i]=df['CO2_eq_melt_ppm_noMC'].iloc[0]
+
+
 
 
 
@@ -257,7 +263,9 @@ error_type_dimension=error_type_dimension, error_dist_dimension=error_dist_dimen
                         'CO2_eq_in_melt_noMC': preferred_val_CO2_melt,
                         'mean_MC_CO2_equiv_melt_ppm': mean_CO2_eq_melt,
                         'med_MC_CO2_equiv_melt_ppm': med_CO2_eq_melt,
-                        'std_MC_CO2_equiv_melt_ppm': std_IQR_CO2_eq_melt,
+                        'std_MC_IQR_CO2_equiv_melt_ppm': std_IQR_CO2_eq_melt,
+                        '16th_quantile_melt_ppm': Q16,
+                        '84th_quantile_melt_ppm': Q84,
 
 
 

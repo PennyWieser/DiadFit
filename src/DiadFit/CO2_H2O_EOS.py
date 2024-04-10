@@ -925,7 +925,7 @@ def calculate_molar_volume_DZ2006(*, P_kbar, T_K, XH2O):
         raise ValueError("All input Pandas Series must have the same length.")
 
     # Set up loop
-    mol_vol=np.empty(len(P_kbar), float)
+    mol_vol=np.zeros(len(P_kbar), float)
 
     for i in range(0, len(P_kbar)):
         mol_vol[i]=calculate_molar_volume_ind_DZ2006(P_kbar=P_kbar.iloc[i].astype(float), T_K=T_K.iloc[i].astype(float), XH2O=XH2O.iloc[i].astype(float))
@@ -999,7 +999,7 @@ def calculate_Pressure_DZ2006(*, mol_vol=None, density=None, T_K, XH2O):
         raise ValueError("All input Pandas Series must have the same length.")
 
     # Set up loop
-    P=np.empty(len(mol_vol), float)
+    P=np.zeros(len(mol_vol), float)
 
     for i in range(0, len(mol_vol)):
         P[i]=calculate_Pressure_ind_DZ2006(mol_vol=mol_vol.iloc[i].astype(float), T_K=T_K.iloc[i].astype(float), XH2O=XH2O.iloc[i].astype(float))
@@ -1025,12 +1025,12 @@ def mix_fugacity(*, P_kbar, T_K, XH2O, Vmix):
     if len(set(lengths)) != 1:
         raise ValueError("All input Pandas Series must have the same length.")
 
-    f=np.empty(len(P_kbar), float)
-    a_CO2=np.empty(len(P_kbar), float)
-    a_H2O=np.empty(len(P_kbar), float)
-    f_CO2=np.empty(len(P_kbar), float)
-    f_H2O=np.empty(len(P_kbar), float)
-    Zmix=np.empty(len(P_kbar), float)
+    f=np.zeros(len(P_kbar), float)
+    a_CO2=np.zeros(len(P_kbar), float)
+    a_H2O=np.zeros(len(P_kbar), float)
+    f_CO2=np.zeros(len(P_kbar), float)
+    f_H2O=np.zeros(len(P_kbar), float)
+    Zmix=np.zeros(len(P_kbar), float)
     for i in range(0, len(P_kbar)):
 
         f_H2O[i], f_CO2[i], a_H2O[i], a_CO2[i], Zmix[i]=mix_fugacity_ind(P_kbar=P_kbar.iloc[i].astype(float), T_K=T_K.iloc[i].astype(float), XH2O=XH2O.iloc[i].astype(float), Vmix=Vmix.iloc[i].astype(float))

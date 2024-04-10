@@ -101,7 +101,7 @@ def check_for_duplicates(spectra_path, prefix=True, prefix_str=' ', exception=Tr
 
     All_files_spectra= [f for f in listdir(spectra_path) if isfile(join(spectra_path, f))]
 
-    file_m=np.empty(len(All_files_spectra), dtype=object)
+    file_m=np.zeros(len(All_files_spectra), dtype=object)
     for i in range(0, len(All_files_spectra)):
         name=All_files_spectra[i]
         # If no prefix or suffix to remove, simple
@@ -991,14 +991,14 @@ def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False
     date_str=[]
     month_str=[]
     # Numerical values
-    Int_time=np.empty(len(Allfiles), dtype=float)
-    objec=np.empty(len(Allfiles), dtype=float)
-    time=np.empty(len(Allfiles), dtype=float)
+    Int_time=np.zeros(len(Allfiles), dtype=float)
+    objec=np.zeros(len(Allfiles), dtype=float)
+    time=np.zeros(len(Allfiles), dtype=float)
 
-    Day=np.empty(len(Allfiles), dtype=float)
-    power=np.empty(len(Allfiles), dtype=float)
-    accumulations=np.empty(len(Allfiles), dtype=float)
-    spectral_cent=np.empty(len(Allfiles), dtype=float)
+    Day=np.zeros(len(Allfiles), dtype=float)
+    power=np.zeros(len(Allfiles), dtype=float)
+    accumulations=np.zeros(len(Allfiles), dtype=float)
+    spectral_cent=np.zeros(len(Allfiles), dtype=float)
 
     for i in tqdm(range(0, len(Allfiles))):
         filename1=Allfiles[i] #.rsplit('.',1)[0]
@@ -1147,7 +1147,7 @@ def extracting_filenames_generic(*, names, prefix=False,
 
     file_m=list(names)
 
-    file_m=np.empty(len(names), dtype=object)
+    file_m=np.zeros(len(names), dtype=object)
     for i in range(0, len(names)):
         name=names.iloc[i]
         # If no prefix or suffix to remove, simple
@@ -1192,12 +1192,12 @@ def extract_temp_Aranet(df):
     """ Extracts temperature data from the aranet
     """
     TD=str(Temp['Time(dd/mm/yyyy)'])
-    hour=np.empty(len(Temp), dtype=object)
-    date=np.empty(len(Temp), dtype=object)
-    time=np.empty(len(Temp), dtype=object)
-    minutes=np.empty(len(Temp), dtype=object)
-    seconds=np.empty(len(Temp), dtype=object)
-    secs_sm=np.empty(len(Temp), dtype=object)
+    hour=np.zeros(len(Temp), dtype=object)
+    date=np.zeros(len(Temp), dtype=object)
+    time=np.zeros(len(Temp), dtype=object)
+    minutes=np.zeros(len(Temp), dtype=object)
+    seconds=np.zeros(len(Temp), dtype=object)
+    secs_sm=np.zeros(len(Temp), dtype=object)
     for i in range(0, len(Temp)):
         TD=str(Temp['Time(dd/mm/yyyy)'].iloc[i])
         date[i]=TD.split(' ')[0]

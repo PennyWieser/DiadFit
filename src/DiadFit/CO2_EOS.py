@@ -829,7 +829,7 @@ def calculate_SP19942(T_K, target_pressure_MPa):
         target_p=np.array(target_pressure_MPa)
         Density=calculate_Density_Sterner_Pitzer_1994(T_K=T_K, target_pressure_MPa=target_p)
     else:
-        Density=np.empty(len(target_pressure_MPa))
+        Density=np.zeros(len(target_pressure_MPa))
         for i in range(0, len(target_pressure_MPa)):
             Density[i]=calculate_Density_Sterner_Pitzer_1994(T_K=T_K, target_pressure_MPa=target_pressure_MPa[i])
     return Density
@@ -860,7 +860,7 @@ def calculate_SP1994_Temp(CO2_dens_gcm3, target_pressure_MPa):
         target_p=np.array(target_pressure_MPa)
         Density=calculate_Temp_Sterner_Pitzer_1994(CO2_dens_gcm3=CO2_dens_gcm3, target_pressure_MPa=target_p)
     else:
-        Density=np.empty(len(target_pressure_MPa))
+        Density=np.zeros(len(target_pressure_MPa))
         for i in range(0, len(target_pressure_MPa)):
             Density[i]=calculate_Temp_Sterner_Pitzer_1994(CO2_dens_gcm3=CO2_dens_gcm3, target_pressure_MPa=target_pressure_MPa[i])
     return Density

@@ -6,6 +6,8 @@ import DiadFit as pf
 from tqdm import tqdm
 from DiadFit.density_depth_crustal_profiles import *
 from DiadFit.CO2_EOS import *
+# This gets us the functions for Monte Carloing
+from DiadFit.CO2_in_bubble_error import *
 
 ## Microthermometry error propagation
 # propagate_microthermometry_uncertainty_1sam goes to 'make_error_dist_microthermometry_1sam'
@@ -34,6 +36,7 @@ def make_error_dist_microthermometry_1sam(*, T_h_C, sample_i=0, error_T_h_C=0.3,
         The type of error to add to the temperature measurement. Can be either 'Abs' or 'Perc'. Default value is 'Abs'.
     len_loop : int, optional
         The number of samples for which the error distribution will be generated. Default value is 1.
+    
 
     Returns
     -------
@@ -44,23 +47,29 @@ def make_error_dist_microthermometry_1sam(*, T_h_C, sample_i=0, error_T_h_C=0.3,
     """
 
     if len_loop==1:
+        print('single')
         df_c=pd.DataFrame(data={'T_h_C': T_h_C}, index=[0])
     else:
         df_c=pd.DataFrame(data={'T_h_C': T_h_C})
 
-
-    # Temperature error distribution
-    if error_type_T_h_C=='Abs':
-        error_T_h_C=error_T_h_C
-    if error_type_T_h_C =='Perc':
-        error_T_h_C=df_c['T_h_C'].iloc[sample_i]*error_T_h_C/100
-    if error_dist_T_h_C=='normal':
-        Noise_to_add_T_h_C = np.random.normal(0, error_T_h_C, N_dup)
-    if error_dist_T_h_C=='uniform':
-        Noise_to_add_T_h_C = np.random.uniform(- error_T_h_C, +
-                                                      error_T_h_C, N_dup)
+    # 
+    # # Temperature error distribution
+    # if error_type_T_h_C=='Abs':
+    #     error_T_h_C=error_T_h_C
+    # if error_type_T_h_C =='Perc':
+    #     error_T_h_C=df_c['T_h_C'].iloc[sample_i]*error_T_h_C/100
+    # if error_dist_T_h_C=='normal':
+    #     Noise_to_add_T_h_C = np.random.normal(0, error_T_h_C, N_dup)
+    # if error_dist_T_h_C=='uniform':
+    #     Noise_to_add_T_h_C = np.random.uniform(- error_T_h_C, +
+    #                                                   error_T_h_C, N_dup)
+    # 
+    # T_h_C_with_noise=Noise_to_add_T_h_C+df_c['T_h_C'].iloc[0]
     
-    T_h_C_with_noise=Noise_to_add_T_h_C+df_c['T_h_C'].iloc[0]
+    # Gets this noise making func from CO2 in bubble error.py file
+    T_h_C_with_noise=add_noise_to_variable(T_h_C, error_T_h_C,
+        error_type_T_h_C, error_dist_T_h_C, N_dup, True, neg_threshold=0.0000000001)
+    
     
     
 
@@ -166,9 +175,8 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
         else:
             Sample[i]=Sample_ID.iloc[i]
 
-        Temp_MC=make_error_dist_microthermometry_1sam(T_h_C=T_h_C_i,
-        sample_i=i, error_T_h_C=error_T_h_C, N_dup=N_dup,
-        error_dist_T_h_C=error_dist_T_h_C, error_type_T_h_C=error_type_T_h_C, len_loop=1)
+        Temp_MC= add_noise_to_variable(T_h_C, error_T_h_C,
+        error_type_T_h_C, error_dist_T_h_C, N_dup, True, neg_threshold=0.0000000001)
 
         Sample2=Sample[i]
         MC_T=calculate_CO2_density_homog_T(T_h_C=Temp_MC, Sample_ID=Sample2, EOS=EOS, homog_to=homog_to, set_to_critical=set_to_critical)
