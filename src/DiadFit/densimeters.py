@@ -498,8 +498,10 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
        Split_err=(split_err*Split).astype(float)
 
 
-    if temp=='RoomT':
-        raise TypeError('Sorry, this function doesnt yet support the calibration at 24C, please enter temp=SupCrit')
+        
+        
+        
+   
     if isinstance(Split, float) or isinstance(Split, int):
         Split=pd.Series(Split)
     # #if temp is "RoomT":
@@ -509,7 +511,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     HighD_RT=-41.64784 + 0.4058777*Split- 0.1460339*(Split-104.653)**2
 
     # IF temp is 37
-    if lab=='CMASS':
+    if lab=='CMASS' and temp=='SupCrit':
         # This gets the densimeter at low density
         pickle_str_lowr='Lowrho_polyfit_data_CMASS.pkl'
         with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
@@ -523,6 +525,25 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
         pickle_str_highr='Highrho_polyfit_data_CMASS.pkl'
         with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
             highrho_pickle_data = pickle.load(f)
+            
+            
+    
+            
+    if lab=='CMASS' and temp=='RoomT':
+        # This gets the densimeter at low density
+        pickle_str_lowr='Lowrho_polyfit_data_CMASS_24C.pkl'
+        with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
+            lowrho_pickle_data = pickle.load(f)
+    
+
+        # This gets the densimeter at high density.
+        pickle_str_highr='Highrho_polyfit_data_CMASS_24C.pkl'
+        with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
+            highrho_pickle_data = pickle.load(f)
+                      
+            
+            
+            
     elif lab=='CCMR':
         pickle_str_lowr='Lowrho_polyfit_data_CCMR.pkl'
         with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
@@ -543,7 +564,13 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
     # this allocates the model
     lowrho_model = lowrho_pickle_data['model']
-    medrho_model = medrho_pickle_data['model']
+    
+    if temp=='SupCrit':
+        medrho_model = medrho_pickle_data['model']
+        MedD_SC = pd.Series(medrho_model(Split), index=Split.index)
+        medD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
+        pickle_str=pickle_str_medr,  CI_dens=CI_neon, CI_split=CI_split, str_d='MedD')
+        
     highrho_model = highrho_pickle_data['model']
 
     # Each of these lines get the density, and then the error on that density.
@@ -551,10 +578,8 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     LowD_SC = pd.Series(lowrho_model(Split), index=Split.index)
     lowD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
     pickle_str=pickle_str_lowr,  CI_dens=CI_neon, CI_split=CI_split, str_d='LowD')
+ 
 
-    MedD_SC = pd.Series(medrho_model(Split), index=Split.index)
-    medD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
-    pickle_str=pickle_str_medr,  CI_dens=CI_neon, CI_split=CI_split, str_d='MedD')
 
     HighD_SC = pd.Series(highrho_model(Split), index=Split.index)
     highD_error=calculate_Densimeter_std_err_values(corrected_split=Split, corrected_split_err=Split_err,
@@ -563,7 +588,14 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
 
 
-
+    if temp=='RoomT':
+        MedD_SC=np.nan
+        MedD_err=np.nan
+        
+    else:
+        MedD_err=medD_error['MedD_Density_σ']
+        
+        
     df=pd.DataFrame(data={'Preferred D': 0,
     'Corrected_Splitting': Split,
     'Preferred D_σ': 0,
@@ -578,7 +610,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
                                 'LowD_SC': LowD_SC,
                                 'LowD_SC_σ': lowD_error['LowD_Density_σ'],
                                 'MedD_SC': MedD_SC,
-                                'MedD_SC_σ': medD_error['MedD_Density_σ'],
+                                'MedD_SC_σ': MedD_err,
                                 'HighD_SC': HighD_SC,
                                 'HighD_SC_σ': highD_error['HighD_Density_σ'],
                                 'Temperature': temp,
@@ -635,12 +667,13 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     df.loc[ SupCrit&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D_σ_split'] = highD_error['HighD_Density_σ_split']
     df.loc[ SupCrit&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D_σ_dens'] = highD_error['HighD_Density_σ_dens']
     df.loc[ SupCrit&(min_HD_SC_Split&max_HD_SC_Split), 'Notes']='SupCrit, high density'
-    # If SupCrit, Med density
-    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D'] = MedD_SC
-    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ'] = medD_error['MedD_Density_σ']
-    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ_split'] = medD_error['MedD_Density_σ_split']
-    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ_dens'] = medD_error['MedD_Density_σ_dens']
-    df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Notes']='SupCrit, Med density'
+    
+    if temp!='RoomT':
+        df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D'] = MedD_SC
+        df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ'] = medD_error['MedD_Density_σ']
+        df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ_split'] = medD_error['MedD_Density_σ_split']
+        df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Preferred D_σ_dens'] = medD_error['MedD_Density_σ_dens']
+        df.loc[SupCrit&(min_MD_SC_Split&max_MD_SC_Split), 'Notes']='SupCrit, Med density'
 
     # If SupCrit, low density
     df.loc[ SupCrit&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D'] = LowD_SC
@@ -653,6 +686,26 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     df.loc[SupCrit&(Too_Low_SC), 'Preferred D']=LowD_SC
     df.loc[SupCrit&(Too_Low_SC), 'Notes']='Below lower calibration limit'
     df.loc[SupCrit&(Too_Low_SC), 'in range']='N'
+    
+    
+    
+    # now lets do Room T ---------------------------------
+    df.loc[ roomT&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D'] = HighD_SC
+    df.loc[ roomT&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D_σ'] = highD_error['HighD_Density_σ']
+    df.loc[ roomT&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D_σ_split'] = highD_error['HighD_Density_σ_split']
+    df.loc[ roomT&(min_HD_SC_Split&max_HD_SC_Split), 'Preferred D_σ_dens'] = highD_error['HighD_Density_σ_dens']
+    df.loc[ roomT&(min_HD_SC_Split&max_HD_SC_Split), 'Notes']='roomT, high density'
+    
+    # If roomT, low density
+    df.loc[ roomT&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D'] = LowD_SC
+    df.loc[ roomT&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D_σ'] = lowD_error['LowD_Density_σ']
+    df.loc[ roomT&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D_σ_split'] = lowD_error['LowD_Density_σ_split']
+    df.loc[ roomT&(min_lowD_SC_Split&max_lowD_SC_Split), 'Preferred D_σ_dens'] = lowD_error['LowD_Density_σ_dens']
+    df.loc[roomT&(min_lowD_SC_Split&max_lowD_SC_Split), 'Notes']='roomT, low density'    
+    
+    
+    
+    
 
 
     # If RoomT, and too low

@@ -2,10 +2,22 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Lets use a generic function for getting a panda series value or not.
+
+def get_value(variable, i):
+    """ This function returns the value if its not a series, otherwise returns the right row in the series
+    """
+    if isinstance(variable, pd.Series):
+        return variable.iloc[i]
+    else:
+        return variable
+
+const=(4/3)*np.pi
 
 def propagate_CO2_in_bubble(*, N_dup=1000, sample_ID, vol_perc_bub=None, error_vol_perc_bub=None, error_type_vol_perc_bub='Abs',
 MI_x=None, MI_y=None,MI_z=None,VB_x=None, VB_y=None,VB_z=None,
-
+error_MI_x=None, error_MI_y=None,error_MI_z=None,error_VB_x=None, error_VB_y=None, error_VB_z=None,
+error_type_dimension='Abs', error_dist_dimension='normal',
 melt_dens_kgm3, CO2_bub_dens_gcm3,
  error_dist_vol_perc_bub='normal',
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
@@ -45,7 +57,11 @@ plot_figure=True, fig_i=0, neg_values=True):
     error_MI_x, error_MI_y, error_MI_Z, error_VB_x, error_VB_y, error_VB_Z: int, float, pd.Series
         Error on x, y, z dimension meausurement
 
+    error_type_dimension: 'Abs' or 'Perc'
+        Whether errors on all x-y-z are perc or abs
 
+    error_dist_dimension: 'normal' or 'uniform'
+        Whether errors on all x-y-z are normally or uniformly distributed.
 
 
     melt_dens_kgm3:int, float, pd.series
@@ -73,17 +89,21 @@ plot_figure=True, fig_i=0, neg_values=True):
 
     """
     # Constant for sphere calcs
-    const=(4/3)*np.pi
-     # Lets check what they entered for volume
+
+     # Lets check what they entered for volume - if they didnt enter a volume % Bubble, lets calculate it
     if vol_perc_bub is None:
         Vol_VB_sphere=const*VB_x*VB_y*VB_z
         Vol_MI_sphere=const*MI_x*MI_y*MI_z
-        # Assume its an octahedral
-        vol_MI_oct=(MI_x*MI_y_MI_z)/6
-        print('still in progress, ask Penny if you need this')
+        vol_perc_bub=100* Vol_VB_sphere/Vol_MI_sphere
+
+    # Now lets check how they entered error in volume
+    if not ((error_vol_perc_bub is not None and all(v is None for v in [error_MI_x, error_MI_y, error_MI_z, error_VB_x, error_VB_y, error_VB_z])) or (error_vol_perc_bub is None and all(v is not None for v in [error_MI_x, error_MI_y, error_MI_z, error_VB_x, error_VB_y, error_VB_z]))):
+            raise ValueError('Specify either error_vol_perc_bub or non-None values for all of error_MI_x, error_MI_y, error_MI_z, error_VB_x, error_VB_y, and error_VB_z.')
+
+
+
 
     # Set up empty things to fill up.
-
     if type(vol_perc_bub) is pd.Series:
         len_loop=len(vol_perc_bub)
 
@@ -104,6 +124,8 @@ plot_figure=True, fig_i=0, neg_values=True):
     All_outputs=pd.DataFrame([])
 
 
+
+
     #This loops through each sample
     for i in range(0, len_loop):
         if i % 20 == 0:
@@ -113,67 +135,76 @@ plot_figure=True, fig_i=0, neg_values=True):
         # If user has entered a pandas series for error, takes right one for each loop
         # vol_perc_bub % and error
 
-        # Checking volume right format
-        if type(vol_perc_bub) is pd.Series:
-            vol_perc_bub_i=vol_perc_bub.iloc[i]
-        else:
-            vol_perc_bub_i=vol_perc_bub
+        # Checking volume right format, if panda series or integer
+        vol_perc_bub_i=get_value(vol_perc_bub, i)
+        error_vol_perc_bub_i=get_value(error_vol_perc_bub, i)
 
+        CO2_bub_dens_gcm3_i=get_value(CO2_bub_dens_gcm3, i)
+        error_CO2_bub_dens_gcm3_i=get_value(error_CO2_bub_dens_gcm3, i)
 
-        if type(error_vol_perc_bub) is pd.Series:
-            error_vol_perc_bub_i=error_vol_perc_bub.iloc[i]
-        else:
-            error_vol_perc_bub_i=error_vol_perc_bub
-
-        # Checking bubble dens right form
-
-        if type(CO2_bub_dens_gcm3) is pd.Series:
-            CO2_bub_dens_gcm3_i=CO2_bub_dens_gcm3.iloc[i]
-        else:
-            CO2_bub_dens_gcm3_i=CO2_bub_dens_gcm3
-
-        # Checking melt density
-
-        if type(error_CO2_bub_dens_gcm3) is pd.Series:
-            error_CO2_bub_dens_gcm3_i=error_CO2_bub_dens_gcm3.iloc[i]
-        else:
-            error_CO2_bub_dens_gcm3_i=error_CO2_bub_dens_gcm3
-
-        # Checking melt density
-
-
-        if type(melt_dens_kgm3) is pd.Series:
-            melt_dens_kgm3_i=melt_dens_kgm3.iloc[i]
-        else:
-            melt_dens_kgm3_i=melt_dens_kgm3
-
-
-        if type(error_melt_dens_kgm3) is pd.Series:
-            error_melt_dens_kgm3_i=error_melt_dens_kgm3.iloc[i]
-        else:
-            error_melt_dens_kgm3_i=error_melt_dens_kgm3
-
-
+        melt_dens_kgm3_i=get_value(melt_dens_kgm3, i)
+        error_melt_dens_kgm3_i=get_value(error_melt_dens_kgm3, i)
 
 
 
 
         # This is the function doing the work to actually make the simulations for each variable.
-        df_synthetic=propagate_CO2_in_bubble_ind(
-N_dup=N_dup,
-vol_perc_bub=vol_perc_bub_i,
-melt_dens_kgm3=melt_dens_kgm3_i,
-CO2_bub_dens_gcm3=CO2_bub_dens_gcm3_i,
-error_CO2_bub_dens_gcm3=error_CO2_bub_dens_gcm3_i,
-error_type_CO2_bub_dens_gcm3=error_type_CO2_bub_dens_gcm3,
- error_dist_CO2_bub_dens_gcm3=error_dist_CO2_bub_dens_gcm3,
-error_vol_perc_bub=error_vol_perc_bub_i,
-error_type_vol_perc_bub=error_type_vol_perc_bub,
-error_dist_vol_perc_bub=error_dist_vol_perc_bub,
-error_melt_dens_kgm3=error_melt_dens_kgm3_i,
-error_type_melt_dens_kgm3=error_type_melt_dens_kgm3,
-error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
- len_loop=1, neg_values=neg_values)
+        if error_vol_perc_bub is not None:
+
+            df_synthetic=propagate_CO2_in_bubble_ind(
+    N_dup=N_dup,
+    vol_perc_bub=vol_perc_bub_i,
+    melt_dens_kgm3=melt_dens_kgm3_i,
+    CO2_bub_dens_gcm3=CO2_bub_dens_gcm3_i,
+    error_CO2_bub_dens_gcm3=error_CO2_bub_dens_gcm3_i,
+    error_type_CO2_bub_dens_gcm3=error_type_CO2_bub_dens_gcm3,
+    error_dist_CO2_bub_dens_gcm3=error_dist_CO2_bub_dens_gcm3,
+    error_vol_perc_bub=error_vol_perc_bub_i,
+    error_type_vol_perc_bub=error_type_vol_perc_bub,
+    error_dist_vol_perc_bub=error_dist_vol_perc_bub,
+    error_melt_dens_kgm3=error_melt_dens_kgm3_i,
+    error_type_melt_dens_kgm3=error_type_melt_dens_kgm3,
+    error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
+    len_loop=1, neg_values=neg_values)
+
+        else:
+
+            # This is the more complex one where we have to account for x-y-z errors on all of them.
+            MI_x_i = get_value(MI_x, i)
+            MI_y_i = get_value(MI_y, i)
+            MI_z_i = get_value(MI_z, i)
+            VB_x_i = get_value(VB_x, i)
+            VB_y_i = get_value(VB_y, i)
+            VB_z_i = get_value(VB_z, i)
+
+            error_MI_x_i = get_value(error_MI_x, i)
+            error_MI_y_i = get_value(error_MI_y, i)
+            error_MI_z_i = get_value(error_MI_z, i)
+            error_VB_x_i = get_value(error_VB_x, i)
+            error_VB_y_i = get_value(error_VB_y, i)
+            error_VB_z_i = get_value(error_VB_z, i)
+
+
+
+            df_synthetic=propagate_CO2_in_bubble_ind(
+    N_dup=N_dup,
+    vol_perc_bub=vol_perc_bub_i,
+    melt_dens_kgm3=melt_dens_kgm3_i,
+    CO2_bub_dens_gcm3=CO2_bub_dens_gcm3_i,
+    error_CO2_bub_dens_gcm3=error_CO2_bub_dens_gcm3_i,
+    error_type_CO2_bub_dens_gcm3=error_type_CO2_bub_dens_gcm3,
+    error_dist_CO2_bub_dens_gcm3=error_dist_CO2_bub_dens_gcm3,
+    error_vol_perc_bub=None,
+MI_x=MI_x_i, MI_y=MI_y_i,MI_z=MI_z_i,VB_x=VB_x_i, VB_y=VB_y_i,VB_z=VB_z_i,
+error_MI_x=error_MI_x_i, error_MI_y=error_MI_y_i,error_MI_z=error_MI_z_i,
+error_VB_x=error_VB_x_i, error_VB_y=error_VB_y_i, error_VB_z=error_VB_z_i,
+error_type_dimension=error_type_dimension, error_dist_dimension=error_dist_dimension,
+    error_melt_dens_kgm3=error_melt_dens_kgm3_i,
+    error_type_melt_dens_kgm3=error_type_melt_dens_kgm3,
+    error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
+    len_loop=1, neg_values=neg_values)
+
+
 
 
         # Convert to densities for MC
@@ -262,12 +293,43 @@ error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
 
 
 
+def add_noise_to_variable(original_value, error, error_type, error_dist, N_dup, neg_values, neg_threshold):
+        """ This function adds noise to each variable for the monte-carloing
+
+        """
+
+        #  Depending on the error type, allocates an error
+        if error_type == 'Abs':
+            calculated_error = error
+        elif error_type == 'Perc':
+            calculated_error = original_value * error / 100
+
+        # Generates noise following a distribution
+        if error_dist == 'normal':
+            noise_to_add = np.random.normal(0, calculated_error, N_dup)
+        elif error_dist == 'uniform':
+            noise_to_add = np.random.uniform(-calculated_error, calculated_error, N_dup)
+
+        # adds this noise to original value
+        value_with_noise = noise_to_add + original_value
+
+        if not neg_values:
+            value_with_noise[value_with_noise < neg_threshold] = neg_threshold
+
+        return value_with_noise
+
+
+
+
 
 
 
 def propagate_CO2_in_bubble_ind(sample_i=0,  N_dup=1000, vol_perc_bub=None,
 CO2_bub_dens_gcm3=None, melt_dens_kgm3=None,
-error_vol_perc_bub=0, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='normal',
+MI_x=None, MI_y=None,MI_z=None,VB_x=None, VB_y=None,VB_z=None,
+error_MI_x=None, error_MI_y=None,error_MI_z=None,error_VB_x=None, error_VB_y=None, error_VB_z=None,
+error_type_dimension='Abs', error_dist_dimension='normal',
+error_vol_perc_bub=None, error_type_vol_perc_bub='Abs', error_dist_vol_perc_bub='normal',
 error_CO2_bub_dens_gcm3=0, error_type_CO2_bub_dens_gcm3='Abs', error_dist_CO2_bub_dens_gcm3='normal',
 error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kgm3='normal', len_loop=1, neg_values=True):
 
@@ -324,7 +386,7 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
     """
 
-
+    # If only a single sample, set up an output dataframe with an index.
     if len_loop==1:
         df_c=pd.DataFrame(data={
                             'vol_perc_bub': vol_perc_bub,
@@ -340,64 +402,56 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
 
 
-    # Volume error distribution
+    # Volume error distribution - if they give a volume percentage rather than dimensions
+    if error_vol_perc_bub is not None:
+        # Easy peasy
+        Vol_with_noise=add_noise_to_variable(vol_perc_bub, error_vol_perc_bub,
+        error_type_vol_perc_bub, error_dist_vol_perc_bub,  N_dup, neg_values, neg_threshold=0.0000000001)
 
-    if error_type_vol_perc_bub=='Abs':
-        error_Vol=error_vol_perc_bub
-    if error_type_vol_perc_bub =='Perc':
-        error_Vol=df_c['vol_perc_bub'].iloc[sample_i]*error_vol_perc_bub/100
-    if error_dist_vol_perc_bub=='normal':
-        Noise_to_add_Vol = np.random.normal(0, error_Vol, N_dup)
-    if error_dist_vol_perc_bub=='uniform':
-        Noise_to_add_Vol = np.random.uniform(- error_Vol, +
-                                                      error_Vol, N_dup)
+    else:
+        x_MI_with_noise=add_noise_to_variable(MI_x, error_MI_x,
+        error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
-    Vol_with_noise=Noise_to_add_Vol+df_c['vol_perc_bub'].iloc[sample_i]
-    if neg_values is False:
-        Vol_with_noise[Vol_with_noise < 0.000000000000001] = 0.000000000000001
+        y_MI_with_noise=add_noise_to_variable(MI_y, error_MI_y,
+        error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
-    #
+        z_MI_with_noise=add_noise_to_variable(MI_z, error_MI_z,
+        error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
-    # Volume error distribution
+        x_VB_with_noise=add_noise_to_variable(VB_x, error_VB_x,
+        error_type_dimension, error_dist_dimension,  N_dup, neg_values, neg_threshold=0.0000000001)
 
-    if error_type_CO2_bub_dens_gcm3=='Abs':
-        error_CO2_bub_dens_gcm3=error_CO2_bub_dens_gcm3
-    if error_type_CO2_bub_dens_gcm3 =='Perc':
-        error_CO2_bub_dens_gcm3=df_c['vol_perc_bub'].iloc[sample_i]*error_CO2_bub_dens_gcm3/100
-    if error_dist_CO2_bub_dens_gcm3=='normal':
-        Noise_to_add_CO2_bub_dens_gcm3 = np.random.normal(0, error_CO2_bub_dens_gcm3, N_dup)
-    if error_dist_CO2_bub_dens_gcm3=='uniform':
-        Noise_to_add_CO2_bub_dens_gcm3 = np.random.uniform(- error_CO2_bub_dens_gcm3, +
-                                                      error_CO2_bub_dens_gcm3, N_dup)
+        y_VB_with_noise=add_noise_to_variable(VB_y, error_VB_y,
+        error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
-    CO2_bub_dens_gcm3_with_noise=Noise_to_add_CO2_bub_dens_gcm3+df_c['CO2_bub_dens_gcm3'].iloc[sample_i]
-    if neg_values is False:
-        CO2_bub_dens_gcm3_with_noise[CO2_bub_dens_gcm3_with_noise < 0.000000000000001] = 0.000000000000001
+        z_VB_with_noise=add_noise_to_variable(VB_z, error_VB_z,
+        error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
-    # Volume error distribution
 
-    if error_type_melt_dens_kgm3=='Abs':
-        error_melt_dens_kgm3=error_melt_dens_kgm3
-    if error_type_melt_dens_kgm3 =='Perc':
-        error_melt_dens_kgm3=df_c['vol_perc_bub'].iloc[sample_i]*error_melt_dens_kgm3/100
-    if error_dist_melt_dens_kgm3=='normal':
-        Noise_to_add_melt_dens_kgm3 = np.random.normal(0, error_melt_dens_kgm3, N_dup)
-    if error_dist_melt_dens_kgm3=='uniform':
-        Noise_to_add_melt_dens_kgm3 = np.random.uniform(- error_melt_dens_kgm3, +
-                                                      error_melt_dens_kgm3, N_dup)
+        Vol_VB_sphere_with_noise=const*x_VB_with_noise*y_VB_with_noise*z_VB_with_noise
+        Vol_MI_sphere_with_noise=const*x_MI_with_noise*y_MI_with_noise*z_MI_with_noise
+        Vol_with_noise=100* Vol_VB_sphere_with_noise/Vol_MI_sphere_with_noise
 
-    melt_dens_kgm3_with_noise=Noise_to_add_melt_dens_kgm3+df_c['melt_dens_kgm3'].iloc[sample_i]
-    if neg_values is False:
-        melt_dens_kgm3_with_noise[melt_dens_kgm3_with_noise < 0.000000000000001] = 0.000000000000001
+
+    # Bubble density
+    CO2_bub_dens_gcm3_with_noise=add_noise_to_variable(CO2_bub_dens_gcm3, error_CO2_bub_dens_gcm3,
+        error_type_CO2_bub_dens_gcm3, error_dist_CO2_bub_dens_gcm3, N_dup, neg_values, neg_threshold=0.0000000001)
+
+    # Melt density
+    melt_dens_kgm3_with_noise=add_noise_to_variable(melt_dens_kgm3, error_melt_dens_kgm3,
+        error_type_melt_dens_kgm3, error_dist_melt_dens_kgm3,  N_dup, neg_values, neg_threshold=0.0000000001)
+
+    # Now lets calculate the equilibrium CO2 content of the melt
     CO2_eq_melt_ind=10**4 * (df_c['vol_perc_bub']*df_c['CO2_bub_dens_gcm3'])/(df_c['melt_dens_kgm3']/1000)
-    df_out=pd.DataFrame(data={
+
+    if error_vol_perc_bub is not None:
+        df_out=pd.DataFrame(data={
 
                                 'vol_perc_bub_with_noise': Vol_with_noise,
                                 'CO2_bub_dens_gcm3_with_noise': CO2_bub_dens_gcm3_with_noise,
                                 'melt_dens_kgm3_with_noise': melt_dens_kgm3_with_noise,
                                 'vol_perc_bub': df_c['vol_perc_bub'].iloc[sample_i],
                                 'CO2_bub_dens_gcm3': CO2_bub_dens_gcm3,
-                                'Absolute_error_Vol': error_Vol,
                                 'error_type_vol_perc_bub': error_type_vol_perc_bub,
                                 'error_dist_Vol': error_dist_vol_perc_bub,
                                 'error_CO2_bub_dens_gcm3': error_CO2_bub_dens_gcm3,
@@ -405,16 +459,32 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
                                 'error_dist_CO2_bub_dens_gcm3': error_dist_CO2_bub_dens_gcm3,
                                 })
 
+    else:
+        df_out=pd.DataFrame(data={
+
+                                'vol_perc_bub_with_noise': Vol_with_noise,
+                                'CO2_bub_dens_gcm3_with_noise': CO2_bub_dens_gcm3_with_noise,
+                                'melt_dens_kgm3_with_noise': melt_dens_kgm3_with_noise,
+                                'vol_perc_bub': df_c['vol_perc_bub'].iloc[sample_i],
+                                'CO2_bub_dens_gcm3': CO2_bub_dens_gcm3,
+                                'error_CO2_bub_dens_gcm3': error_CO2_bub_dens_gcm3,
+                                'error_type_CO2_bub_dens_gcm3': error_type_CO2_bub_dens_gcm3,
+                                'error_dist_CO2_bub_dens_gcm3': error_dist_CO2_bub_dens_gcm3,
+                                'Vol_VB_with_noise': Vol_VB_sphere_with_noise,
+                                'Vol_MI_with_noise': Vol_MI_sphere_with_noise,
+                                'VB_x_with_noise': x_VB_with_noise,
+                                'VB_y_with_noise':y_VB_with_noise,
+                                'VB_z_with_noise': z_VB_with_noise,
+                                'MI_x_with_noise': x_MI_with_noise,
+                                'MI_y_with_noise': y_MI_with_noise,
+                                'MI_z_with_noise': z_MI_with_noise,
+                                })
+
     CO2_eq_melt=10**4*((df_out['vol_perc_bub_with_noise']*df_out['CO2_bub_dens_gcm3_with_noise']))/(df_out['melt_dens_kgm3_with_noise']/1000)
 
     df_out.insert(0, 'CO2_eq_melt_ppm_MC',CO2_eq_melt)
 
     df_out.insert(1, 'CO2_eq_melt_ppm_noMC',float(CO2_eq_melt_ind.values))
-
-
-
-
-
 
 
     return df_out

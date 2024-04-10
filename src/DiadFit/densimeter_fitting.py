@@ -113,7 +113,7 @@ def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Spl
         Whether to save the plot as an image (default: False).
 
     eq_division (str, optional):
-        Method for dividing the data based on density ('ccmr' or 'cmass', default: 'ccmr'). CCMR corresponds to the limits for each section as shown in DeVitre et al., 2021 (Chem. Geo), cmass is for those in DeVitre et al., 2023 (J. Volcanica)
+        Method for dividing the data based on density ('ccmr', 'cmass', or 'cmass_24C', default: 'ccmr'). CCMR corresponds to the limits for each section as shown in DeVitre et al., 2021 (Chem. Geo), cmass is for those in DeVitre et al., 2023 (J. Volcanica).
 
     save_suffix (str, optional):
         Suffix to be added to the saved file names (default: '').
@@ -133,6 +133,12 @@ def plot_and_save_CO2cali_pickle(*, cali_data, CO2_dens_col='rho',Split_col='Spl
             lowcut=0.20
             midcut_low=0.13
             midcut_high=0.70
+            highcut=0.65
+
+        elif eq_division=='cmass_24C':
+            lowcut=0.24
+            midcut_low=0.24
+            midcut_high=0.65
             highcut=0.65
         if density_range == 'Low':
             cali_data = cali_data[cali_data[CO2_dens_col] < lowcut]

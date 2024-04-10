@@ -165,10 +165,7 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     553.36788,
     553.86510,
     555.90978,
-    556.24416,
-    
-    556.27662,
-    556.30531,
+
     
     
     
@@ -367,10 +364,7 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     750,
     500,
     350,
-    1500,
-    
-    5000,
-    750,
+
     
     
     
