@@ -10,70 +10,8 @@ from DiadFit.CO2_EOS import *
 from DiadFit.CO2_in_bubble_error import *
 
 ## Microthermometry error propagation
-# propagate_microthermometry_uncertainty_1sam goes to 'make_error_dist_microthermometry_1sam'
 
-def make_error_dist_microthermometry_1sam(*, T_h_C, sample_i=0, error_T_h_C=0.3, N_dup=1000,
-        error_dist_T_h_C='uniform', error_type_T_h_C='Abs', len_loop=1):
-    
-    """ 
 
-    This function generates a dataset of temperature measurements for a given sample. 
-    It adds random noise to the temperature measurement based on the specified distribution and error type.
-
-    Parameters
-    ----------
-    T_h_C : numeric or list of numeric values
-        The measured temperature(s) of the sample(s) in degrees Celsius.
-    sample_i : int, optional
-        The index of the sample for which the error distribution will be generated. Default value is 0.
-    error_T_h_C : numeric, optional
-        The amount of error to add to the temperature measurement. Default value is 0.3.
-    N_dup : int, optional
-        The number of duplicated samples to generate with random noise. Default value is 1000.
-    error_dist_T_h_C : str, optional
-        The distribution of the random noise to be added to the temperature measurement. Can be either 'normal' or 'uniform'. Default value is 'uniform'.
-    error_type_T_h_C : str, optional
-        The type of error to add to the temperature measurement. Can be either 'Abs' or 'Perc'. Default value is 'Abs'.
-    len_loop : int, optional
-        The number of samples for which the error distribution will be generated. Default value is 1.
-    
-
-    Returns
-    -------
-    numpy.ndarray
-        An array of temperature measurements with random noise added to them based on the specified error 
-        distribution and error type. The size of the array is (N_dup, len(T_h_C)).
-
-    """
-
-    if len_loop==1:
-        print('single')
-        df_c=pd.DataFrame(data={'T_h_C': T_h_C}, index=[0])
-    else:
-        df_c=pd.DataFrame(data={'T_h_C': T_h_C})
-
-    # 
-    # # Temperature error distribution
-    # if error_type_T_h_C=='Abs':
-    #     error_T_h_C=error_T_h_C
-    # if error_type_T_h_C =='Perc':
-    #     error_T_h_C=df_c['T_h_C'].iloc[sample_i]*error_T_h_C/100
-    # if error_dist_T_h_C=='normal':
-    #     Noise_to_add_T_h_C = np.random.normal(0, error_T_h_C, N_dup)
-    # if error_dist_T_h_C=='uniform':
-    #     Noise_to_add_T_h_C = np.random.uniform(- error_T_h_C, +
-    #                                                   error_T_h_C, N_dup)
-    # 
-    # T_h_C_with_noise=Noise_to_add_T_h_C+df_c['T_h_C'].iloc[0]
-    
-    # Gets this noise making func from CO2 in bubble error.py file
-    T_h_C_with_noise=add_noise_to_variable(T_h_C, error_T_h_C,
-        error_type_T_h_C, error_dist_T_h_C, N_dup, True, neg_threshold=0.0000000001)
-    
-    
-    
-
-    return T_h_C_with_noise
 
 
 def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0.3, N_dup=1000,
@@ -156,15 +94,9 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
     for i in range(0, len_loop):
 
         # If user has entered a pandas series for error, takes right one for each loop
-        if type(error_T_h_C) is pd.Series:
-            error_T_h_C=error_T_h_C.iloc[i]
-        else:
-            error_T_h_C=error_T_h_C
+        error_T_h_C_i=get_value(error_T_h_C, i)
+        T_h_C_i=get_value(T_h_C, i)
 
-        if type(T_h_C) is pd.Series:
-            T_h_C_i=T_h_C.iloc[i]
-        else:
-            T_h_C_i=T_h_C
 
         # Check of
         if Sample_ID is None:
@@ -225,7 +157,7 @@ CO2_dens_gcm3=None, error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_
  T_K=None, error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 crust_dens_kgm3=None, error_crust_dens=0, error_type_crust_dens='Abs', error_dist_crust_dens='normal', XH2O=None,
 error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
- model=None):
+ model=None, neg_values=True):
 
     """
     This function generates the range of T_K, CO2 densities, XH2O and crustal densities for 1 sample 
@@ -320,80 +252,32 @@ error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
 
         
     # Temperature error distribution
-    if error_type_T_K=='Abs':
-        error_T_K=error_T_K
-    if error_type_T_K =='Perc':
-        error_T_K=df_c['T_K'].iloc[sample_i]*error_T_K/100
-    if error_dist_T_K=='normal':
-        Noise_to_add_T_K = np.random.normal(0, error_T_K, N_dup)
-    if error_dist_T_K=='uniform':
-        Noise_to_add_T_K = np.random.uniform(- error_T_K, +
-                                                      error_T_K, N_dup)
-
-    
-    T_K_with_noise=Noise_to_add_T_K+df_c['T_K'].iloc[sample_i]
-    T_K_with_noise[T_K_with_noise < 0.0001] = 0.0001
-
-
+    T_K_with_noise=add_noise_to_variable(T_K, error_T_K,
+        error_type_T_K, error_dist_T_K,  N_dup, neg_values, neg_threshold=0.0000000001)
+        
     # CO2 error distribution
+    CO2_dens_with_noise=add_noise_to_variable(CO2_dens_gcm3, error_CO2_dens,
+        error_type_CO2_dens, error_dist_CO2_dens,  N_dup, neg_values, neg_threshold=0.0000000001)
 
-    if error_type_CO2_dens=='Abs':
-        error_CO2_dens=error_CO2_dens
-    if error_type_CO2_dens =='Perc':
-        error_CO2_dens=df_c['CO2_dens_gcm3'].iloc[sample_i]*error_CO2_dens/100
-    if error_dist_CO2_dens=='normal':
-        Noise_to_add_CO2_dens = np.random.normal(0, error_CO2_dens, N_dup)
-    if error_dist_CO2_dens=='uniform':
-        Noise_to_add_CO2_dens = np.random.uniform(- error_CO2_dens, +
-                                                      error_CO2_dens, N_dup)
 
-    CO2_dens_with_noise=Noise_to_add_CO2_dens+df_c['CO2_dens_gcm3'].iloc[sample_i]
-    CO2_dens_with_noise[CO2_dens_with_noise < 0.0001] = 0.0001
     
     # XH2O error distribution (if relevant)
     if XH2O is not None:
-        
-        if error_type_XH2O=='Abs':
-            error_XH2O=error_XH2O
-        if error_type_XH2O =='Perc':
-            error_XH2O=df_c['XH2O'].iloc[sample_i]*error_XH2O/100
-        if error_dist_XH2O=='normal':
-            Noise_to_add_XH2O = np.random.normal(0, error_XH2O, N_dup)
-        if error_dist_XH2O=='uniform':
-            Noise_to_add_XH2O = np.random.uniform(- error_XH2O, +
-                                                        error_XH2O, N_dup)
-    
-        XH2O_with_noise=Noise_to_add_XH2O+df_c['XH2O'].iloc[sample_i]
+        XH2O_with_noise=add_noise_to_variable(XH2O, error_XH2O,
+        error_type_XH2O, error_dist_XH2O,  N_dup, True, neg_threshold=0.0000000000)
         XH2O_with_noise[XH2O_with_noise < 0.000000] = 0.00000
         XH2O_with_noise[XH2O_with_noise > 1] = 1
         
         
-
         
-            
     
-    
-
     # Crustal density noise
     # First need to work out what crustal density is
 
     if type(crust_dens_kgm3) is float or type(crust_dens_kgm3) is int:
-        # This is the simplicest scenario, just makes a distribution of pressures
-
-        if error_type_crust_dens=='Abs':
-            error_crust_dens=error_crust_dens
-        if error_type_crust_dens =='Perc':
-            error_crust_dens=crust_dens_kgm3*error_crust_dens/100
-        if error_dist_crust_dens=='normal':
-            Noise_to_add_crust_dens = np.random.normal(0, error_crust_dens, N_dup)
-        if error_dist_crust_dens=='uniform':
-            Noise_to_add_crust_dens = np.random.uniform(- error_crust_dens, +
-                                                        error_crust_dens, N_dup)
-
-
-
-        crust_dens_with_noise=Noise_to_add_crust_dens+crust_dens_kgm3
-        crust_dens_with_noise[crust_dens_with_noise < 0.0001] = 0.0001
+        crust_dens_with_noise=add_noise_to_variable(crust_dens_kgm3, error_crust_dens_kgm3,
+        error_type_crust_dens, error_dist_crust_dens,  N_dup, neg_values, neg_threshold=0.0000000001)
+        
 
     elif model is not None:
         crust_dens_with_noise=None
@@ -427,10 +311,6 @@ error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
         df_out['XH2O_with_noise']=XH2O_with_noise
         df_out['error_type_XH2O']=error_type_XH2O
         df_out['error_dist_XH2O']=error_dist_XH2O
-
-
-        
-
 
 
 
@@ -474,7 +354,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
  model=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
 error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=True,
-
+neg_values=True
 ):
 
     """
@@ -574,7 +454,9 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
 
     
 
-
+    neg_values: bool (default True)
+        if True, negative values of input parameters  allowed, if False, makes neg values zero. 
+        
     Returns
     ----------------
 
@@ -657,47 +539,20 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
         # This fills in the columns for the single calculation, e.g. no Monte-Carloing from above. 
         SingleCalc_D_km[i]=df_ind['Depth (km)'].iloc[i]
         SingleCalc_Press_kbar[i]=df_ind['Pressure (kbar)'].iloc[i]
-
-
-        # For temp error, if a series, allocates the right row to the error
-        if type(error_T_K) is pd.Series:
-            error_T_K_i=error_T_K.iloc[i]
-        # If constant, allocates that
-        else:
-            error_T_K_i=error_T_K
-            
-        # Same for temp itself.
-        if type(T_K) is pd.Series:
-            T_K_i=T_K.iloc[i]
-        else:
-            T_K_i=T_K
-
-        # Same for CO2 density
-        if type(CO2_dens_gcm3) is pd.Series:
-            CO2_dens_gcm3_i=CO2_dens_gcm3.iloc[i]
-        else:
-            CO2_dens_gcm3_i=CO2_dens_gcm3
-
-        # Same for CO2 density error
-        if type(error_CO2_dens) is pd.Series:
-            error_CO2_dens_i=error_CO2_dens.iloc[i]
-        else:
-            error_CO2_dens_i=error_CO2_dens
-            
         
+        # Now lets get the value, using the function in the CO2_in_bubble_error.py file
+        error_T_K_i=get_value(error_T_K, i)
+        T_K_i=get_value(T_K, i)
+        
+        CO2_dens_gcm3_i=get_value(CO2_dens_gcm3, i)
+        error_CO2_dens_i=get_value(error_CO2_dens, i)
+        
+        crust_dens_kgm3_i=get_value(crust_dens_kgm3, i)
+        error_crust_dens_i=get_value(error_crust_dens, i)
         # Now, if XH2O was entered, and isnt None, do the same. Else keeps as None. 
         if XH2O is not None:
-            if type(error_XH2O) is pd.Series:
-                error_XH2O_i=error_XH2O.iloc[i]
-            else:
-                error_XH2O_i=error_XH2O
-
-        # Same for error in crustal density. 
-        if type(error_crust_dens) is pd.Series:
-            error_crust_dens_i=error_crust_dens.iloc[i]
-        else:
-            error_crust_dens_i=error_crust_dens
-            
+            error_XH2O_i=get_value(error_XH2O, i)
+            XH2O_i=get_value(XH2O, i)
         
 
 
@@ -707,11 +562,11 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
         # If XH2O is None, it doesnt return the column XH2O_with_noise, which helps ID this later. 
         if XH2O is None:
             
-            df_synthetic=calculate_temperature_density_MC(sample_i=i, N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3,
-        T_K=T_K, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
+            df_synthetic=calculate_temperature_density_MC(N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3_i,
+        T_K=T_K_i, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
         error_CO2_dens=error_CO2_dens_i, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
-        crust_dens_kgm3=crust_dens_kgm3,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
-    model=model)
+        crust_dens_kgm3=crust_dens_kgm3_i,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
+    model=model, neg_values=neg_values)
     
             if model is None:
                 MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
@@ -727,11 +582,11 @@ XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=
     
         if XH2O is not None:
             
-            df_synthetic=calculate_temperature_density_MC(sample_i=i, N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3,
-        T_K=T_K, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
+            df_synthetic=calculate_temperature_density_MC(N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3_i,
+        T_K=T_K_i, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
         error_CO2_dens=error_CO2_dens_i, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
-        crust_dens_kgm3=crust_dens_kgm3,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
-    model=model, XH2O=XH2O, error_XH2O=error_XH2O_i, error_type_XH2O=error_type_XH2O, error_dist_XH2O=error_dist_XH2O)
+        crust_dens_kgm3=crust_dens_kgm3_i,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
+    model=model, XH2O=XH2O_i, error_XH2O=error_XH2O_i, error_type_XH2O=error_type_XH2O, error_dist_XH2O=error_dist_XH2O,  neg_values=neg_values)
             
 
         # Convert to densities for MC
