@@ -5,6 +5,8 @@ from matplotlib import patches
 import lmfit
 from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel, PseudoVoigtModel, Pearson4Model
 from scipy.signal import find_peaks
+from scipy.signal.windows import gaussian
+
 import os
 import re
 from os import listdir

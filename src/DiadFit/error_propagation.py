@@ -275,7 +275,7 @@ error_XH2O=None, error_type_XH2O='Abs', error_dist_XH2O='normal',
     # First need to work out what crustal density is
 
     if type(crust_dens_kgm3) is float or type(crust_dens_kgm3) is int:
-        crust_dens_with_noise=add_noise_to_variable(crust_dens_kgm3, error_crust_dens_kgm3,
+        crust_dens_with_noise=add_noise_to_variable(crust_dens_kgm3, error_crust_dens,
         error_type_crust_dens, error_dist_crust_dens,  N_dup, neg_values, neg_threshold=0.0000000001)
         
 
