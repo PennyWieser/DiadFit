@@ -512,6 +512,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
     # IF temp is 37
     if lab=='CMASS' and temp=='SupCrit':
+        print('yes')
         # This gets the densimeter at low density
         pickle_str_lowr='Lowrho_polyfit_data_CMASS.pkl'
         with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
@@ -529,7 +530,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
             
     
             
-    if lab=='CMASS' and temp=='RoomT':
+    elif lab=='CMASS' and temp=='RoomT':
         # This gets the densimeter at low density
         pickle_str_lowr='Lowrho_polyfit_data_CMASS_24C.pkl'
         with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
