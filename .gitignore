@@ -17,4 +17,6 @@ ipynb_checkpoints
 *.png
 /Testing/*
 /docs/UCB_Densimeter_fitting/*
+/docs/Cornell_Densimeter_fitting/*
+
 
