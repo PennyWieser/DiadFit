@@ -688,7 +688,6 @@ neg_values=True
 
     if plot_figure is True:
         df_1_sample=All_outputs.loc[All_outputs['Filename']==All_outputs['Filename'].iloc[fig_i]]
-        
         df_1_step=df_step.loc[df_step['Filename']==All_outputs['Filename'].iloc[fig_i]]
         fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(12,8))
         
@@ -696,45 +695,88 @@ neg_values=True
         fig.suptitle('Simulations for sample = ' + str(All_outputs['Filename'].iloc[fig_i]), fontsize=20)
 
 
-        # Ax1 is temperature
-        if error_dist_T_K=='normal' and error_type_T_K == 'Abs':
-            ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K) + ' K')
-        if error_dist_T_K=='normal' and error_type_T_K == 'Perc':
-            ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K) + '%')
-        if df_1_step['error_T_K'][0]!=0:
-            ax1.hist(df_1_sample['MC_T_K'], color='red',  ec='k')
+        title_ax1 = 'Input distribution Temp: '
+        if error_dist_T_K == 'normal':
+            title_ax1 += 'Normally-distributed'
+        elif error_dist_T_K == 'uniform':
+            title_ax1 += 'Uniformly-distributed'
+
+        if isinstance(error_T_K, float):
+            if error_dist_T_K == 'normal':
+                if error_type_T_K == 'Abs':
+                    title_ax1 += ', 1σ =' + str(error_T_K) + ' K'
+                elif error_type_T_K == 'Perc':
+                    title_ax1 += ', 1σ =' + str(error_T_K) + '%'
+
+        ax1.set_title(title_ax1)
+
+        if df_1_step['error_T_K'][0] != 0:
+            ax1.hist(df_1_sample['MC_T_K'], color='red', ec='k')
         else:
             ax1.plot([0, 0], [0, N_dup], '-r')
-            
+
         # ax2 is CO2 density
-        if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Abs':
-            ax2.set_title('Input distribution CO$_2$ density: Normally-distributed, 1σ =' +str(error_CO2_dens) + ' g/cm$^{3}$')
-        if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Perc':
-            ax2.set_title('Input distribution CO$_2$ density: Normally-distributed, 1σ =' +str(error_CO2_dens) + '%')
-        if df_1_step['error_CO2_dens_gcm3'][0]!=0:
-            ax2.hist(df_1_sample['MC_CO2_dens_gcm3'], facecolor='white',  ec='k')
+        title_ax2 = 'Input distribution CO$_2$ density: '
+        if error_dist_CO2_dens == 'normal':
+            title_ax2 += 'Normally-distributed'
+        elif error_dist_CO2_dens == 'uniform':
+            title_ax2 += 'Uniformly-distributed'
+
+        if isinstance(error_CO2_dens, float):
+            if error_dist_CO2_dens == 'normal':
+                if error_type_CO2_dens == 'Abs':
+                    title_ax2 += ', 1σ =' + str(error_CO2_dens) + ' g/cm$^{3}$'
+                elif error_type_CO2_dens == 'Perc':
+                    title_ax2 += ', 1σ =' + str(error_CO2_dens) + '%'
+
+        ax2.set_title(title_ax2)
+
+        if df_1_step['error_CO2_dens_gcm3'][0] != 0:
+            ax2.hist(df_1_sample['MC_CO2_dens_gcm3'], facecolor='white', ec='k')
         else:
             ax2.plot([0, 0], [0, N_dup], '-r')
         ax2.xaxis.set_major_formatter(plt.FormatStrFormatter('%.3f'))
-        
+
         # ax3 is the crustal density error
-        if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Abs':
-            ax3.set_title('Input Distribution Crustal density: Normally-distributed, 1σ =' +str(error_crust_dens) + 'kg/m$^{3}$')
-        if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Perc':
-            ax3.set_title('Input distribution crustal density: Normally-distributed, 1σ =' +str(error_crust_dens) + '%')
-        if model is None and df_1_step['error_crust_dens_kgm3'][0]!=0:
-            ax3.hist(df_1_sample['input_crust_dens_kgm3'], facecolor='white',  ec='k')
+        title_ax3 = 'Input Distribution Crustal density: '
+        if error_dist_crust_dens == 'normal':
+            title_ax3 += 'Normally-distributed'
+        elif error_dist_crust_dens == 'uniform':
+            title_ax3 += 'Uniformly-distributed'
+
+        if isinstance(error_crust_dens, float):
+            if error_dist_crust_dens == 'normal':
+                if error_type_crust_dens == 'Abs':
+                    title_ax3 += ', 1σ =' + str(error_crust_dens) + 'kg/m$^{3}$'
+                elif error_type_crust_dens == 'Perc':
+                    title_ax3 += ', 1σ =' + str(error_crust_dens) + '%'
+
+        ax3.set_title(title_ax3)
+
+        if model is None and df_1_step['error_crust_dens_kgm3'][0] != 0:
+            ax3.hist(df_1_sample['input_crust_dens_kgm3'], facecolor='white', ec='k')
         else:
             ax3.plot([0, 0], [0, N_dup], '-r')
         ax3.ticklabel_format(useOffset=False)
-            
+
         # ax4 is XH2O
-        if error_dist_XH2O=='normal' and error_type_XH2O == 'Abs':
-            ax4.set_title('Input Distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + 'molar prop')
-        if error_dist_XH2O=='normal' and error_type_XH2O == 'Perc':
-            ax4.set_title('Input distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + '%')
-        if XH2O is not None and df_1_step['error_XH2O'][0]!=0:
-            ax4.hist(df_1_sample['MC_XH2O'], facecolor='white',  ec='k')
+        title_ax4 = 'Input Distribution XH2O: '
+        if error_dist_XH2O == 'normal':
+            title_ax4 += 'Normally-distributed'
+        elif error_dist_XH2O == 'uniform':
+            title_ax4 += 'Uniformly-distributed'
+
+        if isinstance(error_XH2O, float):
+            if error_dist_XH2O == 'normal':
+                if error_type_XH2O == 'Abs':
+                    title_ax4 += ', 1σ =' + str(error_XH2O) + 'molar prop'
+                elif error_type_XH2O == 'Perc':
+                    title_ax4 += ', 1σ =' + str(error_XH2O) + '%'
+
+        ax4.set_title(title_ax4)
+
+        if XH2O is not None and df_1_step['error_XH2O'][0] != 0:
+            ax4.hist(df_1_sample['MC_XH2O'], facecolor='white', ec='k')
         else:
             ax4.plot([0, 0], [0, N_dup], '-r')
         ax4.ticklabel_format(useOffset=False)
