@@ -694,13 +694,53 @@ neg_values=True
         
         
         fig.suptitle('Simulations for sample = ' + str(All_outputs['Filename'].iloc[fig_i]), fontsize=20)
+        
+        # Getting things to annotate
+        # Temperature 
+        if isinstance(error_T_K, pd.Series):
+            error_T_K_plot = error_T_K.iloc[fig_i]
+        elif isinstance(error_T_K, np.ndarray):
+            error_T_K_plot = error_T_K[fig_i]
+        else:
+            error_T_K_plot = error_T_K
+        error_T_K_plot=np.round(error_T_K_plot, 1)
+        
+        
+        # Crustal density 
+        if isinstance(error_crust_dens, pd.Series):
+            error_crust_dens_plot = error_crust_dens.iloc[fig_i]
+        elif isinstance(error_crust_dens, np.ndarray):
+            error_crust_dens_plot = error_crust_dens[fig_i]
+        else:
+            error_crust_dens_plot = error_crust_dens
+        error_crust_dens_plot=np.round(error_crust_dens_plot, 1)
+            
+        # CO2 density
+        if isinstance(error_CO2_dens, pd.Series):
+            error_CO2_dens_plot = error_CO2_dens.iloc[fig_i]
+        elif isinstance(error_CO2_dens, np.ndarray):
+            error_CO2_dens_plot = error_CO2_dens[fig_i]
+        else:
+            error_CO2_dens_plot = error_CO2_dens
+        error_CO2_dens_plot=np.round(error_CO2_dens_plot, 3)
+            
+            
+        # XH2O 
+        if isinstance(error_XH2O, pd.Series):
+            error_XH2O_plot = error_XH2O.iloc[fig_i]
+        elif isinstance(error_XH2O, np.ndarray):
+            error_XH2O_plot = error_XH2O[fig_i]
+        else:
+            error_XH2O_plot = error_XH2O
+        error_XH2O_plot=np.round(error_XH2O_plot, 3)
+    
 
 
         # Ax1 is temperature
         if error_dist_T_K=='normal' and error_type_T_K == 'Abs':
-            ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K) + ' K')
+            ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K_plot) + ' K')
         if error_dist_T_K=='normal' and error_type_T_K == 'Perc':
-            ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K) + '%')
+            ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K_plot) + '%')
         if df_1_step['error_T_K'][0]!=0:
             ax1.hist(df_1_sample['MC_T_K'], color='red',  ec='k')
         else:
@@ -708,9 +748,9 @@ neg_values=True
             
         # ax2 is CO2 density
         if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Abs':
-            ax2.set_title('Input distribution CO$_2$ density: Normally-distributed, 1σ =' +str(error_CO2_dens) + ' g/cm$^{3}$')
+            ax2.set_title('Input distribution CO$_2$ density: Normally-distributed, 1σ =' +str(error_CO2_dens_plot) + ' g/cm$^{3}$')
         if error_dist_CO2_dens=='normal' and error_type_CO2_dens == 'Perc':
-            ax2.set_title('Input distribution CO$_2$ density: Normally-distributed, 1σ =' +str(error_CO2_dens) + '%')
+            ax2.set_title('Input distribution CO$_2$ density: Normally-distributed, 1σ =' +str(error_CO2_dens_plot) + '%')
         if df_1_step['error_CO2_dens_gcm3'][0]!=0:
             ax2.hist(df_1_sample['MC_CO2_dens_gcm3'], facecolor='white',  ec='k')
         else:
@@ -719,9 +759,9 @@ neg_values=True
         
         # ax3 is the crustal density error
         if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Abs':
-            ax3.set_title('Input Distribution Crustal density: Normally-distributed, 1σ =' +str(error_crust_dens) + 'kg/m$^{3}$')
+            ax3.set_title('Input Distribution Crustal density: Normally-distributed, 1σ =' +str(error_crust_dens_plot) + 'kg/m$^{3}$')
         if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Perc':
-            ax3.set_title('Input distribution crustal density: Normally-distributed, 1σ =' +str(error_crust_dens) + '%')
+            ax3.set_title('Input distribution crustal density: Normally-distributed, 1σ =' +str(error_crust_dens_plot) + '%')
         if model is None and df_1_step['error_crust_dens_kgm3'][0]!=0:
             ax3.hist(df_1_sample['input_crust_dens_kgm3'], facecolor='white',  ec='k')
         else:
@@ -730,9 +770,9 @@ neg_values=True
             
         # ax4 is XH2O
         if error_dist_XH2O=='normal' and error_type_XH2O == 'Abs':
-            ax4.set_title('Input Distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + 'molar prop')
+            ax4.set_title('Input Distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O_plot) + 'molar prop')
         if error_dist_XH2O=='normal' and error_type_XH2O == 'Perc':
-            ax4.set_title('Input distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O) + '%')
+            ax4.set_title('Input distribution XH2O: Normally-distributed, 1σ =' +str(error_XH2O_plot) + '%')
         if XH2O is not None and df_1_step['error_XH2O'][0]!=0:
             ax4.hist(df_1_sample['MC_XH2O'], facecolor='white',  ec='k')
         else:
