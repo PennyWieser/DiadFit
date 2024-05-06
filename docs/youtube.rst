@@ -17,12 +17,16 @@ A short introduction to the motivation behind developing DiadFit
     <iframe width="560" height="315" src="https://www.youtube.com/embed/0u9RdE1lrYY?si=qgpyvcWFWrlo6Lzt" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 ---------
 
+
 How to get files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This video shows how to get files of GitHub and read the docs for people who have not done this before!
 
 .. raw:: html
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/IaAdUBvlndM?si=c27lf-qMZqtt6tp9" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/IaAdUBvlndM?si=mwnqt2InjveS8zQR" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
 ---------
 
 WITEC Diad Fitting Workflow
@@ -30,7 +34,8 @@ WITEC Diad Fitting Workflow
 This playlist shows how to fit CO2 peaks in a 4/5 step workflow (tweaked for WITEC file types, but could be easily altered)
 
 .. raw:: html
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/videoseries?si=E7ghvC-ApvtX2fZ0&amp;list=PLqEsNOqJuWNj29Qd59CZKePd-jeCvLfJA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/an14NBzNZW0?si=Od2RncavakOommdc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ---------
 
 
@@ -65,6 +70,7 @@ Propagating uncertainty for fluid inclusions from La Palma
 This video recreates calculations performed in Dayton et al. (2023), showing how to use Monte Carlo methods to propagate uncertainty in fluid inclusion pressures and depths.
 
 .. raw:: html
+
     <iframe width="560" height="315" src="https://www.youtube.com/embed/pM5LfnLRySg?si=TY02tZbIYN1vGKHt" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ---------
 
