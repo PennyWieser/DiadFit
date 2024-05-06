@@ -545,7 +545,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
             
             
             
-    elif lab=='CCMR':
+    elif lab=='CCMR' and temp=='SupCrit':
         pickle_str_lowr='Lowrho_polyfit_data_CCMR.pkl'
         with open(DiadFit_dir/pickle_str_lowr, 'rb') as f:
             lowrho_pickle_data = pickle.load(f)
@@ -557,11 +557,12 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
         # This gets the densimeter at high density.
         pickle_str_highr='Highrho_polyfit_data_CCMR.pkl'
         with open(DiadFit_dir/pickle_str_highr, 'rb') as f:
-            highrho_pickle_data = pickle.load(f)        
+            highrho_pickle_data = pickle.load(f)       
+            
         
     
     else:
-        raise TypeError('Lab name not recognised. enter CCMR or CMASS')
+        raise TypeError('Lab name not recognised. enter CCMR SupCrit, CMASS SupCrit, CMASS roomT (CCMR room T can be added on request to Penny)')
 
     # this allocates the model
     lowrho_model = lowrho_pickle_data['model']
@@ -627,7 +628,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     # If splitting is 0
     zero=df['Corrected_Splitting']==0
 
-
+    # Cut off values -------------------------------------------
     # Range for SC low density
     min_lowD_SC_Split=df['Corrected_Splitting']>=102.7623598753032
     max_lowD_SC_Split=df['Corrected_Splitting']<=103.1741034592534
@@ -643,6 +644,8 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     # Range for Room T high density
     min_HD_RoomT_Split=df['Corrected_Splitting']>=104.407308904012
     max_HD_RoomT_Split=df['Corrected_Splitting']<=105.1
+    
+
     # Impossible densities, room T
     Imposs_lower_end=(df['Corrected_Splitting']>103.350311768435) & (df['Corrected_Splitting']<103.88)
     # Impossible densities, room T
