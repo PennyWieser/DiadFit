@@ -36,7 +36,7 @@ from DiadFit.error_propagation import *
 
 from DiadFit.density_depth_crustal_profiles import *
 from DiadFit.CO2_EOS import *
-from DiadFit.CO2_H2O_EOS import *
+
 
 from DiadFit.CO2_in_bubble_error import *
 
