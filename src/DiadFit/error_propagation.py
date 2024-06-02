@@ -348,7 +348,7 @@ def convert_inputs_to_series(T_K, error_T_K, CO2_dens_gcm3, error_CO2_dens_gcm3,
     
 
 
-def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K, multiprocess=True,  cores='default', 
+def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K, multiprocess='default',  cores='default', 
 EOS='SW96', N_dup=1000,
 plot_figure=False, fig_i=0, 
 error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
@@ -370,8 +370,9 @@ neg_values=True,
 
     Parameters
     -----------------
-    multiprocess: bool
-        If True, uses multiprocess and selects the number of cores 
+    multiprocess: 'default' or bool
+        Default uses multiprocessing for Duan and Zhang (2006) but not for Span and Wanger or Sterner and Pitzer. This is because these EOS are so fast, making the multiprocess has a time penalty.
+        You can override this defualt by specifying True or False.
     cores: 'default'
         By default, if multiprocess, uses default number of cores selected by multiprocess, ca noverride. 
     sample_ID: pd.Series
@@ -539,8 +540,18 @@ neg_values=True,
 
     #This loops through each fluid inclusion entered density
     
+    if multiprocess =='default':
+        if XH2O is None and EOS!='DZ06':
+            print('We are not using multiprocessing based on your selected EOS. You can override this by setting multiprocess=True in the function, but for SP94 and SW96 it might actually be slower')
+            multiprocess=False
+        else:
+            if XH2O is not None:
+                multiprocess=True
+                print('We are using multiprocessing based on your selected EOS. You can override this by setting multiprocess=False in the function, but it might slow it down a lot')
+    
     if multiprocess is False:
-        print('If calculations are taking a long time, set multiprocess=True in the function - it should really speed it up')
+        
+
 
         for i in tqdm(range(0, len_loop), desc="Processing"):
     
