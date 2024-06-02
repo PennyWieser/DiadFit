@@ -40,6 +40,7 @@ setup(
             'lmfit>=1.1.0',
             'tqdm',
             'python-docx'
+
             ],
 
     classifiers=[

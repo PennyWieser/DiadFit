@@ -8,6 +8,8 @@ from DiadFit.density_depth_crustal_profiles import *
 from DiadFit.CO2_EOS import *
 # This gets us the functions for Monte Carloing
 from DiadFit.CO2_in_bubble_error import *
+import multiprocessing as mp
+np.random.seed(42)
 
 ## Microthermometry error propagation
 
@@ -346,7 +348,8 @@ def convert_inputs_to_series(T_K, error_T_K, CO2_dens_gcm3, error_CO2_dens_gcm3,
     
 
 
-def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K,  N_dup=1000, EOS='SW96', 
+def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K, multiprocess=True,  cores='default', 
+EOS='SW96', N_dup=1000,
 plot_figure=False, fig_i=0, 
 error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
  crust_dens_kgm3=None, 
@@ -354,7 +357,7 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
  model=None, d1=None, d2=None, rho1=None, rho2=None, rho3=None,
 error_T_K=0, error_type_T_K='Abs', error_dist_T_K='normal',
 XH2O=None, error_XH2O=0, error_type_XH2O='Abs', error_dist_XH2O='normal', Hloss=True,
-neg_values=True
+neg_values=True, 
 ):
 
     """
@@ -367,6 +370,10 @@ neg_values=True
 
     Parameters
     -----------------
+    multiprocess: bool
+        If True, uses multiprocess and selects the number of cores 
+    cores: 'default'
+        By default, if multiprocess, uses default number of cores selected by multiprocess, ca noverride. 
     sample_ID: pd.Series
         Panda series of sample names. E.g., select a column from your dataframe (df['sample_name'])
 
@@ -479,7 +486,7 @@ neg_values=True
     
     
     if XH2O is not None:
-        print('You have entered a value for XH2O, so we are now using the EOS of Duan and Zhang 2006. If you dont want this, specify XH2O=None')
+        print('You have entered a value for XH2O, so we are now using the EOS of Duan and Zhang 200 regardless of what model you selected. If you dont want this, specify XH2O=None')
         print('Please note, the DZ2006 EOS is about 5-40X slower to run than the SP94 and SW94 EOS')
         
     if isinstance(T_K, float) or isinstance(T_K, int) :
@@ -532,154 +539,197 @@ neg_values=True
 
     #This loops through each fluid inclusion entered density
     
+    if multiprocess is False:
+        print('If calculations are taking a long time, set multiprocess=True in the function - it should really speed it up')
 
-    for i in tqdm(range(0, len_loop), desc="Processing"):
-
-        
-        # This fills in the columns for the single calculation, e.g. no Monte-Carloing from above. 
-        SingleCalc_D_km[i]=df_ind['Depth (km)'].iloc[i]
-        SingleCalc_Press_kbar[i]=df_ind['Pressure (kbar)'].iloc[i]
-        
-        # Now lets get the value, using the function in the CO2_in_bubble_error.py file
-        error_T_K_i=get_value(error_T_K, i)
-        T_K_i=get_value(T_K, i)
-        
-        CO2_dens_gcm3_i=get_value(CO2_dens_gcm3, i)
-        error_CO2_dens_i=get_value(error_CO2_dens, i)
-        
-        crust_dens_kgm3_i=get_value(crust_dens_kgm3, i)
-        error_crust_dens_i=get_value(error_crust_dens, i)
-        # Now, if XH2O was entered, and isnt None, do the same. Else keeps as None. 
-        if XH2O is not None:
-            error_XH2O_i=get_value(error_XH2O, i)
-            XH2O_i=get_value(XH2O, i)
-        
-
-
-        # This is the function doing the work to actually make the simulations for each variable.
-        # For each input variable, it makes a distribution. 
-        
-        # If XH2O is None, it doesnt return the column XH2O_with_noise, which helps ID this later. 
-        if XH2O is None:
-            
-            df_synthetic=calculate_temperature_density_MC(N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3_i,
-        T_K=T_K_i, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
-        error_CO2_dens=error_CO2_dens_i, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
-        crust_dens_kgm3=crust_dens_kgm3_i,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
-    model=model, neg_values=neg_values)
+        for i in tqdm(range(0, len_loop), desc="Processing"):
     
-            if model is None:
-                MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
-                                                CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
-                                            crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
-                                            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
-                                                EOS=EOS )
+            
+            # This fills in the columns for the single calculation, e.g. no Monte-Carloing from above. 
+            SingleCalc_D_km[i]=df_ind['Depth (km)'].iloc[i]
+            SingleCalc_Press_kbar[i]=df_ind['Pressure (kbar)'].iloc[i]
+            
+            # Now lets get the value, using the function in the CO2_in_bubble_error.py file
+            error_T_K_i=get_value(error_T_K, i)
+            T_K_i=get_value(T_K, i)
+            
+            CO2_dens_gcm3_i=get_value(CO2_dens_gcm3, i)
+            error_CO2_dens_i=get_value(error_CO2_dens, i)
+            
+            crust_dens_kgm3_i=get_value(crust_dens_kgm3, i)
+            error_crust_dens_i=get_value(error_crust_dens, i)
+            # Now, if XH2O was entered, and isnt None, do the same. Else keeps as None. 
+            if XH2O is not None:
+                error_XH2O_i=get_value(error_XH2O, i)
+                XH2O_i=get_value(XH2O, i)
+            
+    
+    
+            # This is the function doing the work to actually make the simulations for each variable.
+            # For each input variable, it makes a distribution. 
+            
+            # If XH2O is None, it doesnt return the column XH2O_with_noise, which helps ID this later. 
+            if XH2O is None:
+                
+                df_synthetic=calculate_temperature_density_MC(N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3_i,
+            T_K=T_K_i, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
+            error_CO2_dens=error_CO2_dens_i, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
+            crust_dens_kgm3=crust_dens_kgm3_i,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
+        model=model, neg_values=neg_values)
+        
+                if model is None:
+                    MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                                    CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                                crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
+                                                d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
+                                                    EOS=EOS )
+                else:
+                    MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                                    CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                                    d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
+                                                model=model, EOS=EOS)
+        
+            if XH2O is not None:
+                
+                df_synthetic=calculate_temperature_density_MC(N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3_i,
+            T_K=T_K_i, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
+            error_CO2_dens=error_CO2_dens_i, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
+            crust_dens_kgm3=crust_dens_kgm3_i,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
+        model=model, XH2O=XH2O_i, error_XH2O=error_XH2O_i, error_type_XH2O=error_type_XH2O, error_dist_XH2O=error_dist_XH2O,  neg_values=neg_values)
+        
+                EOS='DZ06'
+                
+
+            # Convert to densities for MC
+    
+                if model is None:
+                    MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                                    CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                                crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
+                                                XH2O=df_synthetic['XH2O_with_noise'], Hloss=Hloss,
+                                                d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
+                                                    EOS=EOS )
+                else:
+                    MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                                    CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                                XH2O=df_synthetic['XH2O_with_noise'], Hloss=Hloss,
+                                                    d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
+                                                model=model, EOS=EOS)
+
+    
+            # Check of
+            if sample_ID is None:
+                Sample[i]=i
+    
+            elif isinstance(sample_ID, str):
+                Sample[i]=sample_ID
             else:
-                MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
-                                                CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
-                                                d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
-                                            model=model, EOS=EOS)
+                Sample[i]=sample_ID.iloc[i]
     
-        if XH2O is not None:
-            
-            df_synthetic=calculate_temperature_density_MC(N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3_i,
-        T_K=T_K_i, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
-        error_CO2_dens=error_CO2_dens_i, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
-        crust_dens_kgm3=crust_dens_kgm3_i,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
-    model=model, XH2O=XH2O_i, error_XH2O=error_XH2O_i, error_type_XH2O=error_type_XH2O, error_dist_XH2O=error_dist_XH2O,  neg_values=neg_values)
-            
-
-        # Convert to densities for MC
-
-            if model is None:
-                MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
-                                                CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
-                                            crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
-                                            XH2O=df_synthetic['XH2O_with_noise'], Hloss=Hloss,
-                                            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
-                                                EOS=EOS )
+            MC_T.insert(0, 'Filename', Sample[i])
+    
+    
+            if isinstance(CO2_dens_gcm3, pd.Series):
+                CO2_density_input[i]=CO2_dens_gcm3.iloc[i]
             else:
-                MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
-                                                CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
-                                            XH2O=df_synthetic['XH2O_with_noise'], Hloss=Hloss,
-                                                d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
-                                            model=model, EOS=EOS)
-
-
-
-
-
-        # Check of
-        if sample_ID is None:
-            Sample[i]=i
-
-        elif isinstance(sample_ID, str):
-            Sample[i]=sample_ID
-        else:
-            Sample[i]=sample_ID.iloc[i]
-
-        MC_T.insert(0, 'Filename', Sample[i])
-
-
-        if isinstance(CO2_dens_gcm3, pd.Series):
-            CO2_density_input[i]=CO2_dens_gcm3.iloc[i]
-        else:
-            CO2_density_input=CO2_dens_gcm3
-
-
-
-
-
-        All_outputs=pd.concat([All_outputs, MC_T], axis=0)
-
-
-        mean_Press_kbar[i]=np.nanmean(MC_T['Pressure (kbar)'])
-        med_Press_kbar[i]=np.nanmedian(MC_T['Pressure (kbar)'])
-        std_Press_kbar[i]=np.nanstd(MC_T['Pressure (kbar)'])
-        var=MC_T['Pressure (kbar)']
-        std_Press_kbar_IQR[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
-
-        mean_D_km[i]=np.nanmean(MC_T['Depth (km)'])
-        med_D_km[i]=np.nanmedian(MC_T['Depth (km)'])
-        std_D_km[i]=np.nanstd(MC_T['Depth (km)'])
-        var=MC_T['Depth (km)']
-        std_D_km_IQR[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
-
-        error_crust_dens_loop[i]=np.nanmean(df_synthetic['error_crust_dens_kgm3'])
-        error_crust_dens2_loop[i]=np.nanstd(df_synthetic['error_crust_dens_kgm3'])
-
-
-
-
-
-
-
+                CO2_density_input=CO2_dens_gcm3
     
-    df_step=pd.DataFrame(data={'Filename': Sample,
-                        'CO2_dens_gcm3': CO2_density_input,
-                         'SingleFI_D_km': SingleCalc_D_km,
-                         'SingleFI_P_kbar': SingleCalc_Press_kbar,
-                             'Mean_MC_P_kbar': mean_Press_kbar,
-                         'Med_MC_P_kbar': med_Press_kbar,
-                            'std_dev_MC_P_kbar': std_Press_kbar,
-'std_dev_MC_P_kbar_from_percentile': std_Press_kbar_IQR,
-                          'Mean_MC_D_km': mean_D_km,
-                         'Med_MC_D_km': med_D_km,
-                        'std_dev_MC_D_km': std_D_km,
-                        'std_dev_MC_D_km_from_percentile': std_D_km_IQR,
-                         'error_T_K': error_T_K,
-                         'error_CO2_dens_gcm3': error_CO2_dens,
-                         'error_crust_dens_kgm3': error_crust_dens_loop,
-                        'T_K': T_K,
-                        'CO2_dens_gcm3_input': CO2_dens_gcm3,
-                        'model': model,
-                        'crust_dens_kgm3':crust_dens_kgm3,
-                        'EOS': EOS
-                         })
-    if XH2O is not None:
-        df_step['error_XH2O']=error_XH2O
-        df_step['error_type_XH2O']=error_type_XH2O
-        df_step['error_dist_XH2O']=error_dist_XH2O
+    
+            All_outputs=pd.concat([All_outputs, MC_T], axis=0)
+    
+    
+            mean_Press_kbar[i]=np.nanmean(MC_T['Pressure (kbar)'])
+            med_Press_kbar[i]=np.nanmedian(MC_T['Pressure (kbar)'])
+            std_Press_kbar[i]=np.nanstd(MC_T['Pressure (kbar)'])
+            var=MC_T['Pressure (kbar)']
+            std_Press_kbar_IQR[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
+    
+            mean_D_km[i]=np.nanmean(MC_T['Depth (km)'])
+            med_D_km[i]=np.nanmedian(MC_T['Depth (km)'])
+            std_D_km[i]=np.nanstd(MC_T['Depth (km)'])
+            var=MC_T['Depth (km)']
+            std_D_km_IQR[i]=0.5*np.abs((np.percentile(var, 84) -np.percentile(var, 16)))
+    
+            error_crust_dens_loop[i]=np.nanmean(df_synthetic['error_crust_dens_kgm3'])
+    
+    
+    
+        
+        df_step=pd.DataFrame(data={'Filename': Sample,
+                            'CO2_dens_gcm3': CO2_density_input,
+                            'SingleCalc_D_km': SingleCalc_D_km,
+                            'SingleCalc_Press_kbar': SingleCalc_Press_kbar,
+                                'Mean_MC_P_kbar': mean_Press_kbar,
+                            'Med_MC_P_kbar': med_Press_kbar,
+                                'std_dev_MC_P_kbar': std_Press_kbar,
+    'std_dev_MC_P_kbar_from_percentile': std_Press_kbar_IQR,
+                            'Mean_MC_D_km': mean_D_km,
+                            'Med_MC_D_km': med_D_km,
+                            'std_dev_MC_D_km': std_D_km,
+                            'std_dev_MC_D_km_from_percentile': std_D_km_IQR,
+                            'T_K_input': T_K,
+                            'error_T_K': error_T_K,
+                            'CO2_dens_gcm3_input': CO2_dens_gcm3,
+                            'error_CO2_dens_gcm3': error_CO2_dens,
+                            'crust_dens_kgm3_input':crust_dens_kgm3,
+                            'error_crust_dens_kgm3': error_crust_dens_loop,
+                            'model': model,
+                            'EOS': EOS
+                            })
+                            
+        if XH2O is not None:
+            df_step['XH2O_input']=XH2O
+            df_step['error_XH2O']=error_XH2O
+
+
+            
+            
+    if multiprocess is True:
+
+
+
+    # Choose number of processes
+        
+        if cores=='default':
+            print("Number of processors: ", mp.cpu_count())
+            pool = mp.Pool(mp.cpu_count())
+        else: 
+            pool = mp.Pool(cores)
+        
+        
+        
+        args=(sample_ID, df_ind,  CO2_dens_gcm3, T_K,  N_dup, EOS, 
+    error_CO2_dens, error_type_CO2_dens, error_dist_CO2_dens,
+    crust_dens_kgm3, 
+    error_crust_dens, error_type_crust_dens, error_dist_crust_dens,
+    model, d1, d2, rho1, rho2, rho3,
+    error_T_K, error_type_T_K, error_dist_T_K,
+    XH2O, error_XH2O, error_type_XH2O, error_dist_XH2O, Hloss,
+    neg_values)
+    
+    
+    
+        results = [pool.apply_async(worker_function, args=(i, *args)) for i in range(len_loop)]
+    
+        pool.close()
+        pool.join()
+    
+        # Collect results
+        final_results = [r.get() for r in results]
+    
+        # Initialize DataFrames
+        df_step = pd.DataFrame(data={'Filename': np.zeros(len_loop, dtype=np.dtype('U100'))})
+        All_outputs = pd.DataFrame([])
+    
+        # Populate DataFrames
+        for result, MC_T in final_results:
+            i = result['i']
+            for key, value in result.items():
+                df_step.at[i, key] = value
+        
+            All_outputs = pd.concat([All_outputs, MC_T], axis=0)
+                   
+        
         
        
 
@@ -687,9 +737,9 @@ neg_values=True
 
 
     if plot_figure is True:
-        df_1_sample=All_outputs.loc[All_outputs['Filename']==All_outputs['Filename'].iloc[fig_i]]
+        df_1_sample=All_outputs.loc[All_outputs['Filename']==df_step['Filename'].iloc[fig_i]]
         
-        df_1_step=df_step.loc[df_step['Filename']==All_outputs['Filename'].iloc[fig_i]]
+        df_1_step=df_step.loc[df_step['Filename']==df_step['Filename'].iloc[fig_i]]
         fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(12,8))
         
         
@@ -741,6 +791,7 @@ neg_values=True
             ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K_plot) + ' K')
         if error_dist_T_K=='normal' and error_type_T_K == 'Perc':
             ax1.set_title('Input distribution Temp: Normally-distributed, 1σ =' +str(error_T_K_plot) + '%')
+        
         if df_1_step['error_T_K'][0]!=0:
             ax1.hist(df_1_sample['MC_T_K'], color='red',  ec='k')
         else:
@@ -803,6 +854,10 @@ neg_values=True
     #return df_step, All_outputs, fig
 
     return df_step, All_outputs,fig if 'fig' in locals() else None
+    
+    
+
+
 
 
 ## Actual functions doing the conversions
@@ -955,11 +1010,160 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     
     return df
+    
+    
+    ## Now lets try to parallize it
+
+def worker_function(i, sample_ID, df_ind,  CO2_dens_gcm3, T_K,  N_dup, EOS, 
+error_CO2_dens, error_type_CO2_dens, error_dist_CO2_dens,
+ crust_dens_kgm3, 
+ error_crust_dens, error_type_crust_dens, error_dist_crust_dens,
+ model, d1, d2, rho1, rho2, rho3,
+error_T_K, error_type_T_K, error_dist_T_K,
+XH2O, error_XH2O, error_type_XH2O, error_dist_XH2O, Hloss,
+neg_values
+):
+    
+    
+    # This fills in the columns for the single calculation, e.g. no Monte-Carloing from above. 
+    SingleCalc_D_km=df_ind['Depth (km)'].iloc[i]
+    SingleCalc_Press_kbar=df_ind['Pressure (kbar)'].iloc[i]
+    
+    # Now lets get the value, using the function in the CO2_in_bubble_error.py file
+    T_K_i=get_value(T_K, i)
+    error_T_K_i=get_value(error_T_K, i)
+    
+    
+    CO2_dens_gcm3_i=get_value(CO2_dens_gcm3, i)
+    error_CO2_dens_i=get_value(error_CO2_dens, i)
+    
+    crust_dens_kgm3_i=get_value(crust_dens_kgm3, i)
+    error_crust_dens_i=get_value(error_crust_dens, i)
+    # Now, if XH2O was entered, and isnt None, do the same. Else keeps as None. 
+    if XH2O is not None:
+        error_XH2O_i=get_value(error_XH2O, i)
+        XH2O_i=get_value(XH2O, i)
+    else:
+        error_XH2O_i=0
+    
+    if sample_ID is None:
+        Sample[i]=i
+
+    elif isinstance(sample_ID, str):
+        Sample=sample_ID
+    else:
+        Sample=sample_ID.iloc[i]
+                
+
+
+    # This is the function doing the work to actually make the simulations for each variable.
+    # For each input variable, it makes a distribution. 
+    
+    # If XH2O is None, it doesnt return the column XH2O_with_noise, which helps ID this later. 
+    if XH2O is None:
+        
+        df_synthetic=calculate_temperature_density_MC(N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3_i,
+    T_K=T_K_i, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
+    error_CO2_dens=error_CO2_dens_i, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
+    crust_dens_kgm3=crust_dens_kgm3_i,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
+model=model, neg_values=neg_values)
+
+        if model is None:
+            MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                            CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                        crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
+                                        d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
+                                            EOS=EOS )
+        else:
+            MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                            CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
+                                        model=model, EOS=EOS)
+
+    if XH2O is not None:
+        
+        df_synthetic=calculate_temperature_density_MC(N_dup=N_dup, CO2_dens_gcm3=CO2_dens_gcm3_i,
+    T_K=T_K_i, error_T_K=error_T_K_i, error_type_T_K=error_type_T_K, error_dist_T_K=error_dist_T_K,
+    error_CO2_dens=error_CO2_dens_i, error_type_CO2_dens=error_type_CO2_dens, error_dist_CO2_dens=error_dist_CO2_dens,
+    crust_dens_kgm3=crust_dens_kgm3_i,  error_crust_dens=error_crust_dens_i, error_type_crust_dens= error_type_crust_dens, error_dist_crust_dens=error_dist_crust_dens,
+model=model, XH2O=XH2O_i, error_XH2O=error_XH2O_i, error_type_XH2O=error_type_XH2O, error_dist_XH2O=error_dist_XH2O,  neg_values=neg_values)
+
+        EOS='DZ06'
+        
+
+    # Convert to densities for MC
+
+        if model is None:
+            MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                            CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                        crust_dens_kgm3=df_synthetic['crust_dens_with_noise'],
+                                        XH2O=df_synthetic['XH2O_with_noise'], Hloss=Hloss,
+                                        d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,model=model,
+                                            EOS=EOS )
+        else:
+            MC_T=convert_co2_dens_press_depth(T_K=df_synthetic['T_K_with_noise'],
+                                            CO2_dens_gcm3=df_synthetic['CO2_dens_with_noise'],
+                                        XH2O=df_synthetic['XH2O_with_noise'], Hloss=Hloss,
+                                            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3,
+                                        model=model, EOS=EOS)
 
 
 
 
 
+    # Check of
+    if sample_ID is None:
+        Sample=i
+
+    elif isinstance(sample_ID, str):
+        Sample=sample_ID
+    else:
+        Sample=sample_ID.iloc[i]
+
+    MC_T.insert(0, 'Filename', Sample)
 
 
 
+    CO2_density_input=CO2_dens_gcm3_i
+
+
+
+
+# Collect results
+    result = {
+        'i': i,
+        'Filename': Sample,
+         'CO2_density_input': CO2_dens_gcm3_i,
+        'SingleCalc_D_km': df_ind['Depth (km)'].iloc[i],
+        'SingleCalc_Press_kbar': df_ind['Pressure (kbar)'].iloc[i],
+        'Mean_MC_P_kbar': np.nanmean(MC_T['Pressure (kbar)']),
+        'Med_MC_P_kbar': np.nanmedian(MC_T['Pressure (kbar)']),
+        'std_dev_MC_P_kbar': np.nanstd(MC_T['Pressure (kbar)']),
+        'std_dev_MC_P_kbar_from_percentile': 0.5*np.abs((np.percentile(MC_T['Pressure (kbar)'], 84) -np.percentile(MC_T['Pressure (kbar)'], 16))),
+        'Mean_MC_D_km': np.nanmean(MC_T['Depth (km)']),
+        'Med_MC_D_km': np.nanmedian(MC_T['Depth (km)']),
+        'std_dev_MC_D_km': np.nanstd(MC_T['Depth (km)']),
+        'std_dev_MC_D_km_from_percentile': 0.5*np.abs((np.percentile(MC_T['Depth (km)'], 84) -np.percentile(MC_T['Depth (km)'], 16))),
+        'T_K_input': T_K_i,
+        'error_T_K': error_T_K_i,
+        'CO2_dens_gcm3_input': CO2_dens_gcm3_i,
+        'error_CO2_dens_gcm3': error_CO2_dens_i,
+        'crust_dens_kgm3_input':crust_dens_kgm3_i,
+        'error_crust_dens_kgm3': error_crust_dens_i,
+        'model': model,
+        'EOS': EOS
+                            
+    }
+    if XH2O is not None:
+        result['XH2O_input']=XH2O_i
+        result['error_XH2O']=error_XH2O_i
+
+    return result, MC_T
+    
+    
+        
+        
+        
+        
+        
+ 

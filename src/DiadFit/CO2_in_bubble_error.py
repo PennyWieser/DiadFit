@@ -299,10 +299,32 @@ error_type_dimension=error_type_dimension, error_dist_dimension=error_dist_dimen
 
     return df_step, All_outputs, fig if 'fig' in locals() else None
 
-
+# Lets set the random seed
+np.random.seed(42)
 
 def add_noise_to_variable(original_value, error, error_type, error_dist, N_dup, neg_values, neg_threshold):
         """ This function adds noise to each variable for the monte-carloing
+
+        Parameters
+        -----------------
+        original_value: int, float
+            Preferred value (e.g. center of distribution)
+
+        error: int, float
+            Error value
+
+        error_type: str
+            'Abs' if absolute error, 'Perc' if percent
+
+        error_dist: str
+            'normal' if normally distributed, 'uniform' if uniformly distributed.
+
+        N_dup: int
+            number of duplicates
+
+        neg_values: bool
+            whether negative values are replaced with zeros
+
 
         """
 
