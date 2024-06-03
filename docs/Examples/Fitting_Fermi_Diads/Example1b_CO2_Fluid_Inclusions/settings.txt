@@ -5,4 +5,4 @@ prefix=True
 prefix_str=' '
 spectra_file_ext=.txt
 meta_file_ext=.txt
-TruPower=False
+TruPower=True

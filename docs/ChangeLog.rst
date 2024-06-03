@@ -3,6 +3,13 @@
 Change Log
 ================
 
+June 3rd, 2024 - Penny Wieser - V.0.91
+-------------------------------------------
+Implemented parallel processing for Duan and Zhang (2006) EOS when doing monte carlo simulations
+Set fixed random state in numpy.
+
+
+
 March 29th, 2024 - Penny Wieser - V.0.86
 -------------------------------------------
 Was an issue in the math for the CO2-H2O EOS in the situation where H2O wasnt loss - mass ratio not calculated correctly. Caused convergence issues.

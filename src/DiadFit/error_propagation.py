@@ -825,7 +825,7 @@ neg_values=True,
         if error_dist_crust_dens=='normal' and error_type_crust_dens == 'Perc':
             ax3.set_title('Input distribution crustal density: Normally-distributed, 1σ =' +str(error_crust_dens_plot) + '%')
         if model is None and df_1_step['error_crust_dens_kgm3'][0]!=0:
-            ax3.hist(df_1_sample['input_crust_dens_kgm3'], facecolor='white',  ec='k')
+            ax3.hist(df_1_sample['MC_crust_dens_kgm3'], facecolor='white',  ec='k')
         else:
             ax3.plot([0, 0], [0, N_dup], '-r')
         ax3.ticklabel_format(useOffset=False)
@@ -949,7 +949,7 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
             df=pd.DataFrame(data={'Pressure (kbar)': Pressure['P_kbar'],
                                         'Pressure (MPa)': Pressure['P_MPa'],
                                         'Depth (km)': Depth_km,
-                                        'input_crust_dens_kgm3': crust_dens_kgm3,
+                                        'MC_crust_dens_kgm3': crust_dens_kgm3,
                                         'model': model,
                                         'MC_T_K': T_K,
                                         'MC_CO2_dens_gcm3': CO2_dens_gcm3}, index=[0])
@@ -960,7 +960,7 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
             df=pd.DataFrame(data={'Pressure (kbar)': Pressure['P_kbar'],
                                         'Pressure (MPa)': Pressure['P_MPa'],
                                         'Depth (km)': Depth_km,
-                                        'input_crust_dens_kgm3': crust_dens_kgm3,
+                                        'MC_crust_dens_kgm3': crust_dens_kgm3,
                                         'model': model,
                                         'MC_T_K': T_K,
                                         'MC_CO2_dens_gcm3': CO2_dens_gcm3})
@@ -972,7 +972,7 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
             'Pressure (kbar)': [Pressure['P_kbar']],
             'Pressure (MPa)': [Pressure['P_MPa']],
             'Depth (km)': [Depth_km] if isinstance(Depth_km, float) else Depth_km,
-            'input_crust_dens_kgm3': [crust_dens_kgm3],
+            'MC_crust_dens_kgm3': [crust_dens_kgm3],
             'model': [model],
             'MC_T_K': [T_K],
             'MC_CO2_dens_gcm3': [CO2_dens_gcm3]
@@ -998,7 +998,7 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
             df=pd.DataFrame(data={'Pressure (kbar)': P_kbar_calc,
                                         'Pressure (MPa)': 100*P_kbar_calc,
                                         'Depth (km)': Depth_km,
-                                        'input_crust_dens_kgm3': crust_dens_kgm3,
+                                        'MC_crust_dens_kgm3': crust_dens_kgm3,
                                         'model': model,
                                         'MC_T_K': T_K,
                                         'MC_CO2_dens_gcm3': CO2_dens_gcm3,
@@ -1010,7 +1010,7 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
             df=pd.DataFrame(data={'Pressure (kbar)': P_kbar_calc,
                                         'Pressure (MPa)': 100*P_kbar_calc,
                                         'Depth (km)': Depth_km,
-                                        'input_crust_dens_kgm3': crust_dens_kgm3,
+                                        'MC_crust_dens_kgm3': crust_dens_kgm3,
                                         'model': model,
                                         'MC_T_K': T_K,
                                         'MC_CO2_dens_gcm3': CO2_dens_gcm3,
