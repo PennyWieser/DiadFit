@@ -90,10 +90,16 @@ plot_figure=True, fig_i=0, neg_values=True):
     """
     # Constant for sphere calcs
 
+
      # Lets check what they entered for volume - if they didnt enter a volume % Bubble, lets calculate it
     if vol_perc_bub is None:
-        Vol_VB_sphere=const*VB_x*VB_y*VB_z
-        Vol_MI_sphere=const*MI_x*MI_y*MI_z
+        if VB_z is None:
+            VB_z=(VB_x+VB_y)/2
+        if MI_z is None:
+            MI_z=(MI_x+MI_y)/2
+
+        Vol_VB_sphere=const*VB_x*VB_y*VB_z*(0.5)**3
+        Vol_MI_sphere=const*MI_x*MI_y*MI_z*(0.5)**3
         vol_perc_bub=100* Vol_VB_sphere/Vol_MI_sphere
 
     # Now lets check how they entered error in volume
@@ -128,6 +134,7 @@ plot_figure=True, fig_i=0, neg_values=True):
 
 
 
+
     #This loops through each sample
     for i in range(0, len_loop):
         if i % 20 == 0:
@@ -152,6 +159,7 @@ plot_figure=True, fig_i=0, neg_values=True):
 
         # This is the function doing the work to actually make the simulations for each variable.
         if error_vol_perc_bub is not None:
+            print('didnt get inside else loop')
 
             df_synthetic=propagate_CO2_in_bubble_ind(
     N_dup=N_dup,
@@ -169,15 +177,27 @@ plot_figure=True, fig_i=0, neg_values=True):
     error_dist_melt_dens_kgm3=error_dist_melt_dens_kgm3,
     len_loop=1, neg_values=neg_values)
 
+
+
         else:
+
 
             # This is the more complex one where we have to account for x-y-z errors on all of them.
             MI_x_i = get_value(MI_x, i)
             MI_y_i = get_value(MI_y, i)
-            MI_z_i = get_value(MI_z, i)
+
+
+
             VB_x_i = get_value(VB_x, i)
             VB_y_i = get_value(VB_y, i)
+
+
+
+
             VB_z_i = get_value(VB_z, i)
+            MI_z_i = get_value(MI_z, i)
+
+
 
             error_MI_x_i = get_value(error_MI_x, i)
             error_MI_y_i = get_value(error_MI_y, i)
@@ -373,20 +393,10 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
     Parameters
     ----------------
-    SampleID: str, pd.series
-        Sample_ID (e.g. sample names) which is returned on dataframe
-
-    N_dup: int
-        Number of duplicates when generating errors for Monte Carlo simulations
+    For volumes, either enter vol% bubble and associated errors...
 
     vol_perc_bub: int, float, pd.series
         Volume proportion of sulfide in melt inclusion
-
-    melt_dens_kgm3:int, float, pd.series
-        Density of the silicate melt in kg/m3, e.g. from DensityX
-
-    CO2_bub_dens_gcm3: int, float, pd.Series
-        Density of the vapour bubble in g/cm3
 
 
     error_vol_perc_bub, CO2_bub_dens_gcm3, error_melt_dens_kgm3: int, float, pd.Series
@@ -397,6 +407,41 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
     error_dist_vol_perc_bub, error_dist_bub_dens_gcm3, error_dist_melt_dens_kgm3: 'normal' or 'uniform'
         Distribution of simulated error
+
+
+    OR
+    Enter melt inclusion and vapour bubble dimensions (diameter, not radii), and their errors
+    MI_x, MI_y, MI_z, VB_x, VB_y, VB_z: int, float, series:
+        Diameter of melt inclusions.
+
+    error_MI_x, error_MI_y, error_MI_z, error_VB_x, error_VB_y, error_VB_z:
+        Error on diameter of melt inclusions
+
+    error_type_dimension='Abs' or 'Perc':
+        Specify whether errors on these dimensions are absolute or percentage
+
+    error_dist_dimension='normal' or 'uniform':
+        Specify error distribution
+
+
+
+
+
+    SampleID: str, pd.series
+        Sample_ID (e.g. sample names) which is returned on dataframe
+
+    N_dup: int
+        Number of duplicates when generating errors for Monte Carlo simulations
+
+
+
+    melt_dens_kgm3:int, float, pd.series
+        Density of the silicate melt in kg/m3, e.g. from DensityX
+
+    CO2_bub_dens_gcm3: int, float, pd.Series
+        Density of the vapour bubble in g/cm3
+
+
 
     plot_figure: bool
         Default true - plots a figure of the row indicated by fig_i (default 1st row, fig_i=0)
@@ -434,18 +479,18 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
     # Volume error distribution - if they give a volume percentage rather than dimensions
     if error_vol_perc_bub is not None:
+        print('using error on the bubble volume percent, not the entered dimensions, as error_vol_perc_bub was not None')
         # Easy peasy
         Vol_with_noise=add_noise_to_variable(vol_perc_bub, error_vol_perc_bub,
         error_type_vol_perc_bub, error_dist_vol_perc_bub,  N_dup, neg_values, neg_threshold=0.0000000001)
 
+
     else:
+
         x_MI_with_noise=add_noise_to_variable(MI_x, error_MI_x,
         error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
         y_MI_with_noise=add_noise_to_variable(MI_y, error_MI_y,
-        error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
-
-        z_MI_with_noise=add_noise_to_variable(MI_z, error_MI_z,
         error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
         x_VB_with_noise=add_noise_to_variable(VB_x, error_VB_x,
@@ -454,12 +499,17 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
         y_VB_with_noise=add_noise_to_variable(VB_y, error_VB_y,
         error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
+
+        z_MI_with_noise=add_noise_to_variable(MI_z, error_MI_z,
+        error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
+
+
         z_VB_with_noise=add_noise_to_variable(VB_z, error_VB_z,
         error_type_dimension, error_dist_dimension, N_dup, neg_values, neg_threshold=0.0000000001)
 
 
-        Vol_VB_sphere_with_noise=const*x_VB_with_noise*y_VB_with_noise*z_VB_with_noise
-        Vol_MI_sphere_with_noise=const*x_MI_with_noise*y_MI_with_noise*z_MI_with_noise
+        Vol_VB_sphere_with_noise=const*x_VB_with_noise*y_VB_with_noise*z_VB_with_noise*(0.5)**3
+        Vol_MI_sphere_with_noise=const*x_MI_with_noise*y_MI_with_noise*z_MI_with_noise*(0.5)**3
         Vol_with_noise=100* Vol_VB_sphere_with_noise/Vol_MI_sphere_with_noise
 
 

@@ -1251,8 +1251,6 @@ dz06_lookuptable=pd.read_csv(DiadFit_dir/file_str)
 def get_initial_guess(V_target, T_K_target, XH2O_target):
     # Calculate the Euclidean distance from the target point to all points in the table
     # We normalize each dimension by its range to give equal weight to all parameters
-
-
     df=dz06_lookuptable
 
     # code to find best value
@@ -1270,13 +1268,18 @@ def get_initial_guess(V_target, T_K_target, XH2O_target):
         ((df['V'] - V_target) / V_range) ** 2
     )
 
+    # Drop NaN values from distances
+    non_nan_distances = distances.dropna()
+
+    # Check if all distances are NaN
+    if non_nan_distances.empty:
+        return 10
+
     # Find the index of the closest row in the DataFrame
-    closest_index = distances.argmin()
+    closest_index = non_nan_distances.idxmin()
 
     # Retrieve the P_kbar value from the closest row
     initial_guess_P = df.iloc[closest_index]['P_kbar']
-
-
 
     return initial_guess_P
 
@@ -2063,6 +2066,7 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
     """
     XH2O, rho_meas, T_K=ensure_series(a=XH2O, b=CO2_dens_gcm3, c=T_K)
     alpha=XH2O/(1-XH2O)
+
     # IF water is lost
     rho_orig_H_loss=rho_meas*(1+alpha*(18/44))
     # IF water isnt lost
@@ -2081,7 +2085,9 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
     H2O_dens=calculate_rho_for_P_T_H2O(P_kbar=P_H2O,T_K=T_K_ambient)
 
     # Calculate the bulk density by re-arranging the two volume equations
+    nan_mask = H2O_dens==0
     rho_orig_no_H_loss=(CO2_dens_gcm3*H2O_dens)/((1-XH2O_mass)*H2O_dens+XH2O_mass*CO2_dens_gcm3)
+    rho_orig_no_H_loss = np.where(nan_mask, CO2_dens_gcm3, rho_orig_no_H_loss)
 
 
 
@@ -2139,22 +2145,34 @@ def calculate_rho_for_P_T_H2O(P_kbar, T_K):
         H2O density in g/cm3
 
     """
-    if isinstance(P_kbar, pd.Series):
-        P_kbar=np.array(P_kbar)
-    if isinstance(T_K, pd.Series):
-        T_K=np.array(T_K)
+# Convert inputs to numpy arrays if they are not already
+    if isinstance(P_kbar, (int, float)):
+        P_kbar = np.array([P_kbar])
+    elif isinstance(P_kbar, (pd.Series, list)):
+        P_kbar = np.array(P_kbar)
 
-    P_Pa=P_kbar*10**8
+    if isinstance(T_K, (int, float)):
+        T_K = np.array([T_K])
+    elif isinstance(T_K, (pd.Series, list)):
+        T_K = np.array(T_K)
+
+    # Ensure both arrays are the same shape
+    P_kbar, T_K = np.broadcast_arrays(P_kbar, T_K)
+
+    P_Pa = P_kbar * 10**8
 
     try:
         import CoolProp.CoolProp as cp
     except ImportError:
         raise RuntimeError('You havent installed CoolProp, which is required to convert FI densities to pressures. If you have python through conda, run conda install -c conda-forge coolprop in your command line')
 
-    H2O_dens_gcm3=cp.PropsSI('D', 'P', P_Pa, 'T', T_K, 'H2O')/1000
+    H2O_dens_gcm3 = np.zeros_like(P_kbar, dtype=float)
+
+    non_zero_indices = P_kbar != 0
+    if np.any(non_zero_indices):
+        H2O_dens_gcm3[non_zero_indices] = cp.PropsSI('D', 'P', P_Pa[non_zero_indices], 'T', T_K[non_zero_indices], 'H2O') / 1000
 
     return pd.Series(H2O_dens_gcm3)
-
 
 
 

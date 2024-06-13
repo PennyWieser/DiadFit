@@ -1,0 +1,25 @@
+Video Image--018
+
+General:
+System ID: 	100-1200-2200
+Start Time: 	2:51:14 PM
+Start Date: 	Wednesday, September 20, 2023
+Duration: 	0h 0m 0s
+User Name: 	Witec
+
+Video System:
+Objective Name: 	Zeiss EC Epiplan 20x / 0.4
+Objective Magnification: 	20
+Image Width [µm]: 	552.265
+Image Height [µm]: 	345.165
+Camera Exposure [s]: 	1/25
+Camera Gain [dB]: 	0.00
+
+Illumination:
+Reflection Light [%]: 	Off
+Transmission Light [%]: 	51.85
+
+Sample Location (global position):
+Position X [µm]: 	329.900
+Position Y [µm]: 	-2430.900
+Position Z [µm]: 	0.000
