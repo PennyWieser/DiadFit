@@ -29,7 +29,7 @@ Welcome to DiadFits documentation!
 
 
 
-   
+
 
 .. toctree::
    :maxdepth: 2

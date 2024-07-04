@@ -159,7 +159,7 @@ plot_figure=True, fig_i=0, neg_values=True):
 
         # This is the function doing the work to actually make the simulations for each variable.
         if error_vol_perc_bub is not None:
-            print('didnt get inside else loop')
+
 
             df_synthetic=propagate_CO2_in_bubble_ind(
     N_dup=N_dup,

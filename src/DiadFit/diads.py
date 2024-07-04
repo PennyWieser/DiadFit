@@ -725,7 +725,7 @@ def plot_peak_params(fit_params,
 def filter_splitting_prominence(*, fit_params, data_y_all,
                                 x_cord,
                                 splitting_limits=[100, 107],
-                                lower_diad1_prom=10, exclude_str):
+                                lower_diad1_prom=10, exclude_str=None, str_filt=None):
     """ Filters Spectra based on approximate splitting, draws a plot showing spectra to discard and those to keep
 
     Parameters
@@ -746,6 +746,12 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
         Only keeps spectra that meet the splitting parameter, and have an absolute
         diad1 prominence greater than this value (helps filter out other weird spectra)
 
+    exclude_str: str
+        Excludes files with this string.
+
+    str_filt: str
+        Filters just based on string in filename
+
     Returns
     --------------
     fit_params_filt: pd.DataFrame
@@ -759,21 +765,30 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
 
 
     """
+    if str_filt is not None:
+        filt=fit_params['filename'].str.contains(str_filt)
 
-    reas_split=(fit_params['approx_split'].between(splitting_limits[0], splitting_limits[1]))
-    reas_heigh=fit_params['Diad1_abs_prom']>lower_diad1_prom
-    if exclude_str is not None:
-        name_in_file=~fit_params['filename'].str.contains(exclude_str)
     else:
-        name_in_file=reas_heigh
 
-    fit_params_filt=fit_params.loc[(reas_split&reas_heigh&name_in_file)].reset_index(drop=True)
-    fit_params_disc=fit_params.loc[~(reas_split&reas_heigh&name_in_file)].reset_index(drop=True)
+        reas_split=(fit_params['approx_split'].between(splitting_limits[0], splitting_limits[1]))
+        reas_heigh=fit_params['Diad1_abs_prom']>lower_diad1_prom
+
+        if exclude_str is not None:
+            name_in_file=~fit_params['filename'].str.contains(exclude_str)
+        else:
+            name_in_file=reas_heigh
+
+        filt=reas_split&reas_heigh&name_in_file
+
+    fit_params_filt=fit_params.loc[filt].reset_index(drop=True)
+    fit_params_disc=fit_params.loc[~(filt)].reset_index(drop=True)
 
     print('Keeping N='+str(len(fit_params_filt)))
     print('Discarding N='+str(len(fit_params_disc)))
 
-    filt=reas_split&reas_heigh&name_in_file
+
+
+    # Then apply to get data
     data_y_filt=data_y_all[:, (filt)]
     data_y_disc=data_y_all[:, ~(filt)]
 
@@ -804,17 +819,21 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
             Diff=np.nanmax(data_y_filt[:, i])-np.nanmin(data_y_filt[:, i])
             av_prom_Keep=fit_params_filt['Diad1_abs_prom'].iloc[i]
             prom_filt=prom_filt+av_prom_Keep
+            file=fit_params_filt['filename'].iloc[i]
             ax2.plot(x_cord+i*5, (data_y_filt[:, i]-np.nanmin(data_y_filt[:, i]))/Diff+i/3, '-b', lw=0.5)
+            yplot=np.quantile((data_y_filt[:, i]-np.nanmin(data_y_filt[:, i]))/Diff+i/3, 0.65)
+            ax2.annotate(str(file), xy=(1450+i*5, yplot),
+                    xycoords="data", fontsize=8, bbox=dict(facecolor='white', edgecolor='none', pad=2))
 
 
         ax2.set_xlim([1250, 1450+i*5])
         ax2.set_xticks([])
         ax2.set_yticks([])
 
-    return fit_params_filt, data_y_filt, fit_params_disc, data_y_disc
+    return fit_params_filt.reset_index(drop=True), data_y_filt, fit_params_disc.reset_index(drop=True), data_y_disc
 
 
-def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=0.1, grp_filter='Weak'):
+def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=0.1, grp_filter='Weak', str_filt=None):
 
     """Sorts diads into two groups. Those meeting the 'filter_bool' criteria, and those not
      meeting this criteria. Ones meeting the criteria are shown on the left hand plot,
@@ -853,6 +872,9 @@ def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=
 
 
     """
+    if str_filt is not None:
+        filt_name=~fit_params['filename'].str.contains(str_filt)
+        filt_bool=filt_name&filt_bool
 
     if np.shape(data_y)[1]==0:
         Group1_df=pd.DataFrame().reindex_like(fit_params)

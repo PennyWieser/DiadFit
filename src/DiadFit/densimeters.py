@@ -944,20 +944,29 @@ def merge_fit_files(path):
 
     if os.path.exists(os.path.join(path, 'Weak_Diads.xlsx')):
         grp1 = pd.read_excel(os.path.join(path, 'Weak_Diads.xlsx'))
+        grp1['Standard']='No'
     else:
         grp1 = None
 
     if os.path.exists(os.path.join(path, 'Medium_Diads.xlsx')):
         grp2 = pd.read_excel(os.path.join(path, 'Medium_Diads.xlsx'))
+        grp2['Standard']='No'
     else:
         grp2 = None
 
     if os.path.exists(os.path.join(path, 'Strong_Diads.xlsx')):
         grp3 = pd.read_excel(os.path.join(path, 'Strong_Diads.xlsx'))
+        grp3['Standard']='No'
     else:
         grp3 = None
+        
+    if os.path.exists(os.path.join(path, 'Std_Diads.xlsx')):
+        grp4 = pd.read_excel(os.path.join(path, 'Std_Diads.xlsx'))
+        grp4['Standard']='Yes'
+    else:
+        grp4 = None
 
-    df2 = pd.concat([grp1, grp2, grp3], axis=0).reset_index(drop=True)
+    df2 = pd.concat([grp1, grp2, grp3, grp4], axis=0).reset_index(drop=True)
 
     if discard is not None:
         discard_cols=discard[discard.columns.intersection(df2.columns)]
