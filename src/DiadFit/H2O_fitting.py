@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Tuple, Optional
 from DiadFit.importing_data_files import *
 from numpy import trapz
-from scipy.integrate import simps
+from scipy.integrate import simpson
 ##
 def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
                          prefix=True, str_prefix=" ", file_ext='.txt'):

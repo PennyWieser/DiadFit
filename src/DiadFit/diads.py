@@ -18,7 +18,7 @@ import matplotlib.patches as patches
 import warnings as w
 from tqdm import tqdm
 from numpy import trapz
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.interpolate import interp1d
 
 # Allowed models
