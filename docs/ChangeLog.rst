@@ -2,7 +2,15 @@
 ================
 Change Log
 ================
+Publication version Penny Wieser - V.1.0.1
+-------------------------------------------
+Updated code to allow for fitting of standards as a seperate groups
+replaced outdated simps with simpson for scipy. Also removed support for python 3.7, added 3.11, added scipy version.
 
+
+Publication version Penny Wieser - V.1.0
+-------------------------------------------
+Final tweaks to documentation and functions for publication
 
 
 June 3rd, 2024 - Penny Wieser - V.0.91
