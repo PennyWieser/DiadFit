@@ -27,8 +27,10 @@ setup(
 
     package_data={
         # Include all pickle files
-        "": ["*.pkl"],
+        "": ["*.pkl", "*.csv"],
     },
+
+
     install_requires=[
             'pandas',
             'numpy<2',
@@ -38,6 +40,7 @@ setup(
             'lmfit>=1.1.0',
             'tqdm',
             'python-docx'
+
             ],
 
     classifiers=[
