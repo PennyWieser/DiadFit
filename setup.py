@@ -36,7 +36,7 @@ setup(
             'numpy<2',
             'matplotlib',
             'scikit-learn',
-            'scipy',
+            'scipy>=1.8',
             'lmfit>=1.1.0',
             'tqdm',
             'python-docx'
@@ -47,5 +47,5 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.8',
 )
