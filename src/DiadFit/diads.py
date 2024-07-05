@@ -3857,8 +3857,8 @@ path=None, filename=None, filetype=None,
 
 
                 xspace_sil=x_new[1]-x_new[0]
-                area_trap = trapz(Baseline_ysub_sil, dx=xspace_sil)
-                area_simps = simps(Baseline_ysub_sil, dx=xspace_sil)
+                area_trap = trapezoid(Baseline_ysub_sil, dx=xspace_sil)
+                area_simps = simpson(Baseline_ysub_sil, dx=xspace_sil)
 
 
 

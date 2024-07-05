@@ -36,7 +36,7 @@ setup(
             'numpy<2',
             'matplotlib',
             'scikit-learn',
-            'scipy>=1.8',
+            'scipy>1.6',
             'lmfit>=1.1.0',
             'tqdm',
             'python-docx'
