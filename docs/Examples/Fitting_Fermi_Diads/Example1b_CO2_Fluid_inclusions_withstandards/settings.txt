@@ -1,0 +1,8 @@
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1b_CO2_Fluid_inclusions_withstandards\metadata
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1b_CO2_Fluid_inclusions_withstandards\spectra
+spectra_filetype=headless_txt
+prefix=True
+prefix_str=' '
+spectra_file_ext=.txt
+meta_file_ext=.txt
+TruPower=True

@@ -331,6 +331,8 @@ error_CO2_dens=0, error_type_CO2_dens='Abs', error_dist_CO2_dens='normal',
 
 # Check for panda Series
 
+
+
 def convert_inputs_to_series(T_K, error_T_K, CO2_dens_gcm3, error_CO2_dens_gcm3, XH2O, error_XH2O):
     # Create a list of all inputs
     inputs = [T_K, error_T_K, CO2_dens_gcm3, error_CO2_dens_gcm3, XH2O, error_XH2O]
@@ -341,11 +343,17 @@ def convert_inputs_to_series(T_K, error_T_K, CO2_dens_gcm3, error_CO2_dens_gcm3,
     # Unpack the converted inputs back to their respective variables
     T_K, error_T_K, CO2_dens_gcm3, error_CO2_dens_gcm3, XH2O, error_XH2O = converted_inputs
     
-    # Continue with the function using the possibly converted inputs...
-    # For demonstration, just return the converted inputs
+    # Reset index only if the input is a pandas Series
+    T_K = T_K.reset_index(drop=True) if isinstance(T_K, pd.Series) else T_K
+    error_T_K = error_T_K.reset_index(drop=True) if isinstance(error_T_K, pd.Series) else error_T_K
+    CO2_dens_gcm3 = CO2_dens_gcm3.reset_index(drop=True) if isinstance(CO2_dens_gcm3, pd.Series) else CO2_dens_gcm3
+    error_CO2_dens_gcm3 = error_CO2_dens_gcm3.reset_index(drop=True) if isinstance(error_CO2_dens_gcm3, pd.Series) else error_CO2_dens_gcm3
+    XH2O = XH2O.reset_index(drop=True) if isinstance(XH2O, pd.Series) else XH2O
+    error_XH2O = error_XH2O.reset_index(drop=True) if isinstance(error_XH2O, pd.Series) else error_XH2O
+    
+    # Return the possibly converted inputs
     return T_K, error_T_K, CO2_dens_gcm3, error_CO2_dens_gcm3, XH2O, error_XH2O
-    
-    
+
 
 
 def propagate_FI_uncertainty(sample_ID, CO2_dens_gcm3, T_K, multiprocess='default',  cores='default', 

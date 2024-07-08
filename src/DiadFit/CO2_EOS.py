@@ -1028,7 +1028,7 @@ def ensure_series(a, b, c):
     else:
         c = pd.Series(c)
 
-    return a, b, c
+    return a.reset_index(drop=True), b.reset_index(drop=True), c.reset_index(drop=True)
 
 
 def ensure_series_4(a, b, c, d):
@@ -1061,7 +1061,7 @@ def ensure_series_4(a, b, c, d):
     else:
         d = pd.Series(d)
 
-    return a, b, c, d
+    return a.reset_index(drop=True), b.reset_index(drop=True), c.reset_index(drop=True), d.reset_index(drop=True)
 
 
 
@@ -2064,8 +2064,12 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
 
 
     """
+
     XH2O, rho_meas, T_K=ensure_series(a=XH2O, b=CO2_dens_gcm3, c=T_K)
     alpha=XH2O/(1-XH2O)
+
+    # All inputs 194 up to here
+
 
     # IF water is lost
     rho_orig_H_loss=rho_meas*(1+alpha*(18/44))
@@ -2083,11 +2087,23 @@ def calculate_entrapment_P_XH2O(*, XH2O, CO2_dens_gcm3, T_K, T_K_ambient=37+273.
 
     # calculate density of H2O using EOS
     H2O_dens=calculate_rho_for_P_T_H2O(P_kbar=P_H2O,T_K=T_K_ambient)
+    H2O_dens=H2O_dens.reset_index(drop=True)
 
     # Calculate the bulk density by re-arranging the two volume equations
     nan_mask = H2O_dens==0
-    rho_orig_no_H_loss=(CO2_dens_gcm3*H2O_dens)/((1-XH2O_mass)*H2O_dens+XH2O_mass*CO2_dens_gcm3)
-    rho_orig_no_H_loss = np.where(nan_mask, CO2_dens_gcm3, rho_orig_no_H_loss)
+
+    # Debugging
+
+
+
+
+    rho_orig_no_H_loss=(rho_meas*H2O_dens)/((1-XH2O_mass)*H2O_dens+XH2O_mass*rho_meas)
+
+
+
+
+    rho_orig_no_H_loss = np.where(nan_mask, rho_meas, rho_orig_no_H_loss)
+
 
 
 

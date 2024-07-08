@@ -832,6 +832,96 @@ def filter_splitting_prominence(*, fit_params, data_y_all,
 
     return fit_params_filt.reset_index(drop=True), data_y_filt, fit_params_disc.reset_index(drop=True), data_y_disc
 
+def filter_by_string(*, fit_params, data_y_all,
+                                x_cord,
+                                 str_filt=None):
+    """ Filters Spectra based on approximate splitting, draws a plot showing spectra to discard and those to keep
+
+    Parameters
+    --------------
+    fit_params: pd.dataframe
+        dataframe of fit parameters from loop_approx_diad_fits
+
+    data_y_all: np.array
+        y coordinates of each spectra from loop_approx_diad_fits, used for plotting visualizatoins
+
+    x_cord: np.array
+        x coordinates of 1 spectra. Assumes all x coordinates the same length
+
+
+
+    str_filt: str
+        Filters just based on string in filename. Keeps files with string in, discards those without.
+
+    Returns
+    --------------
+    fit_params_filt: pd.DataFrame
+        dataframe of fit parameters for spectra to keep
+    data_y_filt: np.array
+        y coordinates of spectra to keep
+    fit_params_disc: pd.DataFrame
+        dataframe of fit parameters for spectra to discard
+    data_y_disc: np.array
+        y coordinates of spectra to discard
+
+
+    """
+
+    filt=fit_params['filename'].str.contains(str_filt)
+
+
+    fit_params_filt=fit_params.loc[filt].reset_index(drop=True)
+    fit_params_disc=fit_params.loc[~(filt)].reset_index(drop=True)
+
+    print('Keeping N='+str(len(fit_params_filt)))
+    print('Discarding N='+str(len(fit_params_disc)))
+
+
+
+    # Then apply to get data
+    data_y_filt=data_y_all[:, (filt)]
+    data_y_disc=data_y_all[:, ~(filt)]
+
+    intc=800
+    prom_filt=0
+    prom_disc=0
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,5))
+    ax1.set_title('Samples')
+    ax2.set_title('Standards')
+    if sum(~filt)>0:
+        for i in range(0, np.shape(data_y_disc)[1]):
+            av_prom_disc=np.abs(np.nanmedian(fit_params_disc['Diad1_abs_prom'])/intc)
+            Diff=np.nanmax(data_y_disc[:, i])-np.nanmin(data_y_disc[:, i])
+            av_prom_Keep=fit_params_disc['Diad1_abs_prom'].iloc[i]
+            prom_disc=prom_disc+av_prom_disc
+            ax1.plot(x_cord+i*5, (data_y_disc[:, i]-np.nanmin(data_y_disc[:, i]))/Diff+i/3, '-r', lw=0.5)
+            yplot=np.quantile((data_y_disc[:, i]-np.nanmin(data_y_disc[:, i]))/Diff+i/3, 0.65)
+            file=fit_params_disc['filename'].iloc[i]
+            file = file.replace("_CRR_DiadFit", "")
+            ax1.annotate(str(file), xy=(1450+i*5, yplot),
+                    xycoords="data", fontsize=8, bbox=dict(facecolor='white', edgecolor='none', pad=2))
+
+        ax1.set_xlim([1250, 1500+i*5])
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+    if sum(filt)>0:
+        for i in range(0, np.shape(data_y_filt)[1]):
+            Diff=np.nanmax(data_y_filt[:, i])-np.nanmin(data_y_filt[:, i])
+            av_prom_Keep=fit_params_filt['Diad1_abs_prom'].iloc[i]
+            prom_filt=prom_filt+av_prom_Keep
+            file=fit_params_filt['filename'].iloc[i]
+            ax2.plot(x_cord+i*5, (data_y_filt[:, i]-np.nanmin(data_y_filt[:, i]))/Diff+i/3, '-b', lw=0.5)
+            yplot=np.quantile((data_y_filt[:, i]-np.nanmin(data_y_filt[:, i]))/Diff+i/3, 0.65)
+            ax2.annotate(str(file), xy=(1450+i*5, yplot),
+                    xycoords="data", fontsize=8, bbox=dict(facecolor='white', edgecolor='none', pad=2))
+
+
+        ax2.set_xlim([1250, 1450+i*5])
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+
+    return fit_params_filt.reset_index(drop=True), data_y_filt, fit_params_disc.reset_index(drop=True), data_y_disc
+
 
 def identify_diad_group(*, fit_params, data_y,  x_cord, filter_bool,y_fig_scale=0.1, grp_filter='Weak', str_filt=None):
 
