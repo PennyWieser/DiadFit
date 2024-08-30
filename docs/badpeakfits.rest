@@ -1,0 +1,11 @@
+======================
+Inspecting Peak Fits
+======================
+Because DiadFit automates peak fitting, you need to visually inspect each peak fit to check that it is good, and discard analysis with poor peak fits. Below, we show some poor peak fits to look out for, looking at the 7 panel figure that DiadFit provides for inspection.
+
+
+.. raw:: html
+
+    <iframe src="_static/Bad_Peak_Fits.pdf" width="100%" height="800px">
+        This browser does not support PDFs. Please download the PDF to view it: <a href="_static/Bad_Peak_Fits.pdf">Download PDF</a>.
+    </iframe>

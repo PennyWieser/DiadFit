@@ -493,13 +493,27 @@ def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MP
     results = pd.DataFrame([{'Time(s)': 0,
                              'Step':0,
                              'dt(s)':0,
-                            'Pexternal(MPa)': Pexternal_MPa,
-                            'Pinternal(MPa)': Pinternal_MPa,
-                            'dR/dt(m/s)': calculate_dR_dt(R_m=R_m, b_m=b_m, Pinternal_MPa=Pinternal_MPa, Pexternal_MPa=Pexternal_MPa, T_K=T_K),
-                            'Fi_radius(μm)': R_m*10**6,
-                            'b (distance to xtal rim -μm)':b_m*10**6,
+                            'Pexternal(MPa)': float(Pexternal_MPa),
+                            'Pinternal(MPa)': float(Pinternal_MPa),
+                            'dR/dt(m/s)': float(calculate_dR_dt(R_m=R_m, b_m=b_m, Pinternal_MPa=Pinternal_MPa, Pexternal_MPa=Pexternal_MPa, T_K=T_K)),
+                            'Fi_radius(μm)': float(R_m*10**6),
+                            'b (distance to xtal rim -μm)':float(b_m*10**6),
                             '\u0394R/R0 (fractional change in radius)':0,
-                            'CO2_dens_gcm3': CO2_dens_initial}], index=range(steps))
+                            'CO2_dens_gcm3': float(CO2_dens_initial)}], index=range(steps))
+                            
+    results = results.astype({
+        'Time(s)': 'float64',
+        'Step': 'int64',
+        'dt(s)': 'float64',
+        'Pexternal(MPa)': 'float64',
+        'Pinternal(MPa)': 'float64',
+        'dR/dt(m/s)': 'float64',
+        'Fi_radius(μm)': 'float64',
+        'b (distance to xtal rim -μm)': 'float64',
+        '\u0394R/R0 (fractional change in radius)': 'float64',
+        'CO2_dens_gcm3': 'float64'
+    })
+
 
     dt_s=totaltime_s/steps
     
@@ -515,9 +529,10 @@ def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MP
         if update_b==True:
             b_m=1000*R_m
         
-        results.loc[step] = [step * dt_s, step, dt_s, Pexternal_MPa, Pinternal_MPa, dR_dt, R_m * 10 ** 6, b_m * 10 ** 6,
-                            (R_m * 10 ** 6 - results.loc[0, 'Fi_radius(μm)']) / results.loc[0, 'Fi_radius(μm)'],
-                                CO2_dens_new]
+        results.loc[step] = [float(step * dt_s), int(step), float(dt_s), float(Pexternal_MPa), float(Pinternal_MPa), 
+                     float(dR_dt), float(R_m * 10 ** 6), float(b_m * 10 ** 6), 
+                     float((R_m * 10 ** 6 - results.loc[0, 'Fi_radius(μm)']) / results.loc[0, 'Fi_radius(μm)']),
+                     float(CO2_dens_new)]
 
     if report_results == 'startendonly':
         results.drop(index=list(range(1, results.shape[0] - 1)), inplace=True)  # Drop all rows except first and last
