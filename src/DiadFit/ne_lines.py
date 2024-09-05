@@ -17,7 +17,7 @@ from tqdm.notebook import tqdm
 import re
 import scipy.stats as stats
 import pickle
-
+pd.set_option('future.no_silent_downcasting', True)
 
 allowed_models = ["VoigtModel", "PseudoVoigtModel", "Pearson4Model", "SkewedVoigtModel"]
 
