@@ -14,6 +14,7 @@ Welcome to DiadFits documentation!
    installation
    importing_data
    pythonjargon
+   badpeakfits
    ChangeLog
 
 .. toctree::

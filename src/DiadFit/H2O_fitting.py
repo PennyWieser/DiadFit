@@ -874,6 +874,7 @@ fit_sil='poly', dpi=200):
     xspace_sil=xdat_sil[1]-xdat_sil[0]
     area_trap = trapezoid(y_corr_sil, dx=xspace_sil)
     area_simps = simpson(y_corr_sil, dx=xspace_sil)
+
     # Just the LW area
     xsil_LW=xdat_sil[(xdat_sil>LW[0]) & (xdat_sil<LW[1])]
     y_corr_sil_LW=y_corr_sil[(xdat_sil>LW[0]) & (xdat_sil<LW[1])]
@@ -966,8 +967,8 @@ fit_sil='poly', dpi=200):
                           'Silicate_Simpson_Area': area_simps,
                           'LW_Silicate_Trapezoid_Area':area_trap_LW,
                           'LW_Silicate_Simpson_Area':area_simp_LW,
-                          'HW_Silicate_Trapezoid_Area':area_trap_LW,
-                          'HW_Silicate_Simpson_Area':area_simp_LW,
+                          'HW_Silicate_Trapezoid_Area':area_trap_HW,
+                          'HW_Silicate_Simpson_Area':area_simp_HW,
                            }, index=[0])
 
     if MW is not None:
@@ -1039,7 +1040,8 @@ def fit_area_for_water_region(*, path, filename, Spectra=None, config1: water_bc
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns for 'Water_Trapezoid_Area', 'Water_Simpson_Area', as well as parameters for the selected background positions
+        DataFrame with columns for different areas, and parameters for choosen background positions.
+
 
     """
     Water=Spectra
@@ -1242,7 +1244,9 @@ def stitch_dataframes_together(df_sil, df_water,  MI_file, Host_file=None, save_
     Returns
     -----------
     pd.DataFrame
-        DataFrame with columns for MI filename, HW:LW_Trapezoid, HW:LW_Simpson, Water_Trapezoid_Area,
+        DataFrame with columns for MI filename,
+        HW:LW_Trapezoid (Water Trapezoid area divided by HW region of silicate melt, using the trapezoid method to get area under the curve.
+        HW:LW_Simpson, Water_Trapezoid_Area,
         Water_Simpson_Area, Silicate_Trapezoid_Area, and Silicate_Simpson_Area.
         If Host_file is provided,
         the DataFrame will also include a column for Host filename.
@@ -1253,16 +1257,16 @@ def stitch_dataframes_together(df_sil, df_water,  MI_file, Host_file=None, save_
     if Host_file is not None:
         Combo_Area.insert(0, 'Host filename', Host_file)
     Combo_Area.insert(1, 'MI filename', MI_file)
-    Combo_Area.insert(2, 'HW:LW_Trapezoid',
+    Combo_Area.insert(2, 'Water_to_HW_ratio_Trapezoid',
                       Combo_Area['Water_Trapezoid_Area']/Combo_Area['HW_Silicate_Trapezoid_Area'])
-    Combo_Area.insert(3, 'HW:LW_Simpson',
+    Combo_Area.insert(3, 'Water_to_HW_ratio_Simpson',
                       Combo_Area['Water_Simpson_Area']/Combo_Area['HW_Silicate_Simpson_Area'])
 
     if Host_file is not None:
-        cols_to_move=['Host filename', 'MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
+        cols_to_move=['Host filename', 'MI filename', 'Water_to_HW_ratio_Trapezoid', 'Water_to_HW_ratio_Simpson',
      'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
     else:
-        cols_to_move=['MI filename', 'HW:LW_Trapezoid', 'HW:LW_Simpson',
+        cols_to_move=['MI filename', 'Water_to_HW_ratio_Trapezoid', 'Water_to_HW_ratio_Simpson',
      'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
 
 

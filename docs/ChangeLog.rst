@@ -2,6 +2,12 @@
 ================
 Change Log
 ================
+Sept 4th, 2024 -  Penny Wieser - V.1.0.3
+-------------------------------------------
+Changed column names in H2O method from HW:LW_Trapezoid and HW:LW_Simpson to Water_to_HW_ratio_Trapezoid and Water_to_HW_ratio_Simpson
+Was also a bug where LW area was being populated in the HW area column in the output dataframe.
+
+
 Publication version Penny Wieser - V.1.0.1
 -------------------------------------------
 Updated code to allow for fitting of standards as a seperate groups
