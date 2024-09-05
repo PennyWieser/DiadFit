@@ -6,6 +6,7 @@ import lmfit
 from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel, PseudoVoigtModel, Pearson4Model
 from scipy.signal import find_peaks
 from scipy.signal.windows import gaussian
+pd.set_option('future.no_silent_downcasting', True)
 
 import os
 import re
