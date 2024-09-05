@@ -6,7 +6,7 @@ import lmfit
 from lmfit.models import GaussianModel, VoigtModel, LinearModel, ConstantModel, PseudoVoigtModel, Pearson4Model
 from scipy.signal import find_peaks
 from scipy.signal.windows import gaussian
-pd.set_option('future.no_silent_downcasting', True)
+
 
 import os
 import re
@@ -21,6 +21,7 @@ from tqdm import tqdm
 from scipy.integrate import trapezoid
 from scipy.integrate import simpson
 from scipy.interpolate import interp1d
+
 
 # Allowed models
 
@@ -2550,7 +2551,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         # Final check - that Gaussian isnt anywhere near the height of the diad
 
 
-    df_out=df_out.fillna(0)
+    df_out=df_out.fillna(0).infer_objects()
 
     return result, df_out, y_best_fit, x_lin, components, xdat, ydat, ax1_xlim, ax2_xlim, residual_diad_coords, ydat_inrange,  xdat_inrange
 

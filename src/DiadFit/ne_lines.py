@@ -17,7 +17,7 @@ from tqdm.notebook import tqdm
 import re
 import scipy.stats as stats
 import pickle
-pd.set_option('future.no_silent_downcasting', True)
+
 
 allowed_models = ["VoigtModel", "PseudoVoigtModel", "Pearson4Model", "SkewedVoigtModel"]
 
@@ -1531,9 +1531,9 @@ plot_figure=True, loop=True,
                          
     df_combo=df
     pk1_peak_cent_values = df_combo['pk1_peak_cent'].values
-    pk1_peak_cent_errors = df_combo['error_pk1'].fillna(0).values
+    pk1_peak_cent_errors = df_combo['error_pk1'].fillna(0).infer_objects().values
     pk2_peak_cent_values = df_combo['pk2_peak_cent'].values
-    pk2_peak_cent_errors = df_combo['error_pk2'].fillna(0).values
+    pk2_peak_cent_errors = df_combo['error_pk2'].fillna(0).infer_objects().values
     
     constant=df_combo['deltaNe']
     
@@ -1568,7 +1568,7 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
 
     # Pk1 center vs. X
 
-    ax5.errorbar(x, df['pk1_peak_cent'], xerr=0, yerr=df['error_pk1'].fillna(0),
+    ax5.errorbar(x, df['pk1_peak_cent'], xerr=0, yerr=df['error_pk1'].fillna(0).infer_objects(),
              fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
     ax5.set_xlabel(x_label)
     ax5.set_ylabel('Peak 1 center')
@@ -1576,15 +1576,15 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
     # Pk2 center vs. X
              
     ax6.plot(x, df['pk2_peak_cent'], marker,  mec='k', mfc='r')
-    ax6.errorbar(x, df['pk2_peak_cent'], xerr=0, yerr=df['error_pk2'].fillna(0),
+    ax6.errorbar(x, df['pk2_peak_cent'], xerr=0, yerr=df['error_pk2'].fillna(0).infer_objects(),
              fmt='o', ecolor='k', elinewidth=0.8, mfc='r', ms=5, mec='k', capsize=3)
     
     ax6.set_xlabel(x_label)
     ax6.set_ylabel('Peak 2 center')
     
     # 
-    ax3.errorbar(df['Ne_Corr'], df['pk2_peak_cent'], xerr=df['1σ_Ne_Corr'].fillna(0), 
-    yerr=df['error_pk2'].fillna(0),
+    ax3.errorbar(df['Ne_Corr'], df['pk2_peak_cent'], xerr=df['1σ_Ne_Corr'].fillna(0).infer_objects(), 
+    yerr=df['error_pk2'].fillna(0).infer_objects(),
              fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
              
              
@@ -1592,14 +1592,14 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
     ax3.set_ylabel('Peak 2 center')
 
 
-    ax4.errorbar(df['Ne_Corr'], df['pk1_peak_cent'], xerr=df['1σ_Ne_Corr'].fillna(0), 
-    yerr=df['error_pk1'].fillna(0),
+    ax4.errorbar(df['Ne_Corr'], df['pk1_peak_cent'], xerr=df['1σ_Ne_Corr'].fillna(0).infer_objects(), 
+    yerr=df['error_pk1'].fillna(0).infer_objects(),
              fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
     ax4.set_xlabel('Ne Correction factor')
     ax4.set_ylabel('Peak 1 center')
     
     # Ne correction factor vs. time
-    ax1.errorbar(x, df['Ne_Corr'], xerr=0, yerr=df['1σ_Ne_Corr'].fillna(0),
+    ax1.errorbar(x, df['Ne_Corr'], xerr=0, yerr=df['1σ_Ne_Corr'].fillna(0).infer_objects(),
              fmt='o', ecolor='k', elinewidth=0.8, mfc='grey', ms=5, mec='k',capsize=3)
     
     ax1.set_ylabel('Ne Correction factor')

@@ -267,8 +267,8 @@ def propagate_error_split_neon_peakfit(*, df_fits, Ne_corr=None, Ne_err=None, pr
 
 
     # Get the peak fit errors
-    Diad1_err=df_fits['Diad1_cent_err'].fillna(0)
-    Diad2_err=df_fits['Diad2_cent_err'].fillna(0)
+    Diad1_err=df_fits['Diad1_cent_err'].fillna(0).infer_objects()
+    Diad2_err=df_fits['Diad2_cent_err'].fillna(0).infer_objects()
     split_err=(Diad1_err**2 + Diad2_err**2)**0.5
     Combo_err= (((df_fits['Splitting']* (Ne_err))**2) +  (pref_Ne *split_err  )**2 )**0.5
 
