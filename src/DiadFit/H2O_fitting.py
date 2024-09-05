@@ -872,14 +872,14 @@ fit_sil='poly', dpi=200):
     ydat_sil=y_corr_sil
 
     xspace_sil=xdat_sil[1]-xdat_sil[0]
-    area_trap = trapezoid(y_corr_sil, dx=xspace_sil)
+    area_trap = trapz(y_corr_sil, dx=xspace_sil)
     area_simps = simpson(y_corr_sil, dx=xspace_sil)
 
     # Just the LW area
     xsil_LW=xdat_sil[(xdat_sil>LW[0]) & (xdat_sil<LW[1])]
     y_corr_sil_LW=y_corr_sil[(xdat_sil>LW[0]) & (xdat_sil<LW[1])]
     xspace_sil_LW=xsil_LW[1]-xsil_LW[0]
-    area_trap_LW=trapezoid(y_corr_sil_LW, dx=xspace_sil_LW)
+    area_trap_LW=trapz(y_corr_sil_LW, dx=xspace_sil_LW)
     area_simp_LW=simpson(y_corr_sil_LW, dx=xspace_sil_LW)
 
 
@@ -887,7 +887,7 @@ fit_sil='poly', dpi=200):
     xsil_HW=xdat_sil[(xdat_sil>HW[0]) & (xdat_sil<HW[1])]
     y_corr_sil_HW=y_corr_sil[(xdat_sil>HW[0]) & (xdat_sil<HW[1])]
     xspace_sil_HW=xsil_HW[1]-xsil_HW[0]
-    area_trap_HW=trapezoid(y_corr_sil_HW, dx=xspace_sil_HW)
+    area_trap_HW=trapz(y_corr_sil_HW, dx=xspace_sil_HW)
     area_simp_HW=simpson(y_corr_sil_HW, dx=xspace_sil_HW)
 
     # MW
@@ -895,7 +895,7 @@ fit_sil='poly', dpi=200):
         xsil_MW=xdat_sil[(xdat_sil>MW[0]) & (xdat_sil<MW[1])]
         y_corr_sil_MW=y_corr_sil[(xdat_sil>MW[0]) & (xdat_sil<MW[1])]
         xspace_sil_MW=xsil_MW[1]-xsil_MW[0]
-        area_trap_MW=trapezoid(y_corr_sil_MW, dx=xspace_sil_MW)
+        area_trap_MW=trapz(y_corr_sil_MW, dx=xspace_sil_MW)
         area_simp_MW=simpson(y_corr_sil_MW, dx=xspace_sil_MW)
 
 
@@ -1157,7 +1157,7 @@ def fit_area_for_water_region(*, path, filename, Spectra=None, config1: water_bc
 
 
     xspace_water=xdat_water[1]-xdat_water[0]
-    area_trap = trapezoid(y_corr_water, dx=xspace_water)
+    area_trap = trapz(y_corr_water, dx=xspace_water)
     area_simps = simpson(y_corr_water, dx=xspace_water)
 
 
@@ -1245,11 +1245,11 @@ def stitch_dataframes_together(df_sil, df_water,  MI_file, Host_file=None, save_
     -----------
     pd.DataFrame
         DataFrame with columns for MI filename,
-        HW:LW_Trapezoid (Water Trapezoid area divided by HW region of silicate melt, using the trapezoid method to get area under the curve.
-        HW:LW_Simpson, Water_Trapezoid_Area,
-        Water_Simpson_Area, Silicate_Trapezoid_Area, and Silicate_Simpson_Area.
-        If Host_file is provided,
-        the DataFrame will also include a column for Host filename.
+        Silicate_Trapezoid_Area, Silicate_Simpson_Area = Total Silicate Area using trapezoid or Simpson method
+        LW_Trapezoid_Area, LW_Simpson_Area,  MW_Trapezoid_Area, MW_Simpson_Area, HW_Trapezoid_Area, HW_Simpson_Area = Areas of LW, MW and HW Silicate areas (following Shiavi) using Trapezoid or Simpson integration methodWater_Trapezoid_area,
+        Water_Simpson_area = Total area under water peak using Simpson or Trapezoid Integration method.
+        Water_to_HW_ratio_Simpson, Water_to_HW_ratio_Trapezoid: Ratio of Total water area divided by the HW silicate area
+        Water_to_Total_Silicate_ratio_Simpson, Water_to_Total_Silicate_ratio_Trapezoid: Ratio of Total water area divided by the HW silicate area
 
 
     """
@@ -1261,12 +1261,16 @@ def stitch_dataframes_together(df_sil, df_water,  MI_file, Host_file=None, save_
                       Combo_Area['Water_Trapezoid_Area']/Combo_Area['HW_Silicate_Trapezoid_Area'])
     Combo_Area.insert(3, 'Water_to_HW_ratio_Simpson',
                       Combo_Area['Water_Simpson_Area']/Combo_Area['HW_Silicate_Simpson_Area'])
+    Combo_Area.insert(4, 'Water_to_Total_Silicate_ratio_Trapezoid',
+                      Combo_Area['Water_Trapezoid_Area']/Combo_Area['Silicate_Trapezoid_Area'])
+    Combo_Area.insert(5, 'Water_to_Total_Silicate_ratio_Simpson',
+                      Combo_Area['Water_Simpson_Area']/Combo_Area['Silicate_Simpson_Area'])
 
     if Host_file is not None:
-        cols_to_move=['Host filename', 'MI filename', 'Water_to_HW_ratio_Trapezoid', 'Water_to_HW_ratio_Simpson',
+        cols_to_move=['Host filename', 'MI filename', 'Water_to_HW_ratio_Trapezoid', 'Water_to_HW_ratio_Simpson', 'Water_to_Total_Silicate_ratio_Trapezoid', 'Water_to_Total_Silicate_ratio_Simpson',
      'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
     else:
-        cols_to_move=['MI filename', 'Water_to_HW_ratio_Trapezoid', 'Water_to_HW_ratio_Simpson',
+        cols_to_move=['MI filename', 'Water_to_HW_ratio_Trapezoid', 'Water_to_HW_ratio_Simpson', 'Water_to_Total_Silicate_ratio_Trapezoid', 'Water_to_Total_Silicate_ratio_Simpson',
      'Water_Trapezoid_Area', 'Water_Simpson_Area', 'Silicate_Trapezoid_Area', 'Silicate_Simpson_Area']
 
 
