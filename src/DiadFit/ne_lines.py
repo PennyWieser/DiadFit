@@ -348,6 +348,11 @@ def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     
     Intensity=np.array([
     
+    
+    
+    
+    
+    
     1500,
     12,
     500,

@@ -493,7 +493,7 @@ def calculate_exponential_time_steps(totaltime_s, steps):
     
     
 # This function is to model stretching at fixed External Pressure (e.g., during stalling or upon eruption)
-def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MPa,totaltime_s,steps,method='RK4',report_results='fullpath',plotfig=False,update_b=False, step_type='linear'):
+def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MPa,totaltime_s,steps,method='RK4',report_results='fullpath',plotfig=False,update_b=False, step_type='linear', max_perc_change=5):
     """
     Simulate the stretching of a CO2 fluid inclusion (FI) under constant external pressure (e.g., quenching or storage).
 
@@ -538,7 +538,7 @@ def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MP
                             'Pexternal(MPa)': float(Pexternal_MPa),
                             'Pinternal(MPa)': float(Pinternal_MPa),
                             'deltaP (internal-external, MPa)':float(Pinternal_MPa)- float(Pexternal_MPa),
-                            'dR/dt(m/s)': float(Pinternal_MPa), # ditched function due to issue with imaginary numbers
+                            'dR/dt(m/s)': float(calculate_dR_dt(R_m=R_m, b_m=b_m, Pinternal_MPa=Pinternal_MPa, Pexternal_MPa=Pexternal_MPa, T_K=T_K)), # ditched function due to issue with imaginary numbers
                             'Fi_radius(μm)': float(R_m*10**6),
                             'b (distance to xtal rim -μm)':float(b_m*10**6),
                             '\u0394R/R0 (fractional change in radius)':0,
@@ -559,7 +559,7 @@ def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MP
     })
 
 
-    if step_type is 'linear':
+    if step_type== 'linear':
 
         dt_s=totaltime_s/steps
         
@@ -576,33 +576,71 @@ def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MP
                 b_m=1000*R_m
 
             
-            results.loc[step] = [float(step * dt_s), int(step), float(dt_s), float(Pexternal_MPa), float(Pinternal_MPa), 
+            results.loc[step] = [float(step * dt_s), int(step), float(dt_s), float(Pexternal_MPa), float(Pinternal_MPa), float(Pinternal_MPa-Pexternal_MPa),
                         float(dR_dt), float(R_m * 10 ** 6), float(b_m * 10 ** 6), 
                         float((R_m * 10 ** 6 - results.loc[0, 'Fi_radius(μm)']) / results.loc[0, 'Fi_radius(μm)']),
                         float(CO2_dens_new)]
                         
-    elif step_type is 'exponential':
-        total_time=0
-    
+    elif step_type == 'exponential':
+        total_time = 0
         dt_s_array = calculate_exponential_time_steps(totaltime_s, steps)
-        
-        
-        for step in range(1, steps):
-            dt_s = dt_s_array[step]  # Get the exponentially spaced dt_s for this step
+        local_step = 0  # Track position in the new dt_s_array
+    
+        # Loop over steps
+        for step in range(steps):  # Use global step index
             
+    
+            if local_step >= len(dt_s_array):  # Ensure no out-of-bounds access in the recalculated array
+                print(local_step)
+                print(dt_s_array)
+                print(f"Local step {local_step} exceeds the length of dt_s_array {len(dt_s_array)}, skipping.")
+                break  # Avoid out-of-bounds access
+            
+            dt_s = dt_s_array[local_step]  # Use the local step to access dt_s_array
+            prev_Pinternal = Pinternal_MPa
+    
             # Accumulate the total time up to the current step
             total_time += dt_s
-            
     
-        
             # Update radius and pressure based on the current step
             R_new, dR_dt = get_R(R_m=R_m, b_m=b_m, T_K=T_K, Pinternal_MPa=Pinternal_MPa, Pexternal_MPa=Pexternal_MPa, dt_s=dt_s, method=method)
             CO2_dens_new, P_new = get_CO2dens_P(R_m=R_new, T_K=T_K, CO2_mass=CO2_mass_initial, EOS=EOS)
-        
+    
+            # Calculate the percentage change in internal pressure
+            perc_change = abs((P_new - prev_Pinternal) / prev_Pinternal) * 100
+    
+    
+            # Check if the pressure change exceeds the maximum allowed percentage change
+            while perc_change > max_perc_change:
+                print(f'Reducing step size, as pressure change was more than {max_perc_change}%.')
+    
+                dt_s /= 2  # Reduce the step size
+                total_time -= dt_s  # Remove the original dt_s from total_time
+                total_time += dt_s  # Add the smaller dt_s
+    
+                # Recalculate with the smaller dt_s
+                R_new, dR_dt = get_R(R_m=R_m, b_m=b_m, T_K=T_K, Pinternal_MPa=Pinternal_MPa, Pexternal_MPa=Pexternal_MPa, dt_s=dt_s, method=method)
+                CO2_dens_new, P_new = get_CO2dens_P(R_m=R_new, T_K=T_K, CO2_mass=CO2_mass_initial, EOS=EOS)
+    
+                # Recalculate the percentage change
+                perc_change = abs((P_new - prev_Pinternal) / prev_Pinternal) * 100
+    
+                # Recalculate dt_s_array to adjust future time steps based on the new dt_s
+                remaining_time = totaltime_s - total_time  # Remaining time after this step
+                remaining_steps = steps - step  # Remaining steps
+    
+                if remaining_steps > 0:
+                    dt_s_array = calculate_exponential_time_steps(remaining_time, remaining_steps)
+                    local_step = 0  # Reset local step to start from the new dt_s_array's first value
+
+            # Increment local_step for the next iteration
+            local_step += 1
+
+            
             # Update the current internal pressure and radius
             Pinternal_MPa = P_new
             R_m = R_new
-        
+            
             # Optionally update b_m if update_b is True
             if update_b:
                 b_m = 1000 * R_m
@@ -664,7 +702,7 @@ def stretch_at_constant_Pext(*,R_m,b_m,T_K,EOS='SW96',Pinternal_MPa,Pexternal_MP
 # This function can loop through different R and b value sets using stretch at constant Pext
 
 def loop_R_b_constant_Pext(*,R_m_values, b_m_values, T_K, EOS, Pinternal_MPa, Pexternal_MPa, totaltime_s, steps, T4endcalc_PD, method='RK4',
-                            plotfig=False, crustal_model_config=config_crustalmodel(crust_dens_kgm3=2750), step_type='linear'):
+                            plotfig=False, crustal_model_config=config_crustalmodel(crust_dens_kgm3=2750), step_type='linear', max_perc_change=5):
 
     """
     Perform multiple simulations under constant external pressure with various R and b values.
@@ -701,7 +739,7 @@ def loop_R_b_constant_Pext(*,R_m_values, b_m_values, T_K, EOS, Pinternal_MPa, Pe
             b_key = f'b{idx_b}'  # Use 'b' followed by the index
             results = stretch_at_constant_Pext(R_m=R, b_m=b, T_K=T_K, Pinternal_MPa=Pinternal_MPa, Pexternal_MPa=Pexternal_MPa,
                                               totaltime_s=totaltime_s, steps=steps, EOS=EOS, method=method,
-                                              plotfig=plotfig, step_type=step_type)
+                                              plotfig=plotfig, step_type=step_type, max_perc_change=max_perc_change)
             results['Calculated depths (km)_StorageT'] = convert_pressure_to_depth(
                 P_kbar=results['Pinternal(MPa)'] / 100,
                 crust_dens_kgm3=crustal_model_config.crust_dens_kgm3, g=9.81,

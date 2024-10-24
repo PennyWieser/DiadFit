@@ -70,7 +70,7 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
             elif isinstance(T_h_C, np.ndarray):
 
                 T_h_C[T_h_C > 30.9782] = 30.9782
-                print('got into this loop')
+
 
 
 

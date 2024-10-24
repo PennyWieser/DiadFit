@@ -131,8 +131,8 @@ def calculate_DPdt(ascent_rate_ms,crustal_model_config=config_crustalmodel(),D_i
         raise ValueError("Both D_initial_km and D_final_km must be provided, and D_initial_km must be larger than D_final_km")
     if D_initial_km>30 and D_step <= 80 and ascent_rate_ms <= 0.02:
         raise Warning("Your D_step is too small, the minimum recommended for ascent rates below 0.02 m/s is 80")
-    # Charlottes code D = pd.Series(list(np.linspace(D_initial_km, D_final_km, D_step)))  # km
-    D = pd.Series(np.geomspace(D_initial_km, D_final_km + 0.0001, steps)
+    D = pd.Series(list(np.linspace(D_initial_km, D_final_km, D_step)))  # km
+
     
     
     Pexternal_steps=find_P_for_kmdepth(D, crustal_model_config=crustal_model_config, initial_P_guess_kbar=initial_P_guess_kbar, tolerance=tolerance)

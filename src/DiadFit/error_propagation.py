@@ -109,7 +109,7 @@ def propagate_microthermometry_uncertainty(T_h_C, Sample_ID=None,  error_T_h_C=0
         else:
             Sample[i]=Sample_ID.iloc[i]
 
-        Temp_MC= add_noise_to_variable(T_h_C, error_T_h_C,
+        Temp_MC= add_noise_to_variable(T_h_C_i, error_T_h_C_i,
         error_type_T_h_C, error_dist_T_h_C, N_dup, True, neg_threshold=0.0000000001)
 
         Sample2=Sample[i]
