@@ -12,6 +12,9 @@ import pickle
 import math
 DiadFit_dir=Path(__file__).parent
 
+## Visualizing coexisting phases
+
+
 
 
 ## Calculating density for a given homogenization temp - Only available with Span and Wanger, but have equations
@@ -163,6 +166,9 @@ def calculate_CO2_density_homog_T(T_h_C, EOS='SW96', Sample_ID=None, homog_to=No
 
     if Sample_ID is not None:
         df['Sample_ID']=Sample_ID
+
+
+
 
 
 

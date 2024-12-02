@@ -1352,6 +1352,158 @@ def get_settings():
     # Return the settings
     return settings.get('meta_path'), settings.get('spectra_path'), settings.get('spectra_filetype'), \
            settings.get('prefix'), settings.get('prefix_str'), settings.get('spectra_file_ext'), settings.get('meta_file_ext'),settings.get('TruPower')
+           
+           ## Give nice column names
+           
+## Lets do the look up code.
+# 
+
+def add_column_name_descriptions(df):
+    
+    """ Adds a new to inputted dataframe, with a description of what the diadfit columns mean underneath
+    
+    Parameters
+    -------------------
+    df: pandas dataframe, including some columns from DiadFit (can have other columns too)
+    
+    Returns
+    ----------------------
+    df: A dataframe with a new row, with descriptions for columns matching our reference key. 
+    
+
+    
+    """
+    lookup_key = {
+    'filename': 'name of file',
+    'Density g/cm3': 'Density of CO2 in g/cm3',
+    'σ Density g/cm3': '1 sigma error on density (combined from peak fitting, Ne correction model, and densimeter equation)',
+    'σ Density g/cm3 (from Ne+peakfit)': '1 sigma error on density (from just peak fitting + Ne correction model)',
+    'σ Density g/cm3 (from densimeter)': '1 sigma error on density (from just the densimeter equation)',
+    'Corrected_Splitting': 'Splitting in cm-1 after correcting for instrument drift',
+    'Corrected_Splitting_σ': '1 sigma error on splitting (combined from peak fitting, Ne correction model)',
+    'Corrected_Splitting_σ_Ne': '1 sigma error on splitting just from Ne correction model',
+    'Corrected_Splitting_σ_peak_fit': '1 sigma error on splitting just from peak fitting',
+    'power (mW)': 'Laser power used in mW measured by WITEC TruPower',
+    'Spectral Center': 'Spectral Center used for analysis',
+    'in range': 'Y or N - Is the corrected splitting within the calibration range of the densimeter?',
+    'Notes': 'Which segment of the densimeter was used (e.g. which of several polynomials)',
+    'LowD_RT': 'Density calculated using the low density part of the Room Temp densimeter',
+    'HighD_RT': 'Density calculated using the high density part of the Room Temp densimeter',
+    'LowD_SC': 'Density calculated using the low density segment of the 37C densimeter',
+    'LowD_SC_σ': 'Error on density calculated using the low density segment of the 37C densimeter',
+    'MedD_RC': 'Density calculated using the medium density segment of the 37C densimeter',
+    'MedD_SC_σ': 'Error on density calculated using the medium density segment of the 37C densimeter',
+    'HighD_SC': 'Density calculated using the high density segment of the 37C densimeter',
+    'HighD_SC_σ': 'Error on density calculated using the high density segment of the 37C densimeter',
+    'Temperature': 'User entered Temp description: SupCrit or RoomT ',
+    'Splitting': 'Distance between fitted peak centers of Diad 1 and Diad 2 (cm-1)',
+    'Split_σ': 'Error on splitting',
+    'Diad1_Combofit_Cent': 'Fitted peak center (cm-1) of Diad1 (combined fit of diad, HB, gaussian background etc. )',
+    'Diad1_cent_err': 'Error on peak center of Diad1 (cm-1, calculated using lmfit)',
+    'Diad1_Combofit_Height': 'Height (intensity) of Diad1 combined fit',
+    'Diad1_Voigt_Cent': 'Fitted peak center (cm-1) of Diad1 for just the main peak',
+    'Diad1_Voigt_Area': 'Fitted area of Diad1 for just the main peak',
+    'Diad1_Voigt_Sigma': 'Fitted sigma of Diad1 for just the main peak',
+    'Diad1_Residual': 'Residual of fit to Diad1 (see DiadFit paper for explanation)',
+    'Diad1_Prop_Lor': 'Proportion of Lorentzian in Psuedovoigt peak for Diad1',
+    'Diad1_fwhm': 'Full Width Half Maximum of the fit to Diad1',
+    'Diad1_refit': 'Notes any warnings that flagged during iterative fitting',
+    'Diad2_Combofit_Cent': 'Fitted peak center (cm-1) of Diad2 (combined fit of diad, HB, gaussian background etc. )',
+    'Diad2_cent_err': 'Error on peak center of Diad2 (cm-1, calculated using lmfit)',
+    'Diad2_Combofit_Height': 'Height (intensity) of Diad2 combined fit',
+    'Diad2_Voigt_Cent': 'Fitted peak center (cm-1) of Diad2 for just the main peak',
+    'Diad2_Voigt_Area': 'Fitted area of Diad2 for just the main peak',
+    'Diad2_Voigt_Sigma': 'Fitted sigma of Diad2 for just the main peak',
+    'Diad2_Residual': 'Residual of fit to Diad2 (see DiadFit paper for explanation)',
+    'Diad2_Prop_Lor': 'Proportion of Lorentzian in Psuedovoigt peak for Diad2',
+    'Diad2_fwhm': 'Full Width Half Maximum of the fit to Diad2',
+    'Diad2_refit': 'Notes any warnings that flagged during iterative fitting',
+    'HB1_Cent': 'Fitted peak center of HB1 (cm-1)',
+    'HB1_Area': 'Fitted area of HB1',
+    'HB1_Sigma': 'Fitted sigma of HB1',
+    'HB2_Cent': 'Fitted peak center of HB2 (cm-1)',
+    'HB2_Area': 'Fitted area of HB2',
+    'HB2_Sigma': 'Fitted sigma of HB2',
+    'C13_Cent':  'Fitted peak center of the C13 peak (cm-1)',
+    'C13_Area': 'Fitted area of the C13 peak',
+    'C13_Sigma': 'Fitted sigma of the C13 peak',
+    'Diad2_Gauss_Cent': 'Fitted peak center (cm-1) of the Gaussian background on Diad2 (if used)',
+    'Diad2_Gauss_Area': 'Fitted area of the Gaussian background on Diad2',
+    'Diad2_Gauss_Sigma': 'Fitted sigma of the Gaussian backgroun on Diad2',
+    'Diad1_Gauss_Cent': 'Fitted peak center (cm-1) of the Gaussian background on Diad1 (if used)',
+    'Diad1_Gauss_Area': 'Fitted area of the Gaussian background on Diad1',
+    'Diad1_Gauss_Sigma': 'Fitted sigma of the Gaussian backgroun on Diad1',
+    'Diad1_Asym50': 'Asymmetry of Diad1 using a 50% intensity cut off (see DeVitre et al. 2023, Volcanica)',
+    'Diad1_Asym70': 'Asymmetry of Diad1 using a 70% intensity cut off (see DeVitre et al. 2023, Volcanica)',
+    'Diad1_Yuan2017_sym_factor': 'Symmetry factor of Diad1 following Yuan 2017',
+    'Diad1_Remigi2021_BSF': 'BSF factor of Diad1 following Remigi (2021)',
+    'Diad2_Asym50': 'Asymmetry of Diad2 using a 50% intensity cut off (see DeVitre et al. 2023, Volcanica)',
+    'Diad2_Asym70': 'Asymmetry of Diad2 using a 70% intensity cut off (see DeVitre et al. 2023, Volcanica)',
+    'Diad2_Yuan2017_sym_factor': 'Symmetry factor of Diad2 following Yuan 2017',
+    'Diad2_Remigi2021_BSF': 'BSF factor of Diad2 following Remigi (2021)',
+    'Diad1_PDF_Model': 'Name of the probability density function used to fit Diad1',
+    'Diad2_PDF_Model': 'Name of the probability density function used to fit Diad2',
+    'Standard': 'Is the analysis a standard (Yes/No)',
+    'date': 'Full date of analysis',
+    'Month': 'Month of analysis',
+    'Day': 'Day of the week of analysis',
+    'Int_time (s)': 'Integration time of each individual spectra in s',
+    'accumulations':'How many individual spectra are collected and averaged for a single reported spectra',
+    'Mag (X)': 'Objective used during analysis',
+    'duration': 'Duration of analysis as a string from WITEC',
+    '24hr_time': 'Time converted to a 24 hr clock',
+    'sec since midnight': 'time of acquisition as seconds after midnight on the day of analysis',
+    'Peak_Cent_SO2': 'Fitted peak center (cm-1) of the SO2 peak',
+    'Peak_Area_SO2': 'Fitted peak area (cm-1) of the SO2 peak',
+    'Peak_Height_SO2':  'Fitted peak height (cm-1) of the SO2 peak',
+    'Model_name_x': 'Model used to fit the SO2 peak',
+    'Peak_Cent_Carb': 'Fitted peak center (cm-1) of the Carb peak',
+    'Peak_Area_Carb': 'Fitted peak area (cm-1) of the Carb peak',
+    'Peak_Height_Carb':  'Fitted peak height (cm-1) of the Carb peak',
+    'Model_name_y': 'Model used to fit the SO2 peak',
+    'Carb_Diad_Ratio': 'Area of carbonate peak divided by sum of area of Diad1 and Diad2 ',
+    'SO2_Diad_Ratio': 'Area of the SO2 peak divided by sum of area of Diad1 and Diad2',
+    'SO2_mol_ratio': 'Molar proportion of SO2 in the gas species',
+    'time': 'seconds after midnight used for Ne correction ',
+    'preferred_values': 'Preferred value for Ne correction',
+    'lower_values': 'Preferred value - 1 sigma for Ne correction',
+    'upper_values': 'Preferred value + 1 sigma for Ne correction',
+   
+    'SingleCalc_D_km': 'Depth calculated using the preferred (average) value for the input parameters of the MC simulation',
+    'SingleCalc_P_kbar': 'Pressure calculated using the preferred (average) value for the input parameters of the MC simulation',    
+    'Mean_MC_P_kbar': 'Mean pressure calculated by averaging all the MC simulations for a single FI',
+    'Med_MC_P_kbar':'Median pressure calculated by averaging all the MC simulations for a single FI',
+    'std_dev_MC_P_kbar':'Std deviation of pressure calculated from all the MC simulations for a single FI',
+    'std_dev_MC_P_kbar_from_percentile':'Std deviation of pressure calculated from 84th-16th quantile/2 calculated from all the MC simulations for a single FI',
+    'Mean_MC_D_km': 'Mean depth calculated by averaging all the MC simulations for a single FI',
+    'Med_MC_D_km':'Median depth calculated by averaging all the MC simulations for a single FI',
+    'std_dev_MC_D_km':'Std deviation of depth calculated from all the MC simulations for a single FI',
+    'std_dev_MC_D_km_from_percentile':'Std deviation of depth calculated from 84th-16th quantile/2 calculated from all the MC simulations for a single FI',
+    'error_T_K': 'Input error in K for the Monte Carlo simulation',
+    'CO2_dens_gcm3_input': 'Input CO2 content in g/cm3 for the Monte Carlo simulation',
+    'error_CO2_dens_gcm3': 'Input CO2  error in g/cm3 for the Monte Carlo simulation',
+    'crust_dens_kgm3_input': 'Selected crustal density for the Monte Carlo simulation',
+    'error_crust_dens_kgm3':'Input crustal density error for the Monte Carlo simulation',
+    'model': 'Selected model to convert pressure to depth in the crust',
+    'EOS': 'Selected EOS to convert density to pressure'
+    
+    }
+    
+    # Create a list of descriptions based on the lookup key
+    description_row = [lookup_key.get(col, '') for col in df.columns]
+    
+    # Create a new DataFrame from the description row
+    description_df = pd.DataFrame([description_row], columns=df.columns)
+    
+    # Use pd.concat to combine the description row and original DataFrame
+    df_with_descriptions = pd.concat([description_df, df], ignore_index=True)
+    
+    # Display the DataFrame with descriptions
+    df_with_descriptions
+    
+    return df_with_descriptions
+
+           
 
 
 
