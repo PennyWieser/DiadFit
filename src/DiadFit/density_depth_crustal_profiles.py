@@ -1,24 +1,14 @@
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import inspect
 
 
-
 def rasmussen(P_kbar):
-    """ Calculates Depth for a given pressure using a 4th degree fit to the supporting information of Rasmussen et al. 2022,
-    overall best fit density vs. depth. Above 5.24 kbar, returns Nan
-
-    Parameters
-    -------------
-    P_kbar: int, float, pd.series
-        Pressure in kbar
-
-    Returns
-    -------------
-    Depth in km (same datatype as input)
-
-    """
+    """ 4th degree fit to the supporting information of Rasmussen et al. 2022,
+    overall best fit density vs. depth. Above 5.24 kbar, returns Nan"""
     P=P_kbar
     if P<5.2474630296099205:
         b=-0.0025915704129682504
@@ -32,20 +22,8 @@ def rasmussen(P_kbar):
     return D
 
 def hill_zucca(P_kbar):
-
-    """Calculates Depth for a given pressure using the parameterization of Hill and Zucca (1987),
-    as given in Putirka (2017) Down the Crater Elements supplement for Hawaii
-
-    Parameters
-    -------------
-    P_kbar: int, float, pd.series
-        Pressure in kbar
-
-    Returns
-    -------------
-    Depth in km (same datatype as input)
-
-
+    """ Parameterization of Hill and Zucca (1987),
+    as given in Putirka (2017) Down the Crater Elements supplement
     """
     P=P_kbar
 
@@ -54,19 +32,8 @@ def hill_zucca(P_kbar):
     return D
 
 def ryan_lerner(P_kbar):
-    """ Calculates depth for a given pressure using the Parameterization of Ryan 1987, actual equation from Lerner et al. 2021
-    After 16.88 km (455 MPa), returns NaN
-
-    Parameters
-    -------------
-    P_kbar: int, float, pd.series
-        Pressure in kbar
-
-    Returns
-    -------------
-    Depth in km (same datatype as input)
-
-
+    """ Parameterization of Ryan 1987, actual equation from Lerner et al. 2021
+    After 16.88 km (455 MPa), returns Nan
     """
     P=P_kbar*100
     if P<455.09090909:
@@ -75,7 +42,6 @@ def ryan_lerner(P_kbar):
         D=np.nan
 
     return D
-
 
 def denlinger_lerner(P_kbar):
     """ Calculates depth for a given pressure using the Parameterization of Denlinger and Flinders (2022) with the addition of 200 kg/m3 at shallow depths, from Lerner et al. (2024).
@@ -100,23 +66,9 @@ def denlinger_lerner(P_kbar):
     return D
 
 
-
-
-
 def mavko_debari(P_kbar):
-    """ Calculates depth for a given pressure using the parameterization of Mavko and Thompson (1983) and DeBari and Greene (2011)
+    """ Parameterization of Mavko and Thompson (1983) and DeBari and Greene (2011)
     as given in Putirka (2017) Down the Crater Elements supplement, used for Cascades
-
-    Parameters
-    -------------
-    P_kbar: int, float, pd.series
-        Pressure in kbar
-
-    Returns
-    -------------
-    Depth in km (same datatype as input)
-
-
     """
     P=P_kbar
     D=0.4853881 + 3.6006116*P - 0.0117368*(P-1.3822)**2
@@ -126,20 +78,9 @@ def mavko_debari(P_kbar):
 
 
 def prezzi(P_kbar):
-    """Calculates depth for a given pressure using the parameterization of Prezzi et al. (2009),
+    """ Parameterization of Prezzi et al. (2009),
     as given in Putirka (2017) Down the Crater Elements supplement.
     Used for Andes.
-
-    Parameters
-    -------------
-    P_kbar: int, float, pd.series
-        Pressure in kbar
-
-    Returns
-    -------------
-    Depth in km (same datatype as input)
-
-
     """
     P=P_kbar
     D=4.88 + 3.30*P - 0.0137*(P - 18.01)**2
@@ -147,30 +88,7 @@ def prezzi(P_kbar):
     return D
 
 
-def prezzi(P_kbar):
-    """Calculates depth for a given pressure using the parameterization of Prezzi et al. (2009),
-    as given in Putirka (2017) Down the Crater Elements supplement.
-    Used for Andes.
-
-    Parameters
-    -------------
-    P_kbar: int, float, pd.series
-        Pressure in kbar
-
-    Returns
-    -------------
-    Depth in km (same datatype as input)
-
-
-
-    """
-    P=P_kbar
-    D=4.88 + 3.30*P - 0.0137*(P - 18.01)**2
-
-    return D
-
-
-Profile_funcs={ryan_lerner, denlinger_lerner, mavko_debari, hill_zucca, prezzi, rasmussen}
+Profile_funcs={ryan_lerner, mavko_debari, hill_zucca, prezzi, rasmussen, denlinger_lerner}
 Profile_funcs_by_name= {p.__name__: p for p in Profile_funcs}
 
 
@@ -192,9 +110,6 @@ def convert_pressure_depth_2step(P_kbar=None, d1=None, rho1=None, rho2=None, g=9
     rho2: int or float
         Density (kg/m3) below step transition
 
-    g: float
-        gravitational constant
-
     Returns
     -------------
     float
@@ -214,8 +129,6 @@ def convert_pressure_depth_2step(P_kbar=None, d1=None, rho1=None, rho2=None, g=9
         # print(P_belowMoho)
         depth_km_bm=10**(-3)*((P_belowstep1*100000000)/(g*rho2))
         depth_km=d1+depth_km_bm
-    if np.isnan(P_kbar):
-        depth_km=np.nan
 
     return depth_km
 
@@ -237,9 +150,6 @@ def loop_pressure_depth_2step(P_kbar=None, d1=14, rho1=2800, rho2=3100, g=9.81):
     rho2: int or float
         Density (kg/m3) below step transition
 
-    g: float
-        gravitational constant
-
     Returns
     -------------
     pd.Series
@@ -250,15 +160,15 @@ def loop_pressure_depth_2step(P_kbar=None, d1=14, rho1=2800, rho2=3100, g=9.81):
         depth_km_loop=convert_pressure_depth_2step(P_kbar,
             d1=d1, rho1=rho1, rho2=rho2, g=g)
     else:
-        depth_km_loop=np.zeros(len(P_kbar))
+        depth_km_loop=np.empty(len(P_kbar))
         for i in range(0, len(P_kbar)):
             depth_km_loop[i]=convert_pressure_depth_2step(P_kbar[i],
             d1=d1, rho1=rho1, rho2=rho2, g=g)
     return depth_km_loop
 
 
-def convert_pressure_depth_3step(P_kbar=None, d1=5, d2=14, g=9.81,
-                                 rho1=2700, rho2=3000, rho3=3100):
+def convert_pressure_depth_3step(P_kbar=None, d1=5, d2=14,
+                                 rho1=2700, rho2=3000, rho3=3100, g=9.81):
     """ Converts Pressure to depth using a 3 step profile for int or float
 
     Parameters
@@ -281,9 +191,6 @@ def convert_pressure_depth_3step(P_kbar=None, d1=5, d2=14, g=9.81,
 
     rho3: int or float
         Density (kg/m3) below 2nd step transition
-
-    g: float
-        gravitational constant
 
     Returns
     -------------
@@ -313,10 +220,10 @@ def convert_pressure_depth_3step(P_kbar=None, d1=5, d2=14, g=9.81,
         depth_km_bm=10**(-3)*((P_belowstep2*100000000)/(g*rho3))
         depth_km=d2+depth_km_bm
 
-    if np.isnan(P_kbar):
-        depth_km=np.nan
-
     return depth_km
+
+
+
 
 def loop_pressure_depth_3step(P_kbar=None,  d1=5, d2=14,
                                  rho1=2700, rho2=3000, rho3=3100, g=9.81):
@@ -351,22 +258,144 @@ def loop_pressure_depth_3step(P_kbar=None,  d1=5, d2=14,
 
     """
     if type(P_kbar) is int or type(P_kbar) is float:
-        depth_km_loop=convert_pressure_depth_3step(P_kbar,
-            d1=d1, rho1=rho1, rho2=rho2, g=g)
+        depth_km_loop=convert_pressure_depth_3step(P_kbar=P_kbar,
+            d1=d1, d2=d2,rho1=rho1, rho2=rho2, rho3=rho3, g=g)
     else:
 
-        depth_km_loop=np.zeros(len(P_kbar))
+        depth_km_loop=np.empty(len(P_kbar))
         for i in range(0, len(P_kbar)):
-            depth_km_loop[i]=convert_pressure_depth_3step(P_kbar[i],
+            depth_km_loop[i]=convert_pressure_depth_3step(P_kbar=P_kbar[i],
             d1=d1, d2=d2,rho1=rho1, rho2=rho2, rho3=rho3, g=g)
     return depth_km_loop
 
+########## Same for 4 step
+
+def convert_pressure_depth_4step(*, P_kbar=None, d1=None, d2=None, d3=None,
+                                 rho1=None, rho2=None, rho3=None, rho4=None, g=9.81):
+    """ Converts Pressure to depth using a 3 step profile for int or float
+
+    Parameters
+    --------------
+    P_kbar: int or float
+        Pressure in kbar
+
+    d1: int or float
+        depth in km of 1st step transition in density from the surface
+
+    d2: int or float
+        depth in km of 2nd step transition in density from the surface
+
+    d3: int or float
+        depth in km of 3rd step transition in density from the surface
 
 
-def convert_pressure_to_depth(P_kbar=None, crust_dens_kgm3=None, g=9.81,
-d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
+
+
+    rho1: int or float
+        Density (kg/m3) down to first step transition
+
+    rho2: int or float
+        Density (kg/m3) between first and second step transition
+
+    rho3: int or float
+        Density (kg/m3) below 2nd step transition
+
+    rho4: int or float
+        Density (kg/m3) below 3rd step transition
+
+    Returns
+    -------------
+    float
+        Depth in km
+
+    """
+
+    d1_SI=d1*1000
+    d2_SI=d2*1000
+    d3_SI=d3*1000
+    P_Step1=(g*rho1*d1_SI)/100000000 # Convert to kbar
+    P_Step2=P_Step1+(g*(d2_SI-d1_SI)*rho2)/100000000 # Pressure contribution from step 2
+    P_Step3=P_Step2+(g*(d3_SI-d2_SI)*rho3)/100000000
+
+    # If the pressure is less than Step 1, easy math, just use Rho1
+    if P_kbar<P_Step1:
+        depth_km=10**(-3)*((P_kbar*100000000))/(g*rho1)
+
+    # If the pressure is between step 1 and step 2, First, take away the pressure of step 1, then solve for height in layer 2
+    if P_kbar>=P_Step1 and P_kbar<P_Step2:
+        P_belowStep2=P_kbar-P_Step1
+        # print('P below  Moho')
+        # print(P_belowMoho)
+        depth_km_bm=10**(-3)*((P_belowStep2*100000000)/(g*rho2))
+        depth_km=d1+depth_km_bm
+
+    # If the pressure is between step 2 and 3, take away the pressure of step2, and calculate the height within layer 3
+    if P_kbar>=P_Step2 and P_kbar<P_Step3:
+        P_belowstep2=P_kbar-P_Step2
+        # print('P below  Moho')
+        # print(P_belowMoho)
+        depth_km_bm=10**(-3)*((P_belowstep2*100000000)/(g*rho3))
+        depth_km=d2+depth_km_bm
+
+    # If the pressure is greater than that at the base of layer 3, take away the pressure of step3, and calculate the height within layer 4
+    if P_kbar>=P_Step3:
+        P_belowstep3=P_kbar-P_Step3
+        # print('P below  Moho')
+        # print(P_belowMoho)
+        depth_km_bm=10**(-3)*((P_belowstep3*100000000)/(g*rho4))
+        depth_km=d3+depth_km_bm
+
+    return depth_km
+
+def loop_pressure_depth_4step(*, P_kbar=None,  d1=5, d2=14, d3=20,
+                                 rho1=2700, rho2=3000, rho3=3100, rho4=4000, g=9.81):
+
+    """ Converts Pressure to depth using a 3 step profile for pd.Series
+
+    Parameters
+    --------------
+    P_kbar: pd.Series
+        Pressure in kbar
+
+    d1: int or float
+        depth in km of 1st step transition in density
+
+    d2: int or float
+        depth in km of 2nd step transition in density
+
+    rho1: int or float
+        Density (kg/m3) down to first step transition
+
+    rho2: int or float
+        Density (kg/m3) between first and second step transition
+
+
+    rho3: int or float
+        Density (kg/m3) below 2nd step transition
+
+    Returns
+    -------------
+    pd.Series
+        Depth in km
+
+    """
+    if type(P_kbar) is int or type(P_kbar) is float:
+        depth_km_loop=convert_pressure_depth_4step(P_kbar=P_kbar,
+            d1=d1, d2=d2, d3=d3, rho1=rho1, rho2=rho2, rho3=rho3, rho4=rho4, g=g)
+    else:
+
+        depth_km_loop=np.empty(len(P_kbar))
+        for i in range(0, len(P_kbar)):
+            depth_km_loop[i]=convert_pressure_depth_4step(P_kbar=P_kbar[i],
+            d1=d1, d2=d2, d3=d3, rho1=rho1, rho2=rho2, rho3=rho3, rho4=rho4, g=g)
+    return depth_km_loop
+
+#######3
+
+
+def convert_pressure_to_depth(*, P_kbar=None, crust_dens_kgm3=None, g=9.81,
+d1=None, d2=None, d3=None, rho1=None, rho2=None, rho3=None, rho4=None, model=None):
     """ Converts pressure in kbar to depth in km using a variety of crustal density profiles
-    or existing models for Pressure vs. depth
 
 
     Parameters
@@ -378,14 +407,10 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
     g: float
         gravitational constant, in m/s2
 
-    Choose from:
-
     crust_dens_kgm3: float or str
-        Crustal density in kg/m3
+        If float: Crustal density in kg/m3
 
-    OR
-
-    model, choose from:
+        If model, choose from:
 
         ryan_lerner:
             Parameterization of Ryan 1987, actual equation from Lerner et al. 2021
@@ -394,7 +419,6 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
         denlinger_lerner:
             Parameterization of Denlinger and Flinders (2022) with the addition of 200 kg/m3 at shallow depths, from Lerner et al. (2024).
             After 15 km returns NaN following Lerner
-
 
         mavko_debari:
             Parameterization of Mavko and Thompson (1983) and DeBari and Greene (2011)
@@ -414,21 +438,22 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
             overall best fit density vs. depth
 
         two-step:
-            If two step, must also define:
-                d1: Depth to first transition in km
-                rho1: Density between surface and 1st transition
-                d2: Depth to second transition in km (from surface)
-                rho2: Density between 1st and 2nd transition
+            If two step, must also define d1 (depth to 1st step), rho1 (density to 1st step), rho2 (density to 2nd step)
 
         three-step:
-            If three step, must also define:
-                d1: Depth to first transition in km
-                rho1: Density between surface and 1st transition
-                d2: Depth to second transition in km (from surface)
-                rho2: Density between 1st and 2nd transition
-                d3: Depth to third transition in km (from surface)
-                rho3: Density between 2nd and 3rd transition depth.
+            If three step, must also define d1 (depth to 1st step), d2 (depth to second step), rho1 (density to 1st step), rho2 (density to 2nd step),
+            rho3 (density after 3rd step) in km and kg/m3 respectively.
 
+
+        four-step:
+            If four step, must also define d1 (depth to 1st step from surface), d2 (depth to second step from surface), d3 (depth to 3rd step from surface)  rho1 (density to 1st step), rho2 (density to 2nd step),
+            rho3 (density to 3rd step), and rho4 (density below 3rd step) in km and kg/m3 respectively.
+
+    OR
+
+
+
+    Else, just enter a crustal density in kg/m3, e.g., model=2700
 
 
 
@@ -441,48 +466,49 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
 
 
     # Check, is it an integer, If so just calculate depth
-
-    if isinstance(crust_dens_kgm3, str):
-        raise TypeError('Do not enter a string for crustal density, put it as a model instead')
-
-    if crust_dens_kgm3 is not None:
-        if type(crust_dens_kgm3)==int or type(crust_dens_kgm3)==float:
-            D=10**5*P_kbar/(9.81*crust_dens_kgm3)
-            model=None
+    if type(crust_dens_kgm3)==int or type(crust_dens_kgm3)==float:
+        D=10**5*P_kbar/(g*crust_dens_kgm3)
+        model=None
 
 
-        else:
-            # Check if its a pandas series.
-            if isinstance(crust_dens_kgm3, pd.Series):
-                # Now check, is it a series of strings, or
-                if type(crust_dens_kgm3[0])==str:
-                    model=crust_dens_kgm3.iloc[0]
-                else:
-                    model=None
-                    D=10**5*P_kbar/(9.81*crust_dens_kgm3)
+    else:
+        # Check if its a pandas series.
+        if isinstance(crust_dens_kgm3, pd.Series):
+            # Now check, is it a series of strings, or
+            if type(crust_dens_kgm3[0])==str:
+                model=crust_dens_kgm3.iloc[0]
+            else:
+                model=None
+                D=10**5*P_kbar/(g*crust_dens_kgm3)
 
-            # Check if its just a single string
-            elif type(crust_dens_kgm3)==str:
-                model=crust_dens_kgm3
+        # Check if its just a single string
+        elif type(crust_dens_kgm3)==str:
+            model=crust_dens_kgm3
 
 
 
-    elif model is not None:
+    if model is not None:
         if model == "two-step":
-
             if d1 is None or rho1 is None or rho2 is None:
                 raise Exception('You have selected the two-step model, You must enter d1 (km), rho1 and rho2 (kg/m3)')
             D=loop_pressure_depth_2step(P_kbar=P_kbar,
-            d1=d1, rho1=rho1, rho2=rho2)
+            d1=d1, rho1=rho1, rho2=rho2, g=g)
 
         if model == "three-step":
             if d1 is None or d2 is None or rho1 is None or rho2 is None or rho3 is None:
-                raise Exception('You have selected the three-step model, You must enter d1 and d2 (km), rho1, rho2 and rho3 (kg/m3)')
+                raise Exception('You have selected the two-step model, You must enter d1 and d2 (km), rho1, rho2 and rho3 (kg/m3)')
 
             D=loop_pressure_depth_3step(P_kbar=P_kbar,
-            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
+            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3, g=g)
 
-        if model !="two-step" and model != "three-step":
+        if model == "four-step":
+            if d1 is None or d2 is None or d3 is None or rho1 is None or rho2 is None or rho3 is None or rho4 is None:
+                raise Exception('You have selected the two-step model, You must enter d1 and d2 (km), rho1, rho2 and rho3 (kg/m3)')
+
+            D=loop_pressure_depth_4step(P_kbar=P_kbar,
+            d1=d1, d2=d2, d3=d3, rho1=rho1, rho2=rho2, rho3=rho3, rho4=rho4, g=g)
+
+        if model !="two-step" and model != "three-step" and model != "four-step":
             try:
 
                 func = Profile_funcs_by_name[model]
@@ -495,27 +521,23 @@ d1=None, d2=None,rho1=None, rho2=None, rho3=None, model=None):
                 D=func(P_kbar)
 
             if isinstance(P_kbar, pd.Series):
-                D=np.zeros(len(P_kbar), float)
+                D=np.empty(len(P_kbar), float)
                 for i in range(0, len(P_kbar)):
                     D[i]=func(P_kbar.iloc[i])
 
             if isinstance(P_kbar, np.ndarray):
-                D=np.zeros(len(P_kbar), float)
+                D=np.empty(len(P_kbar), float)
                 for i in range(0, len(P_kbar)):
                     D[i]=func(P_kbar[i])
 
-    else:
-        raise TypeError('You need to either enter a model, or a value for crust_dens_kgm3' )
+
 
 
     D_series=pd.Series(D)
 
-    if g != 9.81:
-        print('You specified a g that wasnt 9.81, ive adjusted the profiles accordingly')
-        D_series=D_series*(9.81/g)
+
 
     return D_series
-
 
 
 
