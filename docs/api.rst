@@ -1,8 +1,9 @@
 API Reference
 =============
 
-.. automodule:: your_package_name
+.. automodule:: DiadFit
    :members:
    :undoc-members:
    :private-members:
    :show-inheritance:
+
