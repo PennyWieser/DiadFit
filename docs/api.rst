@@ -1,9 +1,6 @@
 API Reference
 =============
 
-.. automodule:: DiadFit
+.. automodule:: DiadFit.diads
    :members:
-   :undoc-members:
-   :private-members:
-   :show-inheritance:
 
