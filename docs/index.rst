@@ -38,6 +38,12 @@ Welcome to DiadFits documentation!
 
    youtube
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Detailed Code Documentation:
+
+   api
+
 
 Indices and tables
 ==================
