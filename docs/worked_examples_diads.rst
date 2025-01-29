@@ -27,15 +27,13 @@ See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/St
 :doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step3_FitAll_Together>`,
 :doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step4_Stitch_Outputs_Together>`
 
-Example 1b - Natural Fluid inclusions
+Example 1b - Fluid inclusions (if no standards are available in your lab)
 -----------------------------------
 This set of notebooks shows data collected from natural fluid inclusions from Kilauea volcano on a WITEC alpha300R. All files are headless_txt files.
 Spectral files for Neon and diads are stored in the 'Spectra' folder, and metadata files in the 'MetaData' folder.
-All spectra show very similar shapes, so we classify them all as 'Weak'. 
+All spectra show very similar shapes, so we classify them all as 'Weak'.
 Additionally, unlike example 1a, these fluid inclusions also contain SO$_2$ peaks, so we utilize step3b.
 
-
-These samples were run without standards (e.g., a fluid inclusion we analyse everyday in the lab.)
 
 See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_nostandards/Step1_Fit_Your_Ne_Lines>`,
 :doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_nostandards/Step2_Filtering_Numerical>`,
@@ -43,13 +41,17 @@ See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_no
 :doc:`Step 3b <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_nostandards/Step3b(optional)_Secondary_Peaks>`,
 :doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_nostandards/Step4_Stitch_Outputs_Together>`,
 
-These samples were run with a standard - it allows you to pull out the standards based on a filename, and fit themas their
-own group. You could use this if you have a capillary or fluid inclusion you know the density of. 
 
-See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_withstandards/Step1_Fit_Your_Ne_Lines>`,
-:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_withstandards/Step2_Filtering_Numerical>`,
-:doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_withstandards/Step3_FitAll_Together>`,
-:doc:`Step 3b <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_withstandards/Step3b(optional)_Secondary_Peaks>`,
+Example 1bb - Fluid inclusions (With standards, e.g. something you analyse every day)
+-----------------------------------
+
+These notebooks allow you to pull out the standards based on a filename, and fit themas their
+own group. You could use this if you have a capillary or fluid inclusion you know the density of.
+
+See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step1_Fit_Your_Ne_Lines>`,
+:doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step2_Filtering_Numerical_stds>`,
+:doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step3_FitAll_Together>`,
+:doc:`Step 3b <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step3b(optional)_Secondary_Peaks>`,
 :doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_withstandards/Step4_Stitch_Outputs_Together>`,
 
 
