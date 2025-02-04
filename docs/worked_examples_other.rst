@@ -5,10 +5,6 @@ Other Useful Functions
 Example 10a -  Crustal Density Profiles
 --------------------------------------
 
-We do not include Step3b, because spectra were collected on pure CO2 gas in a calibration cell, so there are no impurities.
-
-See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1a_Gas_Cell_Calibration/Step1_Fit_Your_Ne_Lines>`,
-
 
 This notebook shows how to convert pressure to depth using a variety of density profiles and how to compare them.
 
