@@ -1,5 +1,6 @@
 import math
 import pandas as pd
+import numpy as np
 
 def calculate_sigma(wavelength, vi_dict, T_K):
     """
@@ -85,3 +86,98 @@ def calculate_CO2_SO2_ratio(*, peak_area_SO2, peak_area_diad1, peak_area_diad2,w
 
 
   return pd.DataFrame(mol_perc)
+
+
+
+  ## Math for converting back and forth between Raman scattering cross sections
+
+def calculate_wavelength_dependent_cross_section(wavelength_nm, T_C, Raman_shift_cm, wavelength_independent_cross_section ):
+    """ This function calculates the wavelength dependent cross section (lower case sigma) from the wavelength independent Raman scattering efficiency (Upper case sigma)
+
+      Parameters
+       ----------------
+        wavelength_nm:
+            laser wavelength used in nm to calculate the wavelength dependent cross section
+
+        wavelength_independent_cross_section:
+            Wavelength independent cross section
+
+        T_K:
+            absolute temperature in Kelvin
+
+        Raman_shift_cm:
+            Raman shift in cm-1 of peak of interest (e.g. 1151 for SO$_2$)
+
+        Returns
+        -----------------
+        Wavelength dependent cross section
+
+          """
+    Wavelength_cm1=1/wavelength_nm*10000000
+    constant =1-np.exp(((-6.626*10**-27)*(2.998*10**10)*Raman_shift_cm)/((1.381*10**-16)*(273.15+T_C)))
+    Wavelength_dependent = wavelength_independent_cross_section/(((Wavelength_cm1-Raman_shift_cm)**(-4)/(Wavelength_cm1-2331)**(-4))*constant)
+    return Wavelength_dependent
+
+def calculate_wavelength_independent_cross_section(wavelength_nm, T_C, Raman_shift_cm, wavelength_dependent_cross_section ):
+    """ This function calculates the wavelength independent cross section (capital Sigma) from the wavelength dependent Raman scattering efficiency (lower case sigma)
+
+      Parameters
+       ----------------
+        wavelength_nm:
+            laser wavelength used in nm to calculate the wavelength dependent cross section
+
+        wavelength_dependent_cross_section:
+            Wavelength dependent cross section
+
+        T_K:
+            absolute temperature in Kelvin
+
+        Raman_shift_cm:
+            Raman shift in cm-1 of peak of interest (e.g. 1151 for SO$_2$)
+
+        Returns
+        -----------------
+        Wavelength independent cross section
+
+          """
+    Wavelength_cm1=1/wavelength_nm*10000000
+    constant =1-np.exp(((-6.626*10**-27)*(2.998*10**10)*Raman_shift_cm)/((1.381*10**-16)*(273.15+T_C)))
+    Wavelength_independent = wavelength_dependent_cross_section*((Wavelength_cm1-Raman_shift_cm)**(-4)/(Wavelength_cm1-2331)**(-4)*constant)
+    return Wavelength_independent
+
+def convert_cross_section_wavelength1_wavelength2(wavelength_nm_1,wavelength_nm_2,  Raman_shift_cm, wavelength_dependent_cross_section_wavelength1, T_C):
+   """ This function calculates the wavelength dependent cross section (lower case sigma) for laser wavelength 2 from the wavelength-dependent cross section for laser wavelength 1.
+
+
+      Parameters
+       ----------------
+        wavelength_nm_1:
+            laser wavelength used in nm to calculate the wavelength dependent cross section
+
+        wavelength_nm_2:
+            laser wavelength of the system of interest you are trying to calculate the wavelength dependent cross section for
+
+        wavelength_dependent_cross_section_wavelength1:
+            Wavelength dependent cross section
+
+        T_K:
+            absolute temperature in Kelvin
+
+        Raman_shift_cm:
+            Raman shift in cm-1 of peak of interest (e.g. 1151 for SO$_2$)
+
+        Returns
+        -----------------
+        Wavelength dependent cross section for wavelength2
+
+          """
+
+   # First calculate the independent cross section
+   ind_cross_sec=calculate_wavelength_independent_cross_section(wavelength_nm=wavelength_nm_1, T_C=T_C, Raman_shift_cm=Raman_shift_cm,
+                                                         wavelength_dependent_cross_section =wavelength_dependent_cross_section_wavelength1)
+   print(ind_cross_sec)
+   dep_cross_sec=calculate_wavelength_dependent_cross_section(wavelength_nm=wavelength_nm_2, T_C=T_C, Raman_shift_cm=Raman_shift_cm, wavelength_independent_cross_section =ind_cross_sec)
+
+   return dep_cross_sec
+
+

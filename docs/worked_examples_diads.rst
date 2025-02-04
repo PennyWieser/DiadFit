@@ -52,7 +52,8 @@ See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_wi
 :doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step2_Filtering_Numerical_stds>`,
 :doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step3_FitAll_Together>`,
 :doc:`Step 3b <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step3b(optional)_Secondary_Peaks>`,
-:doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_Inclusions_withstandards/Step4_Stitch_Outputs_Together>`,
+:doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step4_Stitch_Outputs_Together>`,
+
 
 
 Example 1bb - Nasty backgrounds
