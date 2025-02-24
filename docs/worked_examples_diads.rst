@@ -49,6 +49,7 @@ These notebooks allow you to pull out the standards based on a filename, and fit
 own group. You could use this if you have a capillary or fluid inclusion you know the density of.
 
 See :doc:`Step 1 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step1_Fit_Your_Ne_Lines>`,
+:doc:`Step 4 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step4_Stitch_Outputs_Together>`,
 :doc:`Step 2 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step2_Filtering_Numerical_stds>`,
 :doc:`Step 3 <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step3_FitAll_Together>`,
 :doc:`Step 3b <Examples/Fitting_Fermi_Diads/Example1b_CO2_Fluid_inclusions_withstandards/Step3b(optional)_Secondary_Peaks>`,
