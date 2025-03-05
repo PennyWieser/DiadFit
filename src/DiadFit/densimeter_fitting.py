@@ -15,6 +15,7 @@ from scipy import stats
 
 encode="ISO-8859-1"
 
+## Files are fit using the folder UCB_cali_fitting_1117_1447
 
 def calculate_generic_std_err_values(*, pickle_str, new_x, CI=0.67):
 

@@ -994,7 +994,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     corrected_split: pd.Series
         Corrected splitting  (cm-1)  
         
-    Split_err: float, int
+    split_err: float, int
         Error on corrected splitting
 
     temp: str
