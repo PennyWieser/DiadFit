@@ -884,7 +884,7 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
     CO2_dens_gcm3=None,
     crust_dens_kgm3=None, output='kbar',
     g=9.81, model=None, XH2O=None, Hloss=True,
-    d1=None, d2=None, rho1=None, rho2=None, rho3=None,T_K_ambient=37+273.15 ):
+    d1=None, d2=None,d3=None, rho1=None, rho2=None, rho3=None, rho4=None, T_K_ambient=37+273.15 ):
 
     """ This function calculates pressure and depth based on input CO2 densities, 
     temperatures, and crustal density information from the user
@@ -921,12 +921,13 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
 
                 if model is three-step:
                 If three step, must also define:
-                    d1: Depth to first transition in km
                     rho1: Density between surface and 1st transition
-                    d2: Depth to second transition in km (from surface)
+                    d1: Depth to first transition in km
                     rho2: Density between 1st and 2nd transition
-                    d3: Depth to third transition in km (from surface)
+                    d2: Depth to second transition in km (from surface)
                     rho3: Density between 2nd and 3rd transition depth.
+                    d3: Depth to third transition in km (from surface)
+                    rho4: Density between below d3
 
     Returns
     ---------------------
@@ -997,9 +998,11 @@ def convert_co2_dens_press_depth(EOS='SW96', T_K=None,
         P_kbar_calc=pf.calculate_entrapment_P_XH2O(XH2O=XH2O, CO2_dens_gcm3=CO2_dens_gcm3, T_K=T_K, T_K_ambient=T_K_ambient, fast_calcs=True, Hloss=Hloss )
         
         
-        Depth_km=convert_pressure_to_depth(P_kbar_calc,
+        Depth_km=convert_pressure_to_depth(P_kbar=P_kbar_calc,
                         crust_dens_kgm3=crust_dens_kgm3,     g=9.81, model=model,
-            d1=d1, d2=d2, rho1=rho1, rho2=rho2, rho3=rho3)
+            d1=d1, d2=d2, d3=d3, rho1=rho1, rho2=rho2, rho3=rho3, rho4=rho4)
+            
+
             
         if type(Depth_km) is float:
                 # Crustal density, using P=rho g H
