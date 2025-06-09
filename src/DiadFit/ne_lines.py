@@ -1894,7 +1894,6 @@ def generate_Ne_corr_model(*, time, Ne_corr, N_poly=3, CI=0.67, bootstrap=False,
     
 from scipy.stats import t
 
-
 def calculate_Ne_corr_std_err_values(*, pickle_str, new_x, CI=0.67):
     # Load the model and the data from the pickle file
     with open(pickle_str, 'rb') as f:
@@ -1902,10 +1901,13 @@ def calculate_Ne_corr_std_err_values(*, pickle_str, new_x, CI=0.67):
 
     model = data['model']
     N_poly = model.order - 1
-    
+
     Pf = data['model']
     x = data['x']
     y = data['y']
+
+    # Convert new_x to plain numpy array
+    new_x_array = np.asarray(new_x)
 
     # Calculate the residuals
     residuals = y - Pf(x)
@@ -1916,27 +1918,29 @@ def calculate_Ne_corr_std_err_values(*, pickle_str, new_x, CI=0.67):
     # Calculate the standard errors for the new x values
     mean_x = np.mean(x)
     n = len(x)
-    standard_errors = residual_std * np.sqrt(1 + 1/n + (new_x - mean_x)**2 / np.sum((x - mean_x)**2))
+    standard_errors = residual_std * np.sqrt(1 + 1/n + (new_x_array - mean_x)**2 / np.sum((x - mean_x)**2))
 
     # Calculate the degrees of freedom
-    df = len(x) - (N_poly + 1)
+    df_dof = len(x) - (N_poly + 1)
 
     # Calculate the t value for the given confidence level
-    t_value = t.ppf((1 + CI) / 2, df)
+    t_value = t.ppf((1 + CI) / 2, df_dof)
 
     # Calculate the prediction intervals
-    preferred_values = Pf(new_x)
+    preferred_values = Pf(new_x_array)
     lower_values = preferred_values - t_value * standard_errors
     upper_values = preferred_values + t_value * standard_errors
 
-    df=pd.DataFrame(data={
-        'time': new_x,
+    df_out = pd.DataFrame(data={
+        'time': new_x_array,
         'preferred_values': preferred_values,
         'lower_values': lower_values,
         'upper_values': upper_values
     })
 
-    return df
+    return df_out
+
+
 
 
 

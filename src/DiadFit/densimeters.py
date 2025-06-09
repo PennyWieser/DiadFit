@@ -1370,6 +1370,9 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 
     return df_merge
     
+    
+
+
     ## Method from FLuids laboratory from FRANCIS Program
     
 
@@ -1433,3 +1436,415 @@ def Francis_pureCO2(FDS, FDS_std, uncer_FDS, uncer_FDS_std=0):
     return df
 
 
+## Shifted polynomial
+
+import pickle
+
+def blend_weights(x, x_min, x_max):
+    """Cosine smooth blend between x_min and x_max."""
+    t = np.clip((x - x_min) / (x_max - x_min), 0, 1)
+    return 0.5 * (1 - np.cos(np.pi * t))
+
+def build_piecewise_poly_by_density(x, y, y_bounds=(0.17, 0.65), degrees=(1, 3, 2), blend_width=0.05, save_path=None):
+    """
+    Fits and optionally saves a smoothed piecewise polynomial model.
+
+    Returns:
+        f_base : callable
+        model_data : dict (can be pickled)
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    mask_low = y < y_bounds[0]
+    mask_mid = (y >= y_bounds[0]) & (y <= y_bounds[1])
+    mask_high = y > y_bounds[1]
+
+    polys = []
+    coeffs = []
+    for mask, deg in zip([mask_low, mask_mid, mask_high], degrees):
+        c = np.polyfit(x[mask], y[mask], deg)
+        coeffs.append(c)
+        polys.append(np.poly1d(c))
+
+    x_low_med = x[np.abs(y - y_bounds[0]).argmin()]
+    x_med_high = x[np.abs(y - y_bounds[1]).argmin()]
+
+    def f_base(x_input):
+        x_arr = np.asarray(x_input)
+        result = np.full_like(x_arr, np.nan, dtype=float)
+
+        low_mask = x_arr < (x_low_med - blend_width)
+        mid_mask = (x_arr > (x_low_med + blend_width)) & (x_arr < (x_med_high - blend_width))
+        high_mask = x_arr > (x_med_high + blend_width)
+
+        result[low_mask] = polys[0](x_arr[low_mask])
+        result[mid_mask] = polys[1](x_arr[mid_mask])
+        result[high_mask] = polys[2](x_arr[high_mask])
+
+        blend_lm = (x_arr >= (x_low_med - blend_width)) & (x_arr <= (x_low_med + blend_width))
+        w_lm = blend_weights(x_arr[blend_lm], x_low_med - blend_width, x_low_med + blend_width)
+        result[blend_lm] = (1 - w_lm) * polys[0](x_arr[blend_lm]) + w_lm * polys[1](x_arr[blend_lm])
+
+        blend_mh = (x_arr >= (x_med_high - blend_width)) & (x_arr <= (x_med_high + blend_width))
+        w_mh = blend_weights(x_arr[blend_mh], x_med_high - blend_width, x_med_high + blend_width)
+        result[blend_mh] = (1 - w_mh) * polys[1](x_arr[blend_mh]) + w_mh * polys[2](x_arr[blend_mh])
+
+        return result
+
+    model_data = {
+        'coeffs': coeffs,
+        'y_bounds': y_bounds,
+        'degrees': degrees,
+        'blend_width': blend_width,
+        'x_low_med': x_low_med,
+        'x_med_high': x_med_high,
+        'x': x,             
+        'y': y              
+    }
+    if save_path:
+        with open(save_path, 'wb') as f:
+            pickle.dump(model_data, f)
+
+    return f_base, model_data
+    
+    
+def blend_weights(x, x_min, x_max):
+    t = np.clip((x - x_min) / (x_max - x_min), 0, 1)
+    return 0.5 * (1 - np.cos(np.pi * t))
+
+def load_piecewise_model(model_data):
+    coeffs = model_data['coeffs']
+    blend_width = model_data['blend_width']
+    x_low_med = model_data['x_low_med']
+    x_med_high = model_data['x_med_high']
+    polys = [np.poly1d(c) for c in coeffs]
+
+    def f_base(x_input):
+        x_arr = np.asarray(x_input)
+        result = np.full_like(x_arr, np.nan, dtype=float)
+
+        low_mask = x_arr < (x_low_med - blend_width)
+        mid_mask = (x_arr > (x_low_med + blend_width)) & (x_arr < (x_med_high - blend_width))
+        high_mask = x_arr > (x_med_high + blend_width)
+
+        result[low_mask] = polys[0](x_arr[low_mask])
+        result[mid_mask] = polys[1](x_arr[mid_mask])
+        result[high_mask] = polys[2](x_arr[high_mask])
+
+        blend_lm = (x_arr >= (x_low_med - blend_width)) & (x_arr <= (x_low_med + blend_width))
+        w_lm = blend_weights(x_arr[blend_lm], x_low_med - blend_width, x_low_med + blend_width)
+        result[blend_lm] = (1 - w_lm) * polys[0](x_arr[blend_lm]) + w_lm * polys[1](x_arr[blend_lm])
+
+        blend_mh = (x_arr >= (x_med_high - blend_width)) & (x_arr <= (x_med_high + blend_width))
+        w_mh = blend_weights(x_arr[blend_mh], x_med_high - blend_width, x_med_high + blend_width)
+        result[blend_mh] = (1 - w_mh) * polys[1](x_arr[blend_mh]) + w_mh * polys[2](x_arr[blend_mh])
+
+        return result
+
+    return f_base
+    
+
+
+## New function that is much simpler
+
+def calculate_density_ucb_new(*, df_combo=None, temp='SupCrit', 
+CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, corrected_split=None, split_err=None):
+    """ This function converts Diad Splitting into CO$_2$ density using the UC Berkeley calibration line
+    developed by DeVitre and Wieser in 2023. 
+
+    Parameters
+    -------------
+    Ne_line_combo: str, '1117_1447', '1117_1400', '1220_1447', '1220_1400', '1220_1567'
+        Combination of Ne lines used for drift correction
+        
+    Either:
+
+    df_combo: pandas DataFrame
+        data frame of peak fitting information
+        
+    Or:
+    corrected_split: pd.Series
+        Corrected splitting  (cm-1)  
+        
+    split_err: float, int
+        Error on corrected splitting
+
+    temp: str
+        'SupCrit' if measurements done at 37C
+        'RoomT' if measurements done at 24C - Not supported yet but could be added if needed. 
+
+    CI_neon: float
+        Default 0.67. Confidence interval to use, e.g. 0.67 returns 1 sigma uncertainties. If you use another number,
+        note the column headings will still say sigma.
+
+    CI_split: float
+        Default 0.67. Confidence interval to use, e.g. 0.67 returns 1 sigma uncertainties. If you use another number,
+        note the column headings will still say sigma.
+        
+        
+
+
+    Either
+
+    Ne_pickle_str: str
+        Name of Ne correction model
+
+    OR
+
+    pref_Ne, Ne_err: float, int
+        For quick and dirty fitting can pass a preferred value for your instrument before you have a chance to 
+        regress the Ne lines (useful when first analysing new samples. )
+
+
+
+
+    Returns
+    --------------
+    pd.DataFrame
+        Prefered Density (based on different equatoins being merged), and intermediate calculations
+
+    """
+    if corrected_split is not None:
+        Split=corrected_split
+    if df_combo is not None:
+        df_combo_c=df_combo.copy()
+        time=df_combo_c['sec since midnight']
+
+        if Ne_pickle_str is not None:
+
+            # Calculating the upper and lower values for Ne to get that error
+            Ne_corr=calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str,
+            new_x=time, CI=CI_neon)
+            # Extracting preferred correction values
+            pref_Ne=Ne_corr['preferred_values']
+            Split_err, pk_err=propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
+
+            df_combo_c['Corrected_Splitting_σ']=Split_err
+            df_combo_c['Corrected_Splitting_σ_Ne']=(Ne_corr['upper_values']*df_combo_c['Splitting']-Ne_corr['lower_values']*df_combo_c['Splitting'])/2
+            df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+
+        # If using a single value for quick dirty fitting
+        else:
+            Split_err, pk_err=propagate_error_split_neon_peakfit(df_fits=df_combo_c, Ne_err=Ne_err, pref_Ne=pref_Ne)
+
+
+
+            df_combo_c['Corrected_Splitting_σ']=Split_err
+
+            df_combo_c['Corrected_Splitting_σ_Ne']=((Ne_err+pref_Ne)*df_combo_c['Splitting']-(Ne_err-pref_Ne)*df_combo_c['Splitting'])/2
+            df_combo_c['Corrected_Splitting_σ_peak_fit']=pk_err
+
+        Split=df_combo_c['Splitting']*pref_Ne
+
+    else:
+       Split_err=split_err
+
+
+
+    # This is for if you just have splitting
+
+
+
+    # This propgates the uncertainty in the splitting from peak fitting, and the Ne correction model
+
+
+    if temp=='RoomT':
+        raise TypeError('Sorry, no UC Berkeley calibration at 24C, please enter temp=SupCrit')
+    if isinstance(Split, float) or isinstance(Split, int):
+        Split=pd.Series(Split)
+        
+    
+    DiadFit_dir=Path(__file__).parent
+    
+    # load the new smoothed model
+    with open(DiadFit_dir / "smoothed_polyfit_June25_UCB.pkl", 'rb') as f:
+        smoothed_model_data = pickle.load(f)
+        
+    smoothed_model = load_piecewise_model(smoothed_model_data)
+
+    # Evaluate model
+    Density = pd.Series(smoothed_model(Split), index=Split.index)   
+    
+    # Lets get the error
+    err_df = calculate_Densimeter_std_err_values_smooth(
+        model_data=smoothed_model_data,
+        corrected_split=Split,
+        corrected_split_err=Split_err,
+        CI_dens=0.67,
+        CI_split=0.67,
+        str_d='Smoothed'
+    )
+    print(err_df.columns)
+
+    
+    
+    df=pd.DataFrame(data={'Density g/cm3': Density,
+                                'σ Density g/cm3': err_df['Smoothed_Density_σ'],
+                                'σ Density g/cm3 (from Ne+peakfit)': err_df['Smoothed_Density_σ_split'],
+                                'σ Density g/cm3 (from densimeter)': err_df['Smoothed_Density_σ_dens'],                                            
+                                'Corrected_Splitting': Split,
+                                'Preferred D_σ_Ne': 0,
+                                'in range': 'in progress',
+                                'Temperature': temp})
+            
+
+    if Ne_pickle_str is not None:
+        df_merge1=pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
+        df_merge=pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
+    elif Ne_pickle_str is None and df_combo is not None:
+        df_merge=pd.concat([df, df_combo_c], axis=1).reset_index(drop=True)
+    else:
+        df_merge=df
+
+    
+
+    if Ne_pickle_str is not None: # If its not none, have all the columns for Ne
+        cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting', 'Corrected_Splitting_σ',
+        'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
+            
+            
+    elif pref_Ne is not None and df_combo is not None: #If Pref Ne, 
+        cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting', 'Corrected_Splitting_σ',
+        'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
+            
+    elif df_combo is None:
+        
+        cols_to_move = ['Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+        'Corrected_Splitting']
+        df_merge = df_merge[cols_to_move + [
+            col for col in df_merge.columns if col not in cols_to_move]]
+
+
+
+    return df_merge
+    
+from scipy.stats import t
+import numpy as np
+import pandas as pd
+
+##
+def calculate_Densimeter_std_err_values_smooth(
+    *,
+    model_data,
+    corrected_split,
+    corrected_split_err,
+    CI_dens=0.67,
+    CI_split=0.67,
+    str_d='Smoothed',
+    x=None,
+    y=None
+):
+    """
+    Calculates propagated uncertainty for a smoothed polynomial model.
+
+    Parameters
+    ----------
+    model_data : dict
+        Dictionary from build_piecewise_poly_by_density including coeffs, blend_width, etc.
+    corrected_split : pd.Series or np.ndarray
+        Corrected splitting values
+    corrected_split_err : float or pd.Series
+        Uncertainty on splitting
+    CI_dens : float
+        Confidence interval for uncertainty in the fit
+    CI_split : float
+        Confidence interval for splitting uncertainty
+    str_d : str
+        Prefix for column names
+    x, y : array-like (optional)
+        Original data used to fit the model, if not included in model_data
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame of predicted values and propagated uncertainties
+    """
+    from scipy.stats import t
+    import numpy as np
+    import pandas as pd
+
+    # === Rebuild model ===
+    def load_piecewise_model(model_data):
+        coeffs = model_data['coeffs']
+        blend_width = model_data['blend_width']
+        x_low_med = model_data['x_low_med']
+        x_med_high = model_data['x_med_high']
+        polys = [np.poly1d(c) for c in coeffs]
+
+        def f_base(x_input):
+            x_arr = np.asarray(x_input)
+            result = np.full_like(x_arr, np.nan, dtype=float)
+
+            low_mask = x_arr < (x_low_med - blend_width)
+            mid_mask = (x_arr > (x_low_med + blend_width)) & (x_arr < (x_med_high - blend_width))
+            high_mask = x_arr > (x_med_high + blend_width)
+
+            result[low_mask] = polys[0](x_arr[low_mask])
+            result[mid_mask] = polys[1](x_arr[mid_mask])
+            result[high_mask] = polys[2](x_arr[high_mask])
+
+            blend_lm = (x_arr >= (x_low_med - blend_width)) & (x_arr <= (x_low_med + blend_width))
+            w_lm = 0.5 * (1 - np.cos(np.pi * (x_arr[blend_lm] - (x_low_med - blend_width)) / (2 * blend_width)))
+            result[blend_lm] = (1 - w_lm) * polys[0](x_arr[blend_lm]) + w_lm * polys[1](x_arr[blend_lm])
+
+            blend_mh = (x_arr >= (x_med_high - blend_width)) & (x_arr <= (x_med_high + blend_width))
+            w_mh = 0.5 * (1 - np.cos(np.pi * (x_arr[blend_mh] - (x_med_high - blend_width)) / (2 * blend_width)))
+            result[blend_mh] = (1 - w_mh) * polys[1](x_arr[blend_mh]) + w_mh * polys[2](x_arr[blend_mh])
+
+            return result
+
+        return f_base
+
+    Pf = load_piecewise_model(model_data)
+
+    # Use x/y from model_data if available, else require them as args
+    if 'x' in model_data and 'y' in model_data:
+        x = model_data['x']
+        y = model_data['y']
+    elif x is None or y is None:
+        raise ValueError("You must supply x and y arrays if not included in model_data.")
+
+    residuals = y - Pf(x)
+    residual_std = np.std(residuals)
+
+    mean_x = np.nanmean(x)
+    n = len(x)
+    N_poly = max(len(c) - 1 for c in model_data['coeffs'])
+
+    # Standard error on predictions
+    standard_errors = residual_std * np.sqrt(1 + 1/n + (corrected_split - mean_x)**2 / np.sum((x - mean_x)**2))
+    dfree = n - (N_poly + 1)
+
+    t_value_split = t.ppf((1 + CI_split) / 2, dfree)
+    t_value_dens = t.ppf((1 + CI_dens) / 2, dfree)
+
+    # Central prediction
+    preferred_values = Pf(corrected_split)
+    lower_values = preferred_values - t_value_dens * standard_errors
+    upper_values = preferred_values + t_value_dens * standard_errors
+    uncertainty_from_dens = (upper_values - lower_values) / 2
+
+    # Splitting propagation
+    max_split = corrected_split + corrected_split_err
+    min_split = corrected_split - corrected_split_err
+    max_density = Pf(max_split)
+    min_density = Pf(min_split)
+    uncertainty_split = (max_density - min_density) / 2
+
+    total_uncertainty = np.sqrt(uncertainty_split ** 2 + uncertainty_from_dens ** 2)
+
+    return pd.DataFrame({
+        f'{str_d}_Density': preferred_values,
+        f'{str_d}_Density_σ': total_uncertainty,
+        f'{str_d}_Density+1σ': preferred_values - total_uncertainty,
+        f'{str_d}_Density-1σ': preferred_values + total_uncertainty,
+        f'{str_d}_Density_σ_dens': uncertainty_from_dens,
+        f'{str_d}_Density_σ_split': uncertainty_split
+    })
