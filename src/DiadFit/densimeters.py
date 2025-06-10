@@ -1520,6 +1520,8 @@ def load_piecewise_model(model_data):
     x_med_high = model_data['x_med_high']
     polys = [np.poly1d(c) for c in coeffs]
 
+    vertical_shift = model_data.get('vertical_shift', 0)
+
     def f_base(x_input):
         x_arr = np.asarray(x_input)
         result = np.full_like(x_arr, np.nan, dtype=float)
@@ -1540,16 +1542,17 @@ def load_piecewise_model(model_data):
         w_mh = blend_weights(x_arr[blend_mh], x_med_high - blend_width, x_med_high + blend_width)
         result[blend_mh] = (1 - w_mh) * polys[1](x_arr[blend_mh]) + w_mh * polys[2](x_arr[blend_mh])
 
-        return result
+        return result + vertical_shift  
 
     return f_base
-    
+
+
 
 
 ## New function that is much simpler
 
 def calculate_density_ucb_new(*, df_combo=None, temp='SupCrit', 
-CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, corrected_split=None, split_err=None):
+CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, corrected_split=None, split_err=None, shift=0):
     """ This function converts Diad Splitting into CO$_2$ density using the UC Berkeley calibration line
     developed by DeVitre and Wieser in 2023. 
 
@@ -1675,11 +1678,11 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
         CI_split=0.67,
         str_d='Smoothed'
     )
-    print(err_df.columns)
+    
 
     
     
-    df=pd.DataFrame(data={'Density g/cm3': Density,
+    df=pd.DataFrame(data={'Density g/cm3': Density+shift,
                                 'σ Density g/cm3': err_df['Smoothed_Density_σ'],
                                 'σ Density g/cm3 (from Ne+peakfit)': err_df['Smoothed_Density_σ_split'],
                                 'σ Density g/cm3 (from densimeter)': err_df['Smoothed_Density_σ_dens'],                                            
@@ -1728,6 +1731,9 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
 from scipy.stats import t
 import numpy as np
 import pandas as pd
+
+
+
 
 ##
 def calculate_Densimeter_std_err_values_smooth(
@@ -1848,3 +1854,200 @@ def calculate_Densimeter_std_err_values_smooth(
         f'{str_d}_Density_σ_dens': uncertainty_from_dens,
         f'{str_d}_Density_σ_split': uncertainty_split
     })
+    
+    
+from pathlib import Path
+import pickle
+
+def calculate_density_labx(
+    *,
+    df_combo=None,
+    temp='SupCrit',
+    CI_split=0.67,
+    CI_neon=0.67,
+    Ne_pickle_str=None,
+    pref_Ne=None,
+    Ne_err=None,
+    corrected_split=None,
+    split_err=None,
+    model_pickle_path=None
+):
+    import pandas as pd
+    import numpy as np
+    from DiadFit.densimeters import calculate_Ne_corr_std_err_values, propagate_error_split_neon_peakfit
+    from DiadFit.densimeters import calculate_Densimeter_std_err_values_smooth, load_piecewise_model
+
+    if corrected_split is not None:
+        Split = corrected_split
+
+    if df_combo is not None:
+        df_combo_c = df_combo.copy()
+        time = df_combo_c['sec since midnight']
+
+        if Ne_pickle_str is not None:
+            Ne_corr = calculate_Ne_corr_std_err_values(pickle_str=Ne_pickle_str, new_x=time, CI=CI_neon)
+            pref_Ne = Ne_corr['preferred_values']
+            Split_err, pk_err = propagate_error_split_neon_peakfit(Ne_corr=Ne_corr, df_fits=df_combo_c)
+            df_combo_c['Corrected_Splitting_σ'] = Split_err
+            df_combo_c['Corrected_Splitting_σ_Ne'] = (
+                (Ne_corr['upper_values'] * df_combo_c['Splitting'] -
+                 Ne_corr['lower_values'] * df_combo_c['Splitting']) / 2
+            )
+            df_combo_c['Corrected_Splitting_σ_peak_fit'] = pk_err
+        else:
+            Split_err, pk_err = propagate_error_split_neon_peakfit(
+                df_fits=df_combo_c, Ne_err=Ne_err, pref_Ne=pref_Ne
+            )
+            df_combo_c['Corrected_Splitting_σ'] = Split_err
+            df_combo_c['Corrected_Splitting_σ_Ne'] = (
+                ((Ne_err + pref_Ne) * df_combo_c['Splitting'] -
+                 (Ne_err - pref_Ne) * df_combo_c['Splitting']) / 2
+            )
+            df_combo_c['Corrected_Splitting_σ_peak_fit'] = pk_err
+
+        Split = df_combo_c['Splitting'] * pref_Ne
+    else:
+        Split_err = split_err
+
+    if temp == 'RoomT':
+        raise TypeError('No calibration available at 24C, please use temp="SupCrit"')
+    if isinstance(Split, (float, int)):
+        import pandas as pd
+        Split = pd.Series(Split)
+
+    if model_pickle_path is None:
+        raise ValueError("You must provide a path to the LabX model pickle using `model_pickle_path`.")
+
+    with open(Path(model_pickle_path), 'rb') as f:
+        model_data = pickle.load(f)
+
+    model = load_piecewise_model(model_data)
+    Density = pd.Series(model(Split), index=Split.index)
+
+    err_df = calculate_Densimeter_std_err_values_smooth(
+        model_data=model_data,
+        corrected_split=Split,
+        corrected_split_err=Split_err,
+        CI_dens=CI_split,
+        CI_split=CI_split,
+        str_d='LabX'
+    )
+
+    df = pd.DataFrame(data={
+        'Density g/cm3': Density,
+        'σ Density g/cm3': err_df['LabX_Density_σ'],
+        'σ Density g/cm3 (from Ne+peakfit)': err_df['LabX_Density_σ_split'],
+        'σ Density g/cm3 (from densimeter)': err_df['LabX_Density_σ_dens'],
+        'Corrected_Splitting': Split,
+        'Preferred D_σ_Ne': 0,
+        'in range': 'in progress',
+        'Temperature': temp
+    })
+
+    if Ne_pickle_str is not None:
+        df_merge1 = pd.concat([df_combo_c, Ne_corr], axis=1).reset_index(drop=True)
+        df_merge = pd.concat([df, df_merge1], axis=1).reset_index(drop=True)
+    elif df_combo is not None:
+        df_merge = pd.concat([df, df_combo_c], axis=1).reset_index(drop=True)
+    else:
+        df_merge = df
+
+    return df_merge
+    
+    ## Way to actually shift densimeter
+    
+    # This general model works for any pickel you load in. 
+def apply_and_save_vertical_shift_to_model(*, pickle_in_path, new_x, new_y, pickle_out_path=None):
+    """
+    Applies a vertical shift to a saved piecewise model based on new_x and new_y,
+    then saves the shifted model to a new .pkl file.
+
+    Parameters
+    ----------
+    pickle_in_path : str
+        Path to the original .pkl file (output from build_piecewise_poly_by_density).
+    new_x : array-like
+        Corrected splitting values (x).
+    new_y : array-like
+        Measured density values (y).
+    pickle_out_path : str, optional
+        Where to save the new model. If None, appends '_shifted.pkl' to the input path.
+
+    Returns
+    -------
+    shift : float
+        Vertical shift applied to the model.
+    """
+    import pickle
+    import numpy as np
+
+    # Load the model
+    with open(pickle_in_path, 'rb') as f:
+        model_data = pickle.load(f)
+
+    # Rebuild the base function
+    base_model = pf.load_piecewise_model(model_data)
+    f_vals = base_model(new_x)
+
+    # Calculate vertical shift
+    shift = np.nanmean(new_y - f_vals)
+
+    # Store the shift
+    model_data['vertical_shift'] = shift
+
+    # Save new .pkl
+    if pickle_out_path is None:
+        pickle_out_path = pickle_in_path.replace('.pkl', '_shifted.pkl')
+
+    with open(pickle_out_path, 'wb') as f:
+        pickle.dump(model_data, f)
+
+    return shift
+
+
+
+
+
+def apply_and_save_vertical_shift_to_ucb_densimeter(new_x, new_y):
+    """
+    Applies a vertical shift to a saved piecewise model based on new_x and new_y,
+    then saves the shifted model to a new .pkl file in the same directory.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the original .pkl file (e.g., "smoothed_polyfit_June25_UCB.pkl").
+    new_x : array-like
+        Corrected splitting values (x).
+    new_y : array-like
+        Measured density values (y).
+    pickle_out_name : str, optional
+        Filename to save the new shifted model. If None, appends '_shifted.pkl' to the input name.
+
+    Returns
+    -------
+    shift : float
+        Vertical shift applied to the model.
+    """
+    
+    
+    
+        
+        
+
+    DiadFit_dir = Path(__file__).parent
+
+
+    with open(DiadFit_dir / "smoothed_polyfit_June25_UCB.pkl", 'rb') as f:
+        model_data = pickle.load(f)
+
+    base_model = load_piecewise_model(model_data)
+    f_vals = base_model(new_x)
+
+    shift = np.nanmean(new_y - f_vals)
+    model_data['vertical_shift'] = shift
+
+
+
+    return shift
+
