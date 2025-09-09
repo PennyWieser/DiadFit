@@ -496,85 +496,176 @@ creation=creation, modification=modification)
 ## Functions to extract things for HORIBA
 
 ## HORIBA acquisition time
-encode="ISO-8859-1"
-def extract_duration_horiba(*, path, filename):
-    """ This function extracts the duration from a HORIBA file by finding the line starting with #Acq. """
-    fr = open(path+'/'+filename,  'r', encoding=encode)
+# encode="ISO-8859-1"
+# def extract_duration_horiba(*, path, filename):
+#     """ This function extracts the duration from a HORIBA file by finding the line starting with #Acq. """
+#     fr = open(path+'/'+filename,  'r', encoding=encode)
+# 
+#     while True:
+#         l=fr.readline()
+#         if l.startswith('#Acq.'):
+#             line=l
+#             break
+#     return line
+# 
+# def extract_accumulations_horiba(*, path, filename):
+#     """ This function extracts the accumulations from a HORIBA file by finding the line starting with #Accumu. """
+#     fr = open(path+'/'+filename,  'r', encoding=encode)
+# 
+#     while True:
+#         l=fr.readline()
+#         if l.startswith('#Accumu'):
+#             line=l
+#             break
+#     return line
+# 
+# def extract_objective_horiba(*, path, filename):
+#     """ This function extracts the objective used from a HORIBA file by finding the line starting with #Object. """
+#     fr = open(path+'/'+filename,  'r', encoding=encode)
+# 
+#     while True:
+#         l=fr.readline()
+#         if l.startswith('#Object'):
+#             line=l
+#             break
+#     return line
+# 
+# def extract_date_horiba(*, path, filename):
+#     """ This function extracts the date used from a HORIBA file by finding the line starting with #Date. """
+#     fr = open(path+'/'+filename,  'r', encoding=encode)
+# 
+#     while True:
+#         l=fr.readline()
+#         if l.startswith('#Date'):
+#             line=l
+#             break
+#     return line
+# 
+# def extract_spectral_center_horiba(*, path, filename):
+#     """ This function extracts the spectral center used from a HORIBA file by finding the line starting with #Spectro (cm-¹). """
+#     fr = open(path+'/'+filename,  'r', encoding=encode)
+# 
+#     while True:
+#         l=fr.readline()
+#         if l.startswith('#Spectro (cm-¹)'):
+#             line=l
+#             break
+#     return line
+# 
+# def extract_24hr_time_horiba(*, path, filename):
+#     """ This function extracts the 24 hr time from a HORIBA file by finding the line starting with #Acquired. """
+#     fr = open(path+'/'+filename,  'r', encoding=encode)
+# 
+#     while True:
+#         l=fr.readline()
+#         if l.startswith('#Acquired'):
+#             line=l
+#             break
+#     return line
+# 
+# def extract_spectraname_horiba(*, path, filename):
+#     """
+#     This function extracts the spectral name from HORIBA files
+#     """
+#     fr = open(path+'/'+filename,  'r', encoding=encode)
+# 
+#     while True:
+#         l=fr.readline()
+#         if l.startswith('#Title'):
+#             line=l
+#             break
+#     return line
+# 
+# 
 
-    while True:
-        l=fr.readline()
-        if l.startswith('#Acq.'):
-            line=l
-            break
-    return line
+# 
+# 
+# 
+# 
+import numpy as np
+
+encode = "ISO-8859-1"
+
+def extract_duration_horiba(*, path, filename):
+    with open(path + '/' + filename, 'r', encoding=encode) as fr:
+        for l in fr:
+            if l.startswith('#Acq.'):
+                return l
+    return np.nan
 
 def extract_accumulations_horiba(*, path, filename):
-    """ This function extracts the accumulations from a HORIBA file by finding the line starting with #Accumu. """
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-    while True:
-        l=fr.readline()
-        if l.startswith('#Accumu'):
-            line=l
-            break
-    return line
+    with open(path + '/' + filename, 'r', encoding=encode) as fr:
+        for l in fr:
+            if l.startswith('#Accumulations'):
+                return l
+    return np.nan
 
 def extract_objective_horiba(*, path, filename):
-    """ This function extracts the objective used from a HORIBA file by finding the line starting with #Object. """
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-    while True:
-        l=fr.readline()
-        if l.startswith('#Object'):
-            line=l
-            break
-    return line
+    with open(path + '/' + filename, 'r', encoding=encode) as fr:
+        for l in fr:
+            if l.startswith('#Objective'):
+                return l
+    return np.nan
 
 def extract_date_horiba(*, path, filename):
-    """ This function extracts the date used from a HORIBA file by finding the line starting with #Date. """
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-    while True:
-        l=fr.readline()
-        if l.startswith('#Date'):
-            line=l
-            break
-    return line
+    with open(path + '/' + filename, 'r', encoding=encode) as fr:
+        for l in fr:
+            if l.startswith('#Date'):
+                return l
+    return np.nan
 
 def extract_spectral_center_horiba(*, path, filename):
-    """ This function extracts the spectral center used from a HORIBA file by finding the line starting with #Spectro (cm-¹). """
-    fr = open(path+'/'+filename,  'r', encoding=encode)
+    with open(path + '/' + filename, 'r', encoding=encode) as fr:
+        for l in fr:
+            if l.startswith('#Spectro (cm-¹)'):
+                try:
+                    return float(l.split('=')[1].strip())
+                except (IndexError, ValueError):
+                    return np.nan
+    return np.nan
 
-    while True:
-        l=fr.readline()
-        if l.startswith('#Spectro (cm-¹)'):
-            line=l
-            break
-    return line
 
 def extract_24hr_time_horiba(*, path, filename):
-    """ This function extracts the 24 hr time from a HORIBA file by finding the line starting with #Acquired. """
-    fr = open(path+'/'+filename,  'r', encoding=encode)
-
-    while True:
-        l=fr.readline()
-        if l.startswith('#Acquired'):
-            line=l
-            break
-    return line
+    with open(path + '/' + filename, 'r', encoding=encode) as fr:
+        for l in fr:
+            if l.startswith('#Acquired'):
+                return l
+    return np.nan
 
 def extract_spectraname_horiba(*, path, filename):
-    """
-    This function extracts the spectral name from HORIBA files
-    """
-    fr = open(path+'/'+filename,  'r', encoding=encode)
+    with open(path + '/' + filename, 'r', encoding=encode) as fr:
+        for l in fr:
+            if l.startswith('#Title'):
+                return l
+    return np.nan
 
-    while True:
-        l=fr.readline()
-        if l.startswith('#Title'):
-            line=l
-            break
-    return line
+    
+def stitch_metadata_in_loop_horiba(Allfiles, path=None):
+
+    """ Stitches acquisition parameters together from the function extract_acq_params_horiba for multiple files
+    Parameters
+    -------------
+    AllFiles: list
+        List of all file names
+
+    path: str
+        Path where files are found
+
+    Returns
+    -------------
+    df of aquisitoin parameters
+    """
+    if path is None:
+        path=os.getcwd()
+
+    df=pd.DataFrame([])
+    for i in tqdm(range(0, len(Allfiles))):
+        file=Allfiles[i]
+        one_file=extract_acq_params_horiba(path=path, filename=file)
+        df=pd.concat([df, one_file], axis=0)
+    df_out=df.reset_index(drop=True)
+    return df_out
+
 
 
 def extract_acq_params_horiba(path, filename):
@@ -604,13 +695,9 @@ def extract_acq_params_horiba(path, filename):
     year=int(date.split('.')[2])
     month_name=calendar.month_name[month]
     Day=datetime.strptime(date, "%d.%m.%Y")
-    spec_cen=extract_spectral_center_horiba(path=path, filename=filename)
-    spec=float(spec_cen.split('=')[1])
 
-    spec_str=extract_spectral_center_horiba(path=path,
+    spec=extract_spectral_center_horiba(path=path,
     filename=filename)
-
-    spec=spec_str.split('\t')[1].split('\n')[0]
 
 
     time_str=extract_24hr_time_horiba(path=path, filename=filename)
@@ -641,36 +728,8 @@ def extract_acq_params_horiba(path, filename):
 
 
     return df
-
-
-
-
-def stitch_metadata_in_loop_horiba(AllFiles, path=None):
-
-    """ Stitches acquisition parameters together from the function extract_acq_params_horiba for multiple files
-    Parameters
-    -------------
-    AllFiles: list
-        List of all file names
-
-    path: str
-        Path where files are found
-
-    Returns
-    -------------
-    df of aquisitoin parameters
-    """
-    if path is None:
-        path=os.getcwd()
-
-    df=pd.DataFrame([])
-    for i in tqdm(range(0, len(AllFiles))):
-        file=AllFiles[i]
-        one_file=extract_acq_params_horiba(path=path, filename=file)
-        df=pd.concat([df, one_file], axis=0)
-    df_out=df.reset_index(drop=True)
-    return df_out
-
+    
+    
 
 
 ## Functions to extract metadata from WITEC files (v instrument specific)

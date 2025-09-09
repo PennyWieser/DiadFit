@@ -976,7 +976,7 @@ def merge_fit_files(path):
 ## New UC Berkeley using 1220
 
 def calculate_density_ucb(*, Ne_line_combo='1117_1447', df_combo=None, temp='SupCrit', 
-CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, corrected_split=None, split_err=None):
+CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, Ar_pickle_str=None, pref_Ne=None, Ne_err=None, corrected_split=None, split_err=None):
     """ This function converts Diad Splitting into CO$_2$ density using the UC Berkeley calibration line
     developed by DeVitre and Wieser in 2023. 
 
@@ -1339,28 +1339,41 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     df_merge = df_merge.rename(columns={'filename_x': 'filename'})
 
 
-    #
-    #
-
-    if Ne_pickle_str is not None: # If its not none, have all the columns for Ne
-        cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
-        'Corrected_Splitting', 'Corrected_Splitting_σ',
-        'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit', 'power (mW)', 'Spectral Center']
-        df_merge = df_merge[cols_to_move + [
-            col for col in df_merge.columns if col not in cols_to_move]]
-    elif pref_Ne is not None and df_combo is not None: #If Pref Ne, 
-        cols_to_move = ['filename', 'Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
-        'Corrected_Splitting', 'Corrected_Splitting_σ',
-        'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit']
-        df_merge = df_merge[cols_to_move + [
-            col for col in df_merge.columns if col not in cols_to_move]]
-            
+    # NE or Ar. 
+    
+    if Ne_pickle_str is not None:
+        cols_to_move = [
+            'filename', 'Density g/cm3', 'σ Density g/cm3',
+            'σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+            'Corrected_Splitting', 'Corrected_Splitting_σ',
+            'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit',
+            'power (mW)', 'Spectral Center'
+        ]
+    elif Ar_pickle_str is not None:
+        cols_to_move = [
+            'filename', 'Density g/cm3', 'σ Density g/cm3',
+            'σ Density g/cm3 (from Ar+peakfit)', 'σ Density g/cm3 (from densimeter)',
+            'Corrected_Splitting', 'Corrected_Splitting_σ',
+            'Corrected_Splitting_σ_Ar', 'Corrected_Splitting_σ_peak_fit',
+            'power (mW)', 'Spectral Center'
+        ]
+    elif pref_Ne is not None and df_combo is not None:
+        cols_to_move = [
+            'filename', 'Density g/cm3', 'σ Density g/cm3',
+            'σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
+            'Corrected_Splitting', 'Corrected_Splitting_σ',
+            'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit'
+        ]
     elif df_combo is None:
         
         cols_to_move = ['Density g/cm3', 'σ Density g/cm3','σ Density g/cm3 (from Ne+peakfit)', 'σ Density g/cm3 (from densimeter)',
         'Corrected_Splitting']
-        df_merge = df_merge[cols_to_move + [
-            col for col in df_merge.columns if col not in cols_to_move]]
+
+    
+    # Move only existing columns to the front
+    cols_existing = [col for col in cols_to_move if col in df_merge.columns]
+    df_merge = df_merge[cols_existing + [col for col in df_merge.columns if col not in cols_existing]]
+
 
 
 
@@ -2050,4 +2063,123 @@ def apply_and_save_vertical_shift_to_ucb_densimeter(new_x, new_y):
 
 
     return shift
+    
+    
+## Corrected splitting calculator for Argon
+def propagate_error_split_argon_peakfit(*, df_fits, Ar_corr=None, Ar_err=None, pref_Ar=None):
+    """ This function propagates errors in your Ar correction model and peak fits by quadrature.
+
+    Parameters
+    -----------------
+
+    df_fits: pd.DataFrame
+        Dataframe of peak fitting parameters. Must contain columns for 'Diad1_cent_err', 'Diad2_cent_err', 'Splitting'
+
+    Choose either:
+
+    Ar_corr: pd.DataFrame (Optional)
+        Dataframe with columns for 'upper_values' and 'lower values', e.g. the upper and lower bounds of the error on the Ar correction model
+
+    Or
+
+    pref_Ar and Ar_err: float, int, pd.Series, np.array
+        A preferred value of the Ar correction factor and the error (e.g. pref_Ar=0.998, Ar_err=0.001). Used for
+        rapid peak fitting before developing Ar lines.
+
+    Returns
+    -----------------
+    two pd.Series: the error on the splitting, and the combined error from the splitting and the Ar correction model.
+
+    """
+    # Get the error on Argon things
+    if isinstance(Ar_corr, pd.DataFrame):
+        Ar_err = (Ar_corr['upper_values'] - Ar_corr['lower_values']) / 2
+        print(np.mean(Ar_err))
+        pref_Ar = Ar_corr['preferred_values']
+
+    elif pref_Ar is not None and Ar_err is not None:
+        print('using fixed values for Ar error and Ar factor')
+    else:
+        raise TypeError('You must either provide Ar_corr as a dataframe, or provide pref_Ar and Ar_err as values.')
+
+    # Get the peak fit errors
+    Diad1_err = df_fits['Diad1_cent_err'].fillna(0).infer_objects()
+    Diad2_err = df_fits['Diad2_cent_err'].fillna(0).infer_objects()
+    split_err = (Diad1_err**2 + Diad2_err**2)**0.5
+
+    # Propagate uncertainty from Ar correction and peak fits
+    Combo_err = (((df_fits['Splitting'] * Ar_err)**2) + (pref_Ar * split_err)**2)**0.5
+
+    return Combo_err, split_err
+    
+def calculate_Ar_corr_std_err_values(*, pickle_str, new_x, CI=0.67):
+    # Load the model and the data from the pickle file
+    with open(pickle_str, 'rb') as f:
+        data = pickle.load(f)
+
+    model = data['model']
+    N_poly = model.order - 1
+
+    Pf = data['model']
+    x = data['x']
+    y = data['y']
+
+    # Convert new_x to plain numpy array
+    new_x_array = np.asarray(new_x)
+
+    # Calculate the residuals
+    residuals = y - Pf(x)
+
+    # Calculate the standard deviation of the residuals
+    residual_std = np.std(residuals)
+
+    # Calculate the standard errors for the new x values
+    mean_x = np.mean(x)
+    n = len(x)
+    standard_errors = residual_std * np.sqrt(1 + 1/n + (new_x_array - mean_x)**2 / np.sum((x - mean_x)**2))
+
+    # Calculate the degrees of freedom
+    df_dof = len(x) - (N_poly + 1)
+
+    # Calculate the t value for the given confidence level
+    t_value = t.ppf((1 + CI) / 2, df_dof)
+
+    # Calculate the prediction intervals
+    preferred_values = Pf(new_x_array)
+    lower_values = preferred_values - t_value * standard_errors
+    upper_values = preferred_values + t_value * standard_errors
+
+    df_out = pd.DataFrame(data={
+        'time': new_x_array,
+        'preferred_values': preferred_values,
+        'lower_values': lower_values,
+        'upper_values': upper_values
+    })
+
+    return df_out
+
+    
+def calculate_corrected_splitting_argon(*, df_combo_c, Ar_pickle_str, CI):
+    
+    time=df_combo_c['sec since midnight']
+    Ar_corr = calculate_Ar_corr_std_err_values(pickle_str=Ar_pickle_str, new_x=time, CI=CI)
+    
+    Split=df_combo_c['Splitting']*Ar_corr['preferred_values']
+    df_combo_c['Corrected_Splitting']=Split
+    
+    
+    # Extract preferred correction values
+    pref_Ar = Ar_corr['preferred_values']
+    Split_err, pk_err = propagate_error_split_argon_peakfit(Ar_corr=Ar_corr, df_fits=df_combo_c)
+    
+    # Add Ar-specific columns to the DataFrame
+    df_combo_c['Corrected_Splitting_σ'] = Split_err
+    df_combo_c['Corrected_Splitting_σ_Ar'] = (
+        (Ar_corr['upper_values'] * df_combo_c['Splitting'] -
+        Ar_corr['lower_values'] * df_combo_c['Splitting']) / 2
+    )
+    df_combo_c['Corrected_Splitting_σ_peak_fit'] = pk_err
+    
+    return df_combo_c
+        
 

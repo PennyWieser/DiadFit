@@ -623,5 +623,324 @@ def calculate_Ar_line_positions(wavelength=532.05, cut_off_intensity=2000):
     return df_Ar_r
 
 
+## Function that is basically just the Ne function but with some renaming.
+
+
+def loop_Ar_lines(*, files, spectra_path, filetype, config_ID_peaks, config, df_fit_params,  prefix, plot_figure=True, print_df=False, const_params=True):
+    # Call the Neon line processing function
+    df_ne = loop_Ne_lines(
+        files=files,
+        spectra_path=spectra_path,
+        filetype=filetype,
+        config_ID_peaks=config_ID_peaks,
+        config=config,
+        df_fit_params=df_fit_params,
+        prefix=prefix,
+        plot_figure=plot_figure,
+        print_df=False,
+        const_params=const_params
+    )
+
+
+
+    # Rename columns by replacing 'Ne' with 'Ar'
+    df_ar = df_ne.rename(columns=lambda col: col.replace('Ne', 'Ar'))
+
+    return df_ar
+
+
+def Argon_id_config(*, height, distance, prominence, width, threshold,
+                    peak1_cent, peak2_cent, n_peaks,
+                    exclude_range_1=None, exclude_range_2=None):
+    return Neon_id_config(
+        height=height,
+        distance=distance,
+        prominence=prominence,
+        width=width,
+        threshold=threshold,
+        peak1_cent=peak1_cent,
+        peak2_cent=peak2_cent,
+        n_peaks=n_peaks,
+        exclude_range_1=exclude_range_1,
+        exclude_range_2=exclude_range_2
+    )
+
+def identify_Ar_lines(*, path, filename, filetype, config, print_df=False):
+    return identify_Ne_lines(
+        path=path,
+        filename=filename,
+        filetype=filetype,
+        config=config,
+        print_df=print_df
+    )
+
+def Ar_peak_config(**kwargs):
+    return Ne_peak_config(**kwargs)
+
+
+def fit_Ar_lines(*, Ar, filename, path, prefix=False, config,
+                 Ar_center_1, Ar_center_2,
+                 Ar_prom_1, Ar_prom_2,
+                 const_params=False):
+    # Call the Neon version internally
+    df_ne = fit_Ne_lines(
+        Ne=Ar,
+        filename=filename,
+        path=path,
+        prefix=prefix,
+        config=config,
+        Ne_center_1=Ar_center_1,
+        Ne_center_2=Ar_center_2,
+        Ne_prom_1=Ar_prom_1,
+        Ne_prom_2=Ar_prom_2,
+        const_params=const_params
+    )
+
+    # Rename output columns from 'Ne' to 'Ar'
+    df_ar = df_ne.rename(columns=lambda col: col.replace('Ne', 'Ar'))
+
+    return df_ar
+
+
+import matplotlib.pyplot as plt
+
+def plot_Ar_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='k', mfc='r'):
+    """
+    Plot correction-related information for Ar spectra.
+    Assumes column names have 'Ar_Corr', '1σ_Ar_Corr', etc.
+    """
+    if x_axis is not None:
+        x = x_axis
+    else:
+        x = df.index
+
+    fig, ((ax5, ax6),  (ax3, ax4), (ax1, ax2)) = plt.subplots(3, 2, figsize=(10, 12))
+
+    # Peak 1
+    ax5.errorbar(x, df['pk1_peak_cent'], xerr=0, yerr=df['error_pk1'].fillna(0).infer_objects(),
+                 fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
+    ax5.set_xlabel(x_label)
+    ax5.set_ylabel('Peak 1 center')
+
+    # Peak 2
+    ax6.plot(x, df['pk2_peak_cent'], marker, mec=mec, mfc=mfc)
+    ax6.errorbar(x, df['pk2_peak_cent'], xerr=0, yerr=df['error_pk2'].fillna(0).infer_objects(),
+                 fmt='o', ecolor='k', elinewidth=0.8, mfc=mfc, ms=5, mec=mec, capsize=3)
+    ax6.set_xlabel(x_label)
+    ax6.set_ylabel('Peak 2 center')
+
+    # Correction vs. Peak 2
+    ax3.errorbar(df['Ar_Corr'], df['pk2_peak_cent'],
+                 xerr=df['1σ_Ar_Corr'].fillna(0).infer_objects(),
+                 yerr=df['error_pk2'].fillna(0).infer_objects(),
+                 fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
+    ax3.set_xlabel('Ar Correction factor')
+    ax3.set_ylabel('Peak 2 center')
+
+    # Correction vs. Peak 1
+    ax4.errorbar(df['Ar_Corr'], df['pk1_peak_cent'],
+                 xerr=df['1σ_Ar_Corr'].fillna(0).infer_objects(),
+                 yerr=df['error_pk1'].fillna(0).infer_objects(),
+                 fmt='o', ecolor='k', elinewidth=0.8, mfc='b', ms=5, mec='k', capsize=3)
+    ax4.set_xlabel('Ar Correction factor')
+    ax4.set_ylabel('Peak 1 center')
+
+    # Ar Correction vs. x
+    ax1.errorbar(x, df['Ar_Corr'], xerr=0, yerr=df['1σ_Ar_Corr'].fillna(0).infer_objects(),
+                 fmt='o', ecolor='k', elinewidth=0.8, mfc='grey', ms=5, mec='k', capsize=3)
+    ax1.set_ylabel('Ar Correction factor')
+    ax1.set_xlabel(x_label)
+
+    # Ar Correction vs. residuals (placeholder logic — update as needed)
+    if 'residual_sum' in df.columns:
+        ax2.errorbar(df['residual_sum'], df['Ar_Corr'],
+                     xerr=0, yerr=df['1σ_Ar_Corr'].fillna(0).infer_objects(),
+                     fmt='o', ecolor='k', elinewidth=0.8, mfc='grey', ms=5, mec='k', capsize=3)
+
+    ax2.set_xlabel('Sum of pk1 and pk2 residual')
+    ax2.set_ylabel('Ar Correction factor')
+
+    for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
+        ax.ticklabel_format(useOffset=False)
+
+    plt.setp(ax3.get_xticklabels(), rotation=30, ha='right')
+    plt.setp(ax4.get_xticklabels(), rotation=30, ha='right')
+
+    fig.tight_layout()
+    return fig
+
+
+def filter_Ar_Line_neighbours(*, df_combo=None, Corr_factor=None, number_av=6, offset=0.00005, file_name_filt=None):
+    """
+    Filters Ar correction factors that deviate by more than `offset` from the
+    local median of neighboring values (defined by `number_av`).
+    Optionally excludes specified filenames via `file_name_filt`.
+    """
+    if df_combo is not None:
+        Corr_factor = df_combo['Ar_Corr']
+
+    Corr_factor_Filt = np.zeros(len(Corr_factor), dtype=float)
+    median_loop = np.zeros(len(Corr_factor), dtype=float)
+
+    for i in range(len(Corr_factor)):
+        if i < len(Corr_factor) / 2:
+            median_loop[i] = np.nanmedian(Corr_factor[i:i+number_av])
+        else:
+            median_loop[i] = np.nanmedian(Corr_factor[i-number_av:i])
+
+        if (
+            Corr_factor[i] > (median_loop[i] + offset)
+            or Corr_factor[i] < (median_loop[i] - offset)
+        ):
+            Corr_factor_Filt[i] = np.nan
+        else:
+            Corr_factor_Filt[i] = Corr_factor[i]
+
+    ds = pd.Series(Corr_factor_Filt)
+
+    if file_name_filt is not None:
+        pattern = '|'.join(file_name_filt)
+        mask = df_combo['filename_x'].str.contains(pattern)
+        ds = ds.where(~mask, np.nan)
+
+    return ds
+
+
+def generate_Ar_corr_model(*, time, Ar_corr, N_poly=3, CI=0.67, bootstrap=False,
+                           std_error=True, N_bootstrap=500,
+                           save_fig=False, pkl_name='polyfit_data_Ar.pkl'):
+    """Generates a polynomial correction model for Ar correction data."""
+
+    x_all = np.array([time])
+
+    if isinstance(Ar_corr, pd.DataFrame):
+        y_all = np.array([Ar_corr['Ar_Corr']])
+        y_err = Ar_corr['1σ_Ar_Corr']
+    else:
+        y_all = Ar_corr
+        y_err = 0 * Ar_corr
+
+    non_nan_indices = ~np.isnan(x_all) & ~np.isnan(y_all)
+    x = x_all[non_nan_indices]
+    y = y_all[non_nan_indices]
+
+    coefficients = np.polyfit(x, y, N_poly)
+    Pf = np.poly1d(coefficients)
+
+    data = {'model': Pf, 'x': x, 'y': y}
+    with open(pkl_name, 'wb') as f:
+        pickle.dump(data, f)
+
+    new_x_plot = np.linspace(np.min(x), np.max(x), 100)
+
+    if bootstrap:
+        Ar_corr2 = calculate_Ar_corr_bootstrap_values(
+            pickle_str=pkl_name,
+            new_x=pd.Series(new_x_plot),
+            N_poly=N_poly,
+            CI=CI,
+            N_bootstrap=N_bootstrap
+        )
+    elif std_error:
+        Ar_corr2 = calculate_Ar_corr_std_err_values(
+            pickle_str=pkl_name,
+            new_x=pd.Series(new_x_plot),
+            CI=CI
+        )
+
+    fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
+    ax1.errorbar(x, y, xerr=0, yerr=y_err, fmt='o', ecolor='k',
+                 elinewidth=0.8, mfc='grey', ms=5, mec='k', capsize=3)
+
+    ax1.plot(new_x_plot, Ar_corr2['preferred_values'], '-k', label='best fit')
+    ax1.plot(new_x_plot, Ar_corr2['lower_values'], ':k', label='lower bound')
+    ax1.plot(new_x_plot, Ar_corr2['upper_values'], ':k', label='upper bound')
+    ax1.plot(x, y, '+r', label='Ar lines')
+
+    ax1.set_xlabel('sec after midnight')
+    ax1.set_ylabel('Ar Corr factor')
+    ax1.ticklabel_format(useOffset=False)
+    ax1.legend()
+
+    suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(N_poly, 'th')
+    ax1.set_title(f"{N_poly}$^{{{suffix}}}$ degree polynomial: {int(CI * 100)}% prediction interval")
+
+    if save_fig:
+        fig.savefig('Ar_line_correction.png')
+
+    return Pf, fig
+
+
+def calculate_Ar_corr_std_err_values(*, pickle_str, new_x, CI=0.67):
+    with open(pickle_str, 'rb') as f:
+        data = pickle.load(f)
+
+    model = data['model']
+    N_poly = model.order - 1
+    x = data['x']
+    y = data['y']
+
+    new_x_array = np.asarray(new_x)
+    residuals = y - model(x)
+    residual_std = np.std(residuals)
+
+    mean_x = np.mean(x)
+    n = len(x)
+    standard_errors = residual_std * np.sqrt(1 + 1/n + (new_x_array - mean_x)**2 / np.sum((x - mean_x)**2))
+
+    df_dof = len(x) - (N_poly + 1)
+    t_value = t.ppf((1 + CI) / 2, df_dof)
+
+    preferred_values = model(new_x_array)
+    lower_values = preferred_values - t_value * standard_errors
+    upper_values = preferred_values + t_value * standard_errors
+
+    return pd.DataFrame({
+        'time': new_x_array,
+        'preferred_values': preferred_values,
+        'lower_values': lower_values,
+        'upper_values': upper_values
+    })
+
+
+def calculate_Ar_corr_bootstrap_values(*, pickle_str, new_x, N_poly=3, CI=0.67, N_bootstrap=500):
+    with open(pickle_str, 'rb') as f:
+        data = pickle.load(f)
+
+    Pf = data['model']
+    x = data['x']
+    y = data['y']
+
+    x_values = new_x
+    preferred_values = []
+    lower_values = []
+    upper_values = []
+
+    for new_x in x_values:
+        bootstrap_predictions = []
+        for _ in range(N_bootstrap):
+            bootstrap_indices = np.random.choice(len(x), size=len(x), replace=True)
+            bootstrap_x = x[bootstrap_indices]
+            bootstrap_y = y[bootstrap_indices]
+            bootstrap_coefficients = np.polyfit(bootstrap_x, bootstrap_y, N_poly)
+            bootstrap_Pf = np.poly1d(bootstrap_coefficients)
+            bootstrap_predictions.append(bootstrap_Pf(new_x))
+
+        bootstrap_predictions_sorted = np.sort(bootstrap_predictions)
+        lower_idx = int(((1 - CI) / 2) * N_bootstrap)
+        upper_idx = int((1 - (1 - CI) / 2) * N_bootstrap)
+
+        preferred_values.append(Pf(new_x))
+        lower_values.append(bootstrap_predictions_sorted[lower_idx])
+        upper_values.append(bootstrap_predictions_sorted[upper_idx])
+
+    return pd.DataFrame({
+        'time': x_values,
+        'preferred_values': preferred_values,
+        'lower_values': lower_values,
+        'upper_values': upper_values
+    })
+
+
 
 
