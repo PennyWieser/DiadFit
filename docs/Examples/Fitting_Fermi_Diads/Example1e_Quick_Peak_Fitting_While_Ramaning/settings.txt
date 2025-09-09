@@ -1,0 +1,8 @@
+meta_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1e_Quick_Peak_Fitting_While_Ramaning
+spectra_path=c:\Users\penny\Box\Berkeley_new\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1e_Quick_Peak_Fitting_While_Ramaning\spectra
+spectra_filetype=headless_txt
+prefix=False
+prefix_str=' '
+spectra_file_ext=.txt
+meta_file_ext=.txt
+TruPower=False
