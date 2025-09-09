@@ -1,0 +1,8 @@
+meta_path=c:\PythonPackages_Outside_Box\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1g_Fitting_Diads_with_Ar_Lines
+spectra_path=c:\PythonPackages_Outside_Box\DiadFit_outer\docs\Examples\Fitting_Fermi_Diads\Example1g_Fitting_Diads_with_Ar_Lines/spectra
+spectra_filetype=HORIBA_txt
+prefix=False
+prefix_str=' '
+spectra_file_ext=.txt
+meta_file_ext=.txt
+TruPower=False
