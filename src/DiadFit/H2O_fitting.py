@@ -9,8 +9,10 @@ from scipy import stats
 from dataclasses import dataclass
 from typing import Tuple, Optional
 from DiadFit.importing_data_files import *
-from numpy import trapz
-from scipy.integrate import simpson
+from scipy.integrate import simpson, trapezoid
+
+
+## checking
 ##
 def extract_xstal_MI_name(*, files, char_xstal, pos_xstal, char_MI, pos_MI,
                          prefix=True, str_prefix=" ", file_ext='.txt'):
@@ -872,14 +874,14 @@ fit_sil='poly', dpi=200):
     ydat_sil=y_corr_sil
 
     xspace_sil=xdat_sil[1]-xdat_sil[0]
-    area_trap = trapz(y_corr_sil, dx=xspace_sil)
+    area_trap = trapezoid(y_corr_sil, dx=xspace_sil)
     area_simps = simpson(y_corr_sil, dx=xspace_sil)
 
     # Just the LW area
     xsil_LW=xdat_sil[(xdat_sil>LW[0]) & (xdat_sil<LW[1])]
     y_corr_sil_LW=y_corr_sil[(xdat_sil>LW[0]) & (xdat_sil<LW[1])]
     xspace_sil_LW=xsil_LW[1]-xsil_LW[0]
-    area_trap_LW=trapz(y_corr_sil_LW, dx=xspace_sil_LW)
+    area_trap_LW=trapezoid(y_corr_sil_LW, dx=xspace_sil_LW)
     area_simp_LW=simpson(y_corr_sil_LW, dx=xspace_sil_LW)
 
 
@@ -887,7 +889,7 @@ fit_sil='poly', dpi=200):
     xsil_HW=xdat_sil[(xdat_sil>HW[0]) & (xdat_sil<HW[1])]
     y_corr_sil_HW=y_corr_sil[(xdat_sil>HW[0]) & (xdat_sil<HW[1])]
     xspace_sil_HW=xsil_HW[1]-xsil_HW[0]
-    area_trap_HW=trapz(y_corr_sil_HW, dx=xspace_sil_HW)
+    area_trap_HW=trapezoid(y_corr_sil_HW, dx=xspace_sil_HW)
     area_simp_HW=simpson(y_corr_sil_HW, dx=xspace_sil_HW)
 
     # MW
@@ -895,7 +897,7 @@ fit_sil='poly', dpi=200):
         xsil_MW=xdat_sil[(xdat_sil>MW[0]) & (xdat_sil<MW[1])]
         y_corr_sil_MW=y_corr_sil[(xdat_sil>MW[0]) & (xdat_sil<MW[1])]
         xspace_sil_MW=xsil_MW[1]-xsil_MW[0]
-        area_trap_MW=trapz(y_corr_sil_MW, dx=xspace_sil_MW)
+        area_trap_MW=trapezoid(y_corr_sil_MW, dx=xspace_sil_MW)
         area_simp_MW=simpson(y_corr_sil_MW, dx=xspace_sil_MW)
 
 
@@ -1157,7 +1159,7 @@ def fit_area_for_water_region(*, path, filename, Spectra=None, config1: water_bc
 
 
     xspace_water=xdat_water[1]-xdat_water[0]
-    area_trap = trapz(y_corr_water, dx=xspace_water)
+    area_trap = trapezoid(y_corr_water, dx=xspace_water)
     area_simps = simpson(y_corr_water, dx=xspace_water)
 
 
