@@ -1969,8 +1969,8 @@ def density_to_mol_vol(*, density, XH2O):
 
 
 def calc_prop_knownP_EOS_DZ2006(*, P_kbar=1, T_K=1200, XH2O=1):
-    """ This function calculates molar volume, density, compressability factor, fugacity, and activity for mixed H2O-CO2 fluids
-    using the EOS of Span and Wanger. It assumes you know P, T, and XH2O.
+    """ This function calculates the properties (molar volume, density, compressability factor, fugacity, and activity) for a mixed H2O-CO2 fluid
+    using the EOS of Duan and Zhang (2006). It assumes you know P, T, and XH2O.
 
     Parameters
     -------------------
@@ -1984,6 +1984,8 @@ def calc_prop_knownP_EOS_DZ2006(*, P_kbar=1, T_K=1200, XH2O=1):
     Returns
     -------------------
     pd.DataFrame
+    Input parameters and calculated properties of mixed fluid.
+
 
     """
 
