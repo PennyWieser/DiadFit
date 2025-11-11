@@ -75,10 +75,8 @@ nbsphinx_allow_errors = True
 # `env.config.html_context['var']`.
 nbsphinx_prolog = r"""
 {% set docname = 'docs' / env.doc2path(env.docname, base=None) %}
-{% set git_ref = 'main' if not env.config.html_context['READTHEDOCS'] else
-                 env.config.html_context['github_version']
-                 if '.' not in env.config.html_context['current_version'] else
-                 'v' + env.config.release %}
+{% set git_ref = 'main' %}
+
 .. raw:: html
 
     <div class="admonition note">
