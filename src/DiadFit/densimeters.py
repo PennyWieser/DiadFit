@@ -1841,7 +1841,7 @@ def calculate_Densimeter_std_err_values_smooth(
     standard_errors = residual_std * np.sqrt(1 + 1/n + (corrected_split - mean_x)**2 / np.sum((x - mean_x)**2))
     dfree = n - (N_poly + 1)
 
-    t_value_split = t.ppf((1 + CI_split) / 2, dfree)
+    
     t_value_dens = t.ppf((1 + CI_dens) / 2, dfree)
 
     # Central prediction
@@ -1862,8 +1862,8 @@ def calculate_Densimeter_std_err_values_smooth(
     return pd.DataFrame({
         f'{str_d}_Density': preferred_values,
         f'{str_d}_Density_σ': total_uncertainty,
-        f'{str_d}_Density+1σ': preferred_values - total_uncertainty,
-        f'{str_d}_Density-1σ': preferred_values + total_uncertainty,
+        f'{str_d}_Density+1σ': preferred_values + total_uncertainty,
+        f'{str_d}_Density-1σ': preferred_values - total_uncertainty,
         f'{str_d}_Density_σ_dens': uncertainty_from_dens,
         f'{str_d}_Density_σ_split': uncertainty_split
     })

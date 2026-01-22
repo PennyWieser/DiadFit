@@ -2,6 +2,15 @@
 ================
 Change Log
 ================
+
+Jan 21st, 2026  Penny Wieser - V.1.0.16
+-------------------------------------------
+Fixed bug where cosmic ray CRR code wasnt actually editing the file if it wasnt a headless_txt file - was just returning the original data
+Also fixed bug where if a spike is removed from the background, it was being carried through to the fit, resulting in a larger residual than it should have had. Points excluded from the background based on being N standard deviations away are now deleted before the fitting process - this stops lmfit from giving stupidly large errors.
+Thanks to Alex Bearden for spotting these issues!
+
+
+
 Sept 4th, 2024 -  Penny Wieser - V.1.0.3
 -------------------------------------------
 Changed column names in H2O method from HW:LW_Trapezoid and HW:LW_Simpson to Water_to_HW_ratio_Trapezoid and Water_to_HW_ratio_Simpson

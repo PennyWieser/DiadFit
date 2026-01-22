@@ -1256,15 +1256,47 @@ def remove_diad_baseline(*, path=None, filename=None, Diad_files=None, filetype=
 
 
 
+
+        # Fits a polynomial to the baseline of degree
     # Fits a polynomial to the baseline of degree
     Pf_baseline = np.poly1d(np.polyfit(Baseline[:, 0], Baseline[:, 1], N_poly))
-    Py_base =Pf_baseline(Diad_short[:, 0])
+    Py_base = Pf_baseline(Diad_short[:, 0])
+
+    Baseline_ysub = Pf_baseline(Baseline[:, 0])
+    Baseline_x = Baseline[:, 0]
+    y_corr = Diad_short[:, 1] - Py_base
+    x = Diad_short[:, 0]
+
+    # Now filter out all the points I dont want in my background subtracted data
+
+    # 1) points rejected by the sigma filter (from the baseline-candidate set)
+    sigma_rejected_x = Baseline_with_outl[
+        (Baseline_with_outl[:, 1] >= Median_Baseline + sigma * Std_Baseline) |
+        (Baseline_with_outl[:, 1] <= Median_Baseline - sigma * Std_Baseline)
+    ][:, 0]
+
+    drop = np.zeros(len(x), dtype=bool)
+
+    # 2) points in user-specified exclude ranges (if provided)
+    if exclude_range1 is not None:
+        drop |= (x >= exclude_range1[0]) & (x <= exclude_range1[1])
+    if exclude_range2 is not None:
+        drop |= (x >= exclude_range2[0]) & (x <= exclude_range2[1])
+
+    # 3) points sigma-filtered out of the baseline windows
+    if sigma_rejected_x.size > 0:
+        drop |= np.isin(x, sigma_rejected_x)
+
+    # apply the mask consistently to all aligned arrays/outputs
+    keep = ~drop
+    x = x[keep]
+    y_corr = y_corr[keep]
+    Py_base = Py_base[keep]
+    Diad_short = Diad_short[keep, :]
 
 
-    Baseline_ysub=Pf_baseline(Baseline[:, 0])
-    Baseline_x=Baseline[:, 0]
-    y_corr= Diad_short[:, 1]-  Py_base
-    x=Diad_short[:, 0]
+
+
 
      # Plotting what its doing
     if plot_figure is True:

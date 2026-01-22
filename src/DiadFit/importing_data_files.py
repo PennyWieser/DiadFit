@@ -108,7 +108,8 @@ def check_for_duplicates(spectra_path, prefix=True, prefix_str=' ', exception=Tr
         if prefix is False:
             name2=name
         else:
-            name2=name.split(prefix_str, maxsplit=1)[1:]
+            #name2=name.split(prefix_str, maxsplit=1)[1:]
+            name2 = name.split(" ", 1)[1]
         file_m[i]=name2[0]
 
     if len(file_m)!=len(pd.Series(file_m).unique()):
@@ -1062,7 +1063,8 @@ def stitch_metadata_in_loop_witec(*, Allfiles, path, prefix=True, trupower=False
     for i in tqdm(range(0, len(Allfiles))):
         filename1=Allfiles[i] #.rsplit('.',1)[0]
         if prefix is True:
-            filename=filename1.split(str_prefix)[1:][0]
+            #filename=filename1.split(str_prefix)[1:][0]
+            filename = " ".join(filename1.split()[1:])
 
         else:
             filename=filename1
@@ -1216,7 +1218,10 @@ def extracting_filenames_generic(*, names, prefix=False,
 
         else:
             if prefix is True:
-                str_nof_name=name.split(str_prefix, maxsplit=1)[1:]
+                #str_nof_name=name.split(str_prefix, maxsplit=1)[1:]
+                str_nof_name = name.split(" ", 1)[1]
+                
+
                 # print(str_nof_name)
                 # print(type(str_nof_name))
             if prefix is False:
@@ -1226,7 +1231,8 @@ def extracting_filenames_generic(*, names, prefix=False,
                 file_m[i]=str_nof_name.split(str_suffix, maxsplit=1)[0]
             if suffix is False:
 
-                file_m[i]=str_nof_name[0]
+                file_m[i]=str_nof_name
+                
 
         if file_ext in file_m[i]:
             file_m[i]=file_m[i].replace(file_ext, '')
