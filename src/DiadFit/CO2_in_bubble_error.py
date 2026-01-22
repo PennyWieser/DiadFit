@@ -564,7 +564,8 @@ error_melt_dens_kgm3=0, error_type_melt_dens_kgm3='Abs', error_dist_melt_dens_kg
 
     df_out.insert(0, 'CO2_eq_melt_ppm_MC',CO2_eq_melt)
 
-    df_out.insert(1, 'CO2_eq_melt_ppm_noMC',float(CO2_eq_melt_ind.values))
+    #df_out.insert(1, 'CO2_eq_melt_ppm_noMC',float(CO2_eq_melt_ind.values))
+    df_out.insert(1, 'CO2_eq_melt_ppm_noMC', CO2_eq_melt_ind.iloc[sample_i])
 
 
     return df_out
