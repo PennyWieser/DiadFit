@@ -2086,6 +2086,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
     if minimise=='least_squares':
+        print('using least squares')
     # all points given equal weight - used by default
     # until Diadfit 1.0.18
         init = model_F.eval(params, x=xdat)
@@ -2093,6 +2094,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
         comps = result.eval_components()
 
     elif minimise=='weighted_least_squares':
+        print('using weighted least squares')
         # Operate on total acounts, so add back in baseline
         total_counts_obs = ydat + py_baseline
 

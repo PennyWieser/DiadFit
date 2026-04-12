@@ -19,7 +19,7 @@ import scipy.stats as stats
 import pickle
 
 
-allowed_models = ["VoigtModel", "PseudoVoigtModel", "Pearson4Model", "SkewedVoigtModel"]
+allowed_models = ["VoigtModel", "PseudoVoigtModel", "Pearson4Model", "SkewedVoigtModel", "GaussianModel"]
 
 
 
@@ -127,9 +127,10 @@ def calculate_Ne_splitting(wavelength=532.05, line1_shift=1117, line2_shift=1447
 
 def calculate_Ne_line_positions(wavelength=532.05, cut_off_intensity=2000):
     """
-    Calculates Raman shift for a given laser wavelength of Ne lines, using the datatable from NIST of Ne line
+    Calculates Raman shift for a given laser wavelength of Ne lines, using the datatable from NIST of  the observed Ne line
     emissoin in air and the intensity of each line. 
     Data from https://physics.nist.gov/PhysRefData/ASD/lines_form.html
+    Ticked 
 
     Parameters
     ---------------
@@ -911,7 +912,7 @@ lower_bck=None, upper_bck1=None, upper_bck2=None, sigma_baseline=None):
 
 def fit_Ne_pk(x, y_corr, x_span=[-10, 8], Ne_center=1117.1, amplitude=98.1, pk1_sigma=0.28,
 LH_offset_mini=[1.5, 3], peaks_pk1=2, model_name='PseudoVoigtModel', block_print=True,
-const_params=True, spec_res=0.4, py_baseline=None, minimise='weighted_least_squares' ) :
+const_params=True, spec_res=0.4, py_baseline=None, minimise='least_squares' ) :
     """ This function fits the 1117 Ne line as 1 or two voigt peaks
 
     Parameters
@@ -1115,6 +1116,7 @@ const_params=True, spec_res=0.4, py_baseline=None, minimise='weighted_least_squa
     Center_p1=result.best_values.get('p1_center')
     error_pk1 = result.params['p1_center'].stderr
     error_pk1_amp = result.params['p1_amplitude'].stderr
+    fwhm_pk1 = result.params['p1_fwhm'].value
     
   
     # Get mix of lorenz
@@ -1126,6 +1128,7 @@ const_params=True, spec_res=0.4, py_baseline=None, minimise='weighted_least_squa
     Area_pk1=result.best_values.get('p1_amplitude')
     sigma_pk1=result.best_values.get('p1_sigma')
     gamma_pk1=result.best_values.get('p1_gamma')
+    
 
 
     # Evaluate the peak at 100 values for pretty plotting
@@ -1140,7 +1143,7 @@ const_params=True, spec_res=0.4, py_baseline=None, minimise='weighted_least_squa
     Center_pk1=Center_p1
 
 
-    return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor, error_pk1_amp
+    return Center_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor, error_pk1_amp, fwhm_pk1
 
 
 
@@ -1203,7 +1206,7 @@ Ne_center_1=1117.1, Ne_center_2=1147, Ne_prom_1=100, Ne_prom_2=200,
 Ne=None, filename=None, path=None, prefix=True,
 plot_figure=True, loop=True,
  save_clipboard=False,
-    close_figure=False, const_params=True, minimise='weighted_least_squares'):
+    close_figure=False, const_params=True, minimise='least_squares'):
 
 
 
@@ -1361,11 +1364,11 @@ plot_figure=True, loop=True,
         x_span_pk2_dist=abs(config.x_span_pk2[1]-config.x_span_pk2[0])
 
     # Fit Pk1
-    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor, error_pk1_amp= fit_Ne_pk(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
+    cent_pk1, Area_pk1, sigma_pk1, gamma_pk1, Ne_pk1_reg_x_plot, Ne_pk1_reg_y_plot, Ne_pk1_reg_x, Ne_pk1_reg_y, xx_pk1, result_pk1, error_pk1, result_pk1_origx, comps, Peak1_Prop_Lor, error_pk1_amp, fwhm_pk1= fit_Ne_pk(x_pk1, y_corr_pk1, x_span=x_span_pk1, Ne_center=Ne_center_1, model_name=config.model_name,  LH_offset_mini=config.LH_offset_mini, peaks_pk1=peaks_1, amplitude=Pk1_Amp, pk1_sigma=config.pk1_sigma,
     const_params=const_params, spec_res=spec_res, py_baseline=Py_base_pk1, minimise=minimise)
 
     # Fit pk2 
-    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, comps2, Peak2_Prop_Lor, error_pk2_amp = fit_Ne_pk( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, LH_offset_mini=config.LH_offset_mini2, peaks_pk1=peaks_2, amplitude=Pk2_Amp, pk1_sigma=config.pk2_sigma, const_params=const_params,spec_res=spec_res, py_baseline=Py_base_pk2, minimise=minimise)
+    cent_pk2,Area_pk2, sigma_pk2, gamma_pk2, Ne_pk2_reg_x_plot, Ne_pk2_reg_y_plot, Ne_pk2_reg_x, Ne_pk2_reg_y, xx_pk2, result_pk2, error_pk2, result_pk2_origx, comps2, Peak2_Prop_Lor, error_pk2_amp, fwhm_pk2 = fit_Ne_pk( x_pk2, y_corr_pk2, x_span=x_span_pk2,  Ne_center=Ne_center_2, model_name=config.model_name, LH_offset_mini=config.LH_offset_mini2, peaks_pk1=peaks_2, amplitude=Pk2_Amp, pk1_sigma=config.pk2_sigma, const_params=const_params,spec_res=spec_res, py_baseline=Py_base_pk2, minimise=minimise)
 
 
     # Calculate difference between peak centers, and Delta Ne
@@ -1567,6 +1570,8 @@ plot_figure=True, loop=True,
                           'pk1_gamma': gamma_pk1,
                           'error_pk1': error_pk1,
                           'Peak1_Prop_Lor': Peak1_Prop_Lor,
+                          'pk1_fwhm': fwhm_pk1, 
+                          'pk2_fwhm': fwhm_pk2, 
 
                          'deltaNe': DeltaNe,
                          'Ne_Corr': Ne_Corr,
@@ -1680,7 +1685,7 @@ def plot_Ne_corrections(df=None, x_axis=None, x_label='index', marker='o', mec='
 ## Looping Ne lines
 def loop_Ne_lines(*, files, spectra_path, filetype,
         config, config_ID_peaks, df_fit_params=None, prefix=False, print_df=False,
-                  plot_figure=True, single_acq=False, const_params=True, minimise='weighted_least_squares'):
+                  plot_figure=True, single_acq=False, const_params=True, minimise='least_squares'):
                       
 
 

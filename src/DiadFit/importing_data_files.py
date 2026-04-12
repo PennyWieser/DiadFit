@@ -14,6 +14,25 @@ import datetime
 import calendar
 
 encode="ISO-8859-1"
+
+## File to convert power to measured power for UCB
+
+def power_corr_UCB(df):
+    # Mapping of magnification to correction factor
+    mag_factor = {
+        5: 0.80,
+        20: 0.79,
+        40: 0.77,
+        50: 0.62,
+        100: 0.43
+    }
+    
+    # Create corrected power column
+    df['Power_corr'] = df['power (mW)'] * df['Mag (X)'].map(mag_factor)
+    
+    return df
+    
+    
 ## GEt video mag
 
 # Function to check if "Video Image" is in the first line, considering variations
