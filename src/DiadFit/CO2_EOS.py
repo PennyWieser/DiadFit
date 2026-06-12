@@ -879,7 +879,7 @@ def calculate_SP19942(T_K, target_pressure_MPa):
     else:
         Density=np.zeros(len(target_pressure_MPa))
         for i in range(0, len(target_pressure_MPa)):
-            Density[i]=calculate_Density_Sterner_Pitzer_1994(T_K=T_K, target_pressure_MPa=target_pressure_MPa[i])
+            Density[i]=calculate_Density_Sterner_Pitzer_1994(T_K=T_K, target_pressure_MPa=target_pressure_MPa[i]).item()
     return Density
 
 # Lets do the same to solve for tempreature here

@@ -44,6 +44,8 @@ from DiadFit.molar_gas_proportions import *
 
 from DiadFit.relaxifi import *
 
+from DiadFit.Polynomial_Ne_fitting import *
+
 # version
 from ._version import __version__
 

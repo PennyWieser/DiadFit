@@ -1242,7 +1242,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, Ar_pickle_str=None, pref_Ne=No
     # Impossible densities, room T
     Imposs_upper_end=(df['Corrected_Splitting']<105.3438707618937+offset)# & (df['Splitting']>103.88+offset)  
     df.loc[zero, 'Preferred D']=0
-    df.loc[zero, 'Notes']=0
+    df.loc[zero, 'Notes']=np.nan
     
     # Assign to the right type to avoid annoying pandas 2 warning
     # Ensure the columns are of type float64
@@ -1390,13 +1390,18 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, Ar_pickle_str=None, pref_Ne=No
     
 
 
-def Francis_pureCO2(FDS, FDS_std, uncer_FDS, uncer_FDS_std=0):
+def Francis_pureCO2(FDS, FDS_std, uncer_FDS, uncer_FDS_std=0, offset=0, offset_uncertainty=0):
     """ Returns density using a densimeter made from a single CO2 standard
+    Adapted from the Francis code. 
     """
-    offset= 0.035089020233933815 # Calculated FDS at 0.01 g/cm3
-    FDS_normalized_1=(FDS - FDS_std) + (uncer_FDS**2 + uncer_FDS_std**2)**0.5 + offset
+     # Calculated FDS at 0.01 g/cm3 # I have added in the offset, not in the original Francis code
+    FDS_normalized_1=(FDS - FDS_std) + (uncer_FDS**2 + uncer_FDS_std**2 + offset_uncertainty**2)**0.5 + offset
     FDS_normalized=(FDS - FDS_std)  + offset
-    FDS_normalized_2=(FDS - FDS_std) - (uncer_FDS**2 + uncer_FDS_std**2)**0.5 + offset
+    FDS_normalized_2=(FDS - FDS_std) - (uncer_FDS**2 + uncer_FDS_std**2+ offset_uncertainty**2)**0.5 + offset
+    
+    
+    # ----------------------
+    #Legacy - doesnt actually use the pressure for the calculations. 
 
     p0= 0
     p1= 148.73
@@ -1405,20 +1410,20 @@ def Francis_pureCO2(FDS, FDS_std, uncer_FDS, uncer_FDS_std=0):
     p4= 96.503
     p5= -9.8157
 
+    
+    pressure1 = p5*FDS_normalized_1**5 + p4*FDS_normalized_1**4 + p3*FDS_normalized_1**3 + p2*FDS_normalized_1**2 +p1*FDS_normalized_1**1 + p0
+    pressure2 = p5*FDS_normalized_2**5 + p4*FDS_normalized_2**4 + p3*FDS_normalized_2**3 + p2*FDS_normalized_2**2 +p1*FDS_normalized_2**1 + p0
+    pressure_final = (pressure1 + pressure2)/2
+    uncer_pressure_final = 8.7 + (np.maximum(pressure1, pressure2) - np.minimum(pressure1, pressure2))/(2*np.sqrt(3))  #uncertainty=8
+  # ----------------------
+  
+    # Does use this density math. 
     d0= 0
     d1= +0.31273
     d2= +0.11155
     d3= -0.01843
     d4= -0.0044
     d5= 0
-
-
-    pressure1 = p5*FDS_normalized_1**5 + p4*FDS_normalized_1**4 + p3*FDS_normalized_1**3 + p2*FDS_normalized_1**2 +p1*FDS_normalized_1**1 + p0
-    pressure2 = p5*FDS_normalized_2**5 + p4*FDS_normalized_2**4 + p3*FDS_normalized_2**3 + p2*FDS_normalized_2**2 +p1*FDS_normalized_2**1 + p0
-    pressure_final = (pressure1 + pressure2)/2
-    uncer_pressure_final = 8.7 + (np.maximum(pressure1, pressure2) - np.minimum(pressure1, pressure2))/(2*np.sqrt(3))  #uncertainty=8
-
-
     density1 = d5*FDS_normalized_1**5 + d4*FDS_normalized_1**4 + d3*FDS_normalized_1**3 + d2*FDS_normalized_1**2 + d1*FDS_normalized_1**1 + d0
     density2 = d5*FDS_normalized_2**5 + d4*FDS_normalized_2**4 + d3*FDS_normalized_2**3 + d2*FDS_normalized_2**2 + d1*FDS_normalized_2**1 + d0
     
