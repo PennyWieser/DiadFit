@@ -116,7 +116,7 @@ def calculate_density_cornell_old(*, temp='SupCrit', Split, split_err=None):
     Too_Low_RT=df['Corrected_Splitting']<102.734115670188
 
     df.loc[zero, 'Preferred D']=0
-    df.loc[zero, 'Notes']=0
+    df.loc[zero, 'Notes']=pd.NA
 
 
     # If room T, low density, set as low density
@@ -655,7 +655,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, pref_Ne=None, Ne_err=None, cor
     Too_Low_RT=df['Corrected_Splitting']<102.734115670188
 
     df.loc[zero, 'Preferred D']=0
-    df.loc[zero, 'Notes']=0
+    df.loc[zero, 'Notes']=pd.NA
     
     # Get rid of pandas 2 issue with warning of setting item of incompatible dtype
     df['Preferred D'] = df['Preferred D'].astype('float64', errors='ignore')

@@ -4261,8 +4261,8 @@ def plot_secondary_peaks(*, Diad_Files, path, filetype,
             if len(df_peak_sort>=1):
 
                 df_peak_sort_short=df_peak_sort[0:1]
-                peak_pos_saved[i]=df_peak_sort_short['pos'].values
-                peak_height_saved[i]=df_peak_sort_short['height'].values
+                peak_pos_saved[i]=df_peak_sort_short['pos'].values[0]
+                peak_height_saved[i]=df_peak_sort_short['height'].values[0]
             else:
 
                 peak_pos_saved[i]=np.nan
