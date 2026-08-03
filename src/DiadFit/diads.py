@@ -1778,6 +1778,13 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
     if diad2 is True and fit_peaks==3:
         calc_C13_amplitude=(0.5*(config1.diad_sigma)*(config1.C13_prom))/0.3939
+    # This is the Neon case.
+    if diad2 is True and fit_peaks==4:
+        calc_C13_amplitude=((config1.diad_sigma)*(config1.diad_prom))/0.3939
+
+
+
+
     # Gets overridden if you have triggered any of the warnings
     refit=False
     refit_param='Flagged Warnings:'
@@ -1892,7 +1899,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
 
 
-            if fit_peaks==3:
+            if fit_peaks==3 or fit_peaks==4:
                 if block_print is False:
                     print('Trying to iteratively fit 3 peaks')
 
@@ -1911,19 +1918,32 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
                         model_name=config1.model_name)
                         model = peak+model1
                         params.update(pars)
-                    if i==1: # This is c13
-                        peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
-                        min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
-                        sigma=sigma_ini/5,
-                        min_sigma=sigma_ini/20,
-                        max_sigma=sigma_ini/2,
-                        amplitude=calc_C13_amplitude,
-                        min_amplitude=calc_C13_amplitude*(0.5*config1.HB_amp_min_allowance),
-                        max_amplitude=calc_C13_amplitude*2*(config1.HB_amp_max_allowance),
-                        model_name=config1.model_name)
-                        model = peak+model
-                        params.update(pars)
-
+                    if fit_peaks==3:
+                        if i==1: # This is c13
+                            peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
+                            min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
+                            sigma=sigma_ini/5,
+                            min_sigma=sigma_ini/20,
+                            max_sigma=sigma_ini/2,
+                            amplitude=calc_C13_amplitude,
+                            min_amplitude=calc_C13_amplitude*(0.5*config1.HB_amp_min_allowance),
+                            max_amplitude=calc_C13_amplitude*2*(config1.HB_amp_max_allowance),
+                            model_name=config1.model_name)
+                            model = peak+model
+                            params.update(pars)
+                    elif fit_peaks==4:
+                        if i==1: # This is c13
+                            peak, pars = add_peak(prefix='lz%d_' % (i+2), center=cen,
+                            min_cent=cen-3*spec_res, max_cent=cen+3*spec_res,
+                            sigma=sigma_ini,
+                            min_sigma=sigma_ini/10,
+                            max_sigma=sigma_ini*10,
+                            amplitude=calc_C13_amplitude,
+                            min_amplitude=calc_C13_amplitude*(0.5*config1.HB_amp_min_allowance),
+                            max_amplitude=calc_C13_amplitude*2*(config1.HB_amp_max_allowance),
+                            model_name=config1.model_name)
+                            model = peak+model
+                            params.update(pars)
 
 
 
@@ -2012,7 +2032,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             model_F=model2
 
 
-        if fit_peaks==3:
+        if fit_peaks==3 or fit_peaks==4:
             peak_pos_voigt=np.array([initial_guess, HB_initial_guess, C13_initial_guess])
 
             for i, cen in enumerate(peak_pos_voigt):
@@ -2056,57 +2076,94 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
 
             result = model3.fit(ydat, params, x=xdat)
 
-
-            # Set the parameters of 'lz1' to be fixed
-            result.params['lz2_center'].vary = False
-            result.params['lz2_amplitude'].vary = False
-            result.params['lz2_sigma'].vary = False
-            result.params['lz3_center'].vary = False
-            result.params['lz3_amplitude'].vary = False
-            result.params['lz3_sigma'].vary = False
-            result.params['bkg_center'].vary = False
-            result.params['bkg_amplitude'].vary = False
-            result.params['bkg_sigma'].vary = False
+            #
+            # # Set the parameters of 'lz1' to be fixed
+            # result.params['lz2_center'].vary = False
+            # result.params['lz2_amplitude'].vary = False
+            # result.params['lz2_sigma'].vary = False
+            # result.params['lz3_center'].vary = False
+            # result.params['lz3_amplitude'].vary = False
+            # result.params['lz3_sigma'].vary = False
+            # result.params['bkg_center'].vary = False
+            # result.params['bkg_amplitude'].vary = False
+            # result.params['bkg_sigma'].vary = False
 
             # Perform fitting using the entire model (model2) with the stabilized 'lz1' parameters
-            final_result = model3.fit(ydat, result.params, x=xdat)
-            center_error = final_result.params['lz1_center'].stderr
 
-            result=final_result
-            model_F=model3
+            # final_result = model3.fit(ydat, result.params, x=xdat)
+            # center_error = final_result.params['lz1_center'].stderr
+            #
+            # result=final_result
+            # model_F=model3
+            #
+            # params.update(final_result.params)
+            #
+            #
+# 1. Capture parameters from the preliminary stabilization fit
+            params = result.params.copy()
 
-            params.update(final_result.params)
+            # 2. Re-enable variation for ALL peak parameters so the final fit optimizes everything
+            for param_name in params:
+                params[param_name].vary = True
+
+            # Assign model_F for the downstream final minimization step
+            model_F = model3
 
 
-
-
-
-
-
-
-
-    if minimise=='least_squares':
-        print('using least squares')
-    # all points given equal weight - used by default
-    # until Diadfit 1.0.18
-        init = model_F.eval(params, x=xdat)
+    # ------------------------------------------------------------------
+    # FINAL MINIMIZATION STEP (Uses previous best-fit parameters)
+    # ------------------------------------------------------------------
+    if minimise == 'least_squares':
+        if not block_print:
+            print('using least squares')
         result = model_F.fit(ydat, params, x=xdat)
-        comps = result.eval_components()
 
-    elif minimise=='weighted_least_squares':
-        print('using weighted least squares')
-        # Operate on total acounts, so add back in baseline
+    elif minimise == 'weighted_least_squares':
+        if not block_print:
+            print('using weighted least squares')
+
+        # Total counts for Poisson weighting (data + baseline)
         total_counts_obs = ydat + py_baseline
 
         # Calculate weights (1/sigma)
         weights = 1.0 / np.sqrt(np.maximum(total_counts_obs, 1.0))
 
-        # 4. Final fit
-        # We use scale_covar=True to let lmfit scale the errors based on the
-        # fit quality (the residuals), recomended if we dont know the absolute size of the errors/weights and we dont because there could easily be gain on the detector, other noise sources etc
-        result = model_F.fit(ydat, params, x=xdat,
-                            weights=weights,
-                            scale_covar=True)
+        # Final weighted fit starting from intermediate best-fit parameters
+        result = model_F.fit(
+            ydat,
+            params,
+            x=xdat,
+            weights=weights,
+            scale_covar=True
+        )
+
+
+    #
+    #
+    #
+    #
+    # if minimise=='least_squares':
+    #     print('using least squares')
+    # # all points given equal weight - used by default
+    # # until Diadfit 1.0.18
+    #     init = model_F.eval(params, x=xdat)
+    #     result = model_F.fit(ydat, params, x=xdat)
+    #     comps = result.eval_components()
+    #
+    # elif minimise=='weighted_least_squares':
+    #     print('using weighted least squares')
+    #     # Operate on total acounts, so add back in baseline
+    #     total_counts_obs = ydat + py_baseline
+    #
+    #     # Calculate weights (1/sigma)
+    #     weights = 1.0 / np.sqrt(np.maximum(total_counts_obs, 1.0))
+    #
+    #     # 4. Final fit
+    #     # We use scale_covar=True to let lmfit scale the errors based on the
+    #     # fit quality (the residuals), recomended if we dont know the absolute size of the errors/weights and we dont because there could easily be gain on the detector, other noise sources etc
+    #     result = model_F.fit(ydat, params, x=xdat,
+    #                         weights=weights,
+    #                         scale_covar=True)
 
 
     else:
@@ -2116,15 +2173,10 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             "minimise='weighted_least_squares'."
         )
 
-    # print(f"Fityk-style Weighted RedChi: {result.redchi:.4f}")
-    # print(f"Error: {result.params['lz1_center'].stderr:.5f}")
-    #
-    # print('Weighting accounts for 5 averaged acquisitions and fitted baseline.')
-    # print(f"Reduced Chi-Square 2: {result.redchi}")
 
     # 6. Evaluate components for plotting
     comps = result.eval_components()
-    reduced_chi_squared = np.sqrt(result.redchi)
+    reduced_chi_squared = result.redchi
 
     # Other things
     #print(result.best_values)
@@ -2208,7 +2260,7 @@ def fit_gaussian_voigt_generic_diad(config1, *, diad1=False, diad2=False, path=N
             ax1_xlim=[Center_ini-15, Center_ini+30]
             ax2_xlim=[Center_ini-15, Center_ini+30]
 
-        if fit_peaks==3:
+        if fit_peaks==3 or fit_peaks==4:
 
             Peak2_Cent=result.best_values.get('lz2_center')
             Peak2_Int=result.best_values.get('lz2_amplitude')
@@ -2666,7 +2718,7 @@ def fit_diad_2_w_bck(*, config1: diad2_fit_config=diad2_fit_config(), config2: d
 
 
 
-    if fit_peaks==3:
+    if fit_peaks==3 or fit_peaks==4:
         # This tests if HB is Nan and C13 is Nan
         if np.isnan(HB_pos)==True and np.isnan(C13_pos)==True:
             fit_peaks=1
@@ -3529,6 +3581,9 @@ to_clipboard=False, path=None):
         file=filename.rsplit('.txt', 1)[0]
         combo_f.insert(0, 'filename', file)
 
+        from DiadFit import __version__
+        combo_f["DiadFit_Version"] = __version__
+
     if Diad1_fit is None and Diad2_fit is None:
         df=pd.DataFrame(data={'filename': filename,
                             'Splitting': np.nan,
@@ -3546,6 +3601,12 @@ to_clipboard=False, path=None):
                                                         'C13_Area': np.nan,
                                                         })
         combo_f=pd.concat([df, Carb_fit], axis=1)
+
+        # add the version of DiadFitimport DiadFit as dfit
+
+
+
+
         if to_clipboard is True:
             df.to_clipboard(excel=True, header=False, index=False)
         combo_f=df
@@ -3560,6 +3621,7 @@ to_clipboard=False, path=None):
             dir2=os.makedirs(path+'/'+ 'Diad_Fits', exist_ok=False)
         #filepath=Path(path+'/'+ 'Peak_Fits'+'/'+filename)
         combo_f.to_csv(path+'/'+'Diad_Fits'+'/'+'fits_'+filename)
+
     return combo_f
 
 

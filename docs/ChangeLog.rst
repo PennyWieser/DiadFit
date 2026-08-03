@@ -2,6 +2,10 @@
 ================
 Change Log
 ================
+July 20th, 2026  Penny Wieser - V.1.0.24
+-------------------------------------------
+Following reviewer comments (round 2), we fixed a bug where reduced Chisquared was being square rooted by accident. We also tweaked the code for the final fit to shift the diad and peak center for the final weighted solve.
+
 
 March 17th, 2026  Penny Wieser - V.1.0.19
 -------------------------------------------
