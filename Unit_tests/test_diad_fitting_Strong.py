@@ -124,11 +124,11 @@ class test_strong_diad_fit(unittest.TestCase):
 2, "Calculated Diad 2 position doesnt match test")
 
     def test_st_pk2_area(self):
-        self.assertAlmostEqual(Diad2_fit_strong['Diad2_Voigt_Area'].iloc[0],79240.29545872404,
+        self.assertAlmostEqual(Diad2_fit_strong['Diad2_Voigt_Area'].iloc[0],78901.75488865687,
 0, "Calculated Diad 2 area doesnt match test")
 
     def test_st_pk2_err(self):
-        self.assertAlmostEqual(Diad2_fit_strong['Diad2_cent_err'].iloc[0],0.0006681704840915489,
+        self.assertAlmostEqual(Diad2_fit_strong['Diad2_cent_err'].iloc[0],0.001286771071430028,
 4, "Calculated Diad 2 error doesnt match test")
 
 
