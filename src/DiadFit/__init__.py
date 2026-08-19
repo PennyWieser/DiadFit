@@ -46,6 +46,8 @@ from DiadFit.relaxifi import *
 
 from DiadFit.Polynomial_Ne_fitting import *
 
+from DiadFit.Calibrating_new_densimeters import *
+
 # version
 from ._version import __version__
 

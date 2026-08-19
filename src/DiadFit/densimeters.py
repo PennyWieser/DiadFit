@@ -1349,6 +1349,7 @@ CI_split=0.67, CI_neon=0.67,  Ne_pickle_str=None, Ar_pickle_str=None, pref_Ne=No
             'Corrected_Splitting_σ_Ne', 'Corrected_Splitting_σ_peak_fit',
             'power (mW)', 'Spectral Center'
         ]
+        
     elif Ar_pickle_str is not None:
         cols_to_move = [
             'filename', 'Density g/cm3', 'σ Density g/cm3',
@@ -1395,8 +1396,12 @@ def Francis_pureCO2(FDS, FDS_std, uncer_FDS, uncer_FDS_std=0, offset=0, offset_u
     Adapted from the Francis code. 
     """
      # Calculated FDS at 0.01 g/cm3 # I have added in the offset, not in the original Francis code
+     
+    # upper bound
     FDS_normalized_1=(FDS - FDS_std) + (uncer_FDS**2 + uncer_FDS_std**2 + offset_uncertainty**2)**0.5 + offset
+    # middle bound
     FDS_normalized=(FDS - FDS_std)  + offset
+    # lower bound
     FDS_normalized_2=(FDS - FDS_std) - (uncer_FDS**2 + uncer_FDS_std**2+ offset_uncertainty**2)**0.5 + offset
     
     
@@ -1424,9 +1429,11 @@ def Francis_pureCO2(FDS, FDS_std, uncer_FDS, uncer_FDS_std=0, offset=0, offset_u
     d3= -0.01843
     d4= -0.0044
     d5= 0
+    # upper bound
     density1 = d5*FDS_normalized_1**5 + d4*FDS_normalized_1**4 + d3*FDS_normalized_1**3 + d2*FDS_normalized_1**2 + d1*FDS_normalized_1**1 + d0
+    # lower bound
     density2 = d5*FDS_normalized_2**5 + d4*FDS_normalized_2**4 + d3*FDS_normalized_2**3 + d2*FDS_normalized_2**2 + d1*FDS_normalized_2**1 + d0
-    
+    # middle bound
     densityPW = d5*FDS_normalized**5 + d4*FDS_normalized**4 + d3*FDS_normalized**3 + d2*FDS_normalized**2 + d1*FDS_normalized**1 + d0
         
     density_final = (density1 + density2)/2
