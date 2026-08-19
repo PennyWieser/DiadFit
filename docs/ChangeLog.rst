@@ -2,9 +2,10 @@
 ================
 Change Log
 ================
-Aug 18th, 2026  Penny Wieser - V.1.0.28
+Aug 18th, 2026  Penny Wieser - V.1.1.0
 -------------------------------------------
 Added new functionality for people to define densimeters based on the synthetic+natural standard set.
+Also apologies folks about the bad numbering of versions below....
 
 
 
