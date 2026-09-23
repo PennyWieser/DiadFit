@@ -450,7 +450,9 @@ def convert_datastamp_to_metadata(path, filename, creation=True, modification=Fa
     if creation is False and modification is False:
         raise Exception('select one of Creation=True or modification=True')
 
-    path2=path+'\\'+filename
+    
+    path2 = os.path.join(path, filename)
+    
     m_time=os.path.getmtime(path2)
     dt_m = datetime.datetime.fromtimestamp(m_time)
     # Creation time
