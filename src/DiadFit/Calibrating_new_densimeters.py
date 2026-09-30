@@ -4,6 +4,7 @@ import numpy as np
 from scipy.odr import ODR, Model, RealData
 from scipy.optimize import curve_fit
 import pandas as pd
+from scipy.optimize import least_squares
 
 def poly_odr_centered(beta, xc):
     """ Polynomial model definition, for centered form"""
@@ -11,15 +12,64 @@ def poly_odr_centered(beta, xc):
     return a * xc + b * xc**2 + c * xc**3 + d * xc**4 + e
 
 
-def fit_densimeter(x_data, y_data, x_err, y_err, maxit=10000):
+def fit_densimeter(x_data, y_data, x_err, y_err, maxit=10000, method='least_squares'):
     """
-    Fit the polynomial densimeter model with scipy.odr (accounts for x and y
-    uncertainty), then compute a residual-scatter term for prediction
-    intervals. Returns a dict with everything needed to predict later.
+    Fit the polynomial Raman densimeter calibration, accounting for
+    uncertainties in both corrected splitting and density.
 
-    x_data = Corrected Splitting from calibratoin (with error x_err)
-    y_data = Preferred density value from standard (with error y_err)
+    The calibration is fit in centered x-space using a fourth-order polynomial.
+    Two fitting methods are available:
+
+    - ``'least_squares'`` (default): performs orthogonal-distance regression
+      using ``scipy.optimize.least_squares`` by simultaneously optimizing the
+      polynomial coefficients and the x displacement of each calibration point.
+      This accounts for individual x and y uncertainties without relying on
+      scipy.odr/ODRPACK.
+
+    - ``'odr'``: performs conventional orthogonal-distance regression using
+      ``scipy.odr``. This works on many computers, but certain scipy and numpy verisons make it crash. Thanks to Steve Turner (WHOI) for the least squares fix after discovering this bug on two of his students computers.
+
+    After fitting, the function calculates the covariance of the polynomial
+    coefficients and the residual scatter of the calibration data around the
+    fitted curve. These are stored for subsequent uncertainty propagation and
+    prediction intervals when calculating densities of unknown samples.
+
+    Parameters
+    ----------
+    x_data : array-like
+        Corrected Raman splitting values for the calibration standards.
+
+    y_data : array-like
+        Preferred CO2 density values for the calibration standards.
+
+    x_err : array-like or float
+        1-sigma uncertainty in corrected Raman splitting. May be supplied as
+        one value for all standards or as an individual uncertainty for each
+        calibration point.
+
+    y_err : array-like or float
+        1-sigma uncertainty in the preferred density values. May be supplied
+        as one value for all standards or as an individual uncertainty for each
+        calibration point.
+
+    maxit : int, optional
+        Maximum number of iterations used by the ODR solver when
+        ``method='odr'``. Default is 10000.
+
+    method : {'least_squares', 'odr'}, optional
+        Fitting method. Default is ``'least_squares'``.
+
+    Returns
+    -------
+    dict
+        Dictionary containing the fitted polynomial coefficients, coefficient
+        covariance matrix, x-centering value, residual scatter, reduced
+        chi-squared, fitting diagnostics, calibration range, and number of
+        calibration points. The returned dictionary can be passed directly to
+        ``save_model`` and subsequently used by ``calculate_density_generic``.
     """
+def fit_densimeter(x_data, y_data, x_err, y_err, maxit=10000, method='least_squares'):
+
     # --- clean & flatten ---
     x = np.asarray(x_data, dtype=np.float64).ravel()
     y = np.asarray(y_data, dtype=np.float64).ravel()
@@ -32,7 +82,6 @@ def fit_densimeter(x_data, y_data, x_err, y_err, maxit=10000):
         sy = np.full_like(y, sy.item())
 
     # Really hates nans or zeros in error, so get rid of them.
-
     mask = (
         np.isfinite(x) & np.isfinite(y) & np.isfinite(sx) & np.isfinite(sy)
         & (sx > 0) & (sy > 0)
@@ -52,30 +101,78 @@ def fit_densimeter(x_data, y_data, x_err, y_err, maxit=10000):
         xc, y
     )
 
-    # --- ODR fit (accounts for both x and y errors) ---
-    data = RealData(xc, y, sx=sx, sy=sy)
-    model = Model(poly_odr_centered)
-    odr_fit = ODR(data, model, beta0=p0, maxit=maxit)
-    output = odr_fit.run()
+    if method == 'least_squares':
+        n = len(x)
+        n_par = 5
 
-    if output.info not in (1, 2):
-        raise RuntimeError(
-            f"ODR did not converge cleanly: info={output.info}, "
-            f"stopreason={output.stopreason}"
+        def resid(p):
+            beta = p[:n_par]
+            delta = p[n_par:]
+            return np.concatenate([
+                (y - poly_odr_centered(beta, xc + delta)) / sy,
+                delta / sx,
+            ])
+
+        fit = least_squares(
+            resid,
+            np.concatenate([p0, np.zeros(n)]),
+            x_scale='jac',
+            xtol=1e-15,
+            ftol=1e-15,
+            gtol=1e-15,
         )
-    if not np.any(output.cov_beta):
-        raise RuntimeError("cov_beta is all zero — fit likely failed silently.")
 
-    popt = output.beta
-    # scale by res_var: inflates parameter uncertainty when the data show
-    # more scatter than the nominal x_err/y_err predict (chi^2/dof > 1)
-    pcov = output.cov_beta * output.res_var
+        if not fit.success:
+            raise RuntimeError(
+                f"least_squares did not converge: {fit.message}"
+            )
+
+        popt = fit.x[:n_par]
+
+        res_var = np.sum(fit.fun**2) / (n - n_par)
+        info = fit.status
+        stopreason = fit.message
+
+        JtJ = fit.jac.T @ fit.jac
+
+        if np.linalg.matrix_rank(JtJ) < JtJ.shape[0]:
+            raise RuntimeError(
+                "Jacobian is rank deficient - covariance is not defined."
+            )
+
+        pcov = np.linalg.inv(JtJ)[:n_par, :n_par] * res_var
+
+    elif method == 'odr':
+
+        # --- ODR fit (accounts for both x and y errors) ---
+        data = RealData(xc, y, sx=sx, sy=sy)
+        model = Model(poly_odr_centered)
+        odr_fit = ODR(data, model, beta0=p0, maxit=maxit)
+        output = odr_fit.run()
+
+        if output.info not in (1, 2):
+            raise RuntimeError(
+                f"ODR did not converge cleanly: info={output.info}, "
+                f"stopreason={output.stopreason}"
+            )
+        if not np.any(output.cov_beta):
+            raise RuntimeError("cov_beta is all zero — fit likely failed silently.")
+
+        popt = output.beta
+
+        # scale by res_var: inflates parameter uncertainty when the data show
+        # more scatter than the nominal x_err/y_err predict (chi^2/dof > 1)
+        pcov = output.cov_beta * output.res_var
+
+        res_var = output.res_var
+        info = output.info
+        stopreason = output.stopreason
 
     # --- residual scatter of data around the fitted curve ---
-    # this captures intrinsic/experimental scatter NOT explained by the
-    # nominal x_err/y_err inputs -- needed for a prediction interval on a
-    # single new measurement (as opposed to a confidence interval on the
-    # mean curve, which pcov alone gives you)
+    # Empirical vertical scatter of the calibration data around the fitted curve.
+    # This captures the observed point-to-curve scatter beyond the uncertainty
+    # in the fitted mean calibration curve (represented by pcov), and can be
+    # included when estimating prediction uncertainty for a single new measurement.
     y_model_at_data = poly_odr_centered(popt, xc)
     residuals = y - y_model_at_data
     resid_std = np.std(residuals, ddof=len(popt))
@@ -85,17 +182,17 @@ def fit_densimeter(x_data, y_data, x_err, y_err, maxit=10000):
         "pcov": pcov,
         "x_mean": x_mean,
         "resid_std": resid_std,
-        "res_var": output.res_var,
-        "info": output.info,
-        "stopreason": output.stopreason,
+        "res_var": res_var,
+        "info": info,
+        "stopreason": stopreason,
         "param_names": ["a", "b", "c", "d", "e"],
         "model_form": "a*xc + b*xc**2 + c*xc**3 + d*xc**4 + e, where xc = x - x_mean",
         "x_range": (float(np.min(x)), float(np.max(x))),
         "n_points": len(x),
     }
 
-    print(f"ODR stop reason: {output.stopreason}")
-    print(f"Reduced Chi-Squared (res_var): {output.res_var:.4f}")
+    print(f"{method} stop reason: {stopreason}")
+    print(f"Reduced Chi-Squared (res_var): {res_var:.4f}")
     print(f"Residual scatter around curve (resid_std): {resid_std:.6f}")
     a, b, c, d, e = popt
     print(f"Coefficients (centered space): a={a:.6g} b={b:.6g} c={c:.6g} "
